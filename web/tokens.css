@@ -1,0 +1,232 @@
+/* ============================================================================
+   ACCLIMATE — DESIGN TOKENS
+   ----------------------------------------------------------------------------
+   THIS IS THE ONLY FILE IN THE CODEBASE PERMITTED TO CONTAIN A LITERAL
+   COLOR, SHADOW, RADIUS, OR FONT NAME.
+
+   Every component reads from these variables. `npm run check:design` fails the
+   build if a hex code, rgba(), box-shadow, or forbidden class appears anywhere
+   else. That check is not advisory.
+
+   Direction: the structural language of a professional desktop GIS/CAD tool —
+   dense, hairline-delineated, zero-radius, information-first. Borders do the
+   work that shadows do in consumer UI. The palette and typeface are Acclimate's
+   own; do not substitute Segoe UI or Esri blue.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+
+  /* ==========================================================================
+     1. SURFACE — the substrate
+     Warm neutral grays. Warmer than Microsoft's cool neutrals; that warmth is
+     the product's identity and the reason it doesn't read as an Office clone.
+     ====================================================================== */
+  --surface-app:       #F3F2F0;  /* window chrome, ribbon, behind everything  */
+  --surface-panel:     #FFFFFF;  /* docked panels, content areas              */
+  --surface-sunken:    #EAE8E4;  /* table headers, wells, inactive tabs       */
+  --surface-selected:  #DCE9F2;  /* selected row / active tab                 */
+  --surface-hover:     #F0EEEA;  /* row hover — barely there, deliberately    */
+  --surface-inverse:   #1B1B1B;  /* alert bar, inverted strips                */
+
+  /* ==========================================================================
+     2. LINE — structure. Borders replace shadows throughout.
+     ====================================================================== */
+  --line-hairline:  #E2E0DB;  /* dividers inside a panel                      */
+  --line-default:   #CFCCC5;  /* panel edges, table cell borders              */
+  --line-strong:    #A8A49B;  /* group boundaries, ribbon separators          */
+  --line-focus:     #1B1B1B;  /* keyboard focus ring — 2px, always visible    */
+
+  /* ==========================================================================
+     3. INK
+     ====================================================================== */
+  --ink-primary:    #1B1B1B;
+  --ink-secondary:  #5C5850;
+  --ink-tertiary:   #8A857B;  /* labels, captions, disabled                   */
+  --ink-inverse:    #FAF9F7;
+  --ink-link:       #1F5C7A;
+
+  /* ==========================================================================
+     4. ACCENT — means "interactive / selected". NEVER used for data.
+     A desaturated instrument blue. Data colors live in §5 and §6 and must not
+     be confused with this; mixing the two is the most common failure in
+     dashboards and it destroys legibility.
+     ====================================================================== */
+  --accent:        #1F5C7A;
+  --accent-hover:  #2A7399;
+  --accent-press:  #164457;
+  --accent-wash:   #DCE9F2;
+
+  /* ==========================================================================
+     5. STATUS — derived from construction safety signage, not from generic
+     traffic-light colors. Deep and desaturated so a screen full of them stays
+     readable in sunlight.
+     ====================================================================== */
+  --status-cleared:        #4A7C2E;  /* full shift                            */
+  --status-cleared-wash:   #E4EEDA;
+  --status-reduced:        #B87A0A;  /* duration cut                          */
+  --status-reduced-wash:   #F7EBD2;
+  --status-restricted:     #C1440E;  /* heavy work/rest                       */
+  --status-restricted-wash:#F8E0D6;
+  --status-stop:           #8C1D06;  /* no work at this intensity             */
+  --status-stop-wash:      #F2D5CE;
+
+  /* Divergence marker — where the model disagrees with the calendar ramp.
+     This is the product's whole argument, so it gets its own reserved color
+     and appears nowhere else. */
+  --divergence:      #7A1FA2;
+  --divergence-wash: #EFE0F5;
+
+  /* ==========================================================================
+     6. DATA RAMPS — sequential, for values only. Never for UI chrome.
+     ====================================================================== */
+
+  /* Heat: WBGT / air temperature, cool to extreme */
+  --heat-0: #6E7A87;
+  --heat-1: #96907C;
+  --heat-2: #D69A2E;
+  --heat-3: #DE6B1B;
+  --heat-4: #B8330A;
+
+  /* Adaptation state A, 0 (unprotected) to 1 (fully adapted).
+     Reads as "protection accumulating", deliberately unlike the heat ramp so
+     the two can sit on the same chart without being confused. */
+  --adapt-0: #EDEAE3;
+  --adapt-1: #C3CFC0;
+  --adapt-2: #93AE93;
+  --adapt-3: #628E69;
+  --adapt-4: #336B45;
+
+  /* Projected / unobserved data. Everything future uses this treatment. */
+  --projected-stroke: #A8A49B;
+  --projected-dash:   3 3;
+  --projected-alpha:  0.45;
+
+  /* ==========================================================================
+     7. TYPE
+     IBM Plex Sans and Mono. Chosen because Plex was drawn for enterprise
+     engineering software — the same intent Segoe serves for Office — while
+     being nobody's default. All numerics are Mono, always: this is an
+     instrument, and columns of figures must align.
+     ====================================================================== */
+  --font-ui:   'IBM Plex Sans', 'Segoe UI', sans-serif;
+  --font-data: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Dense scale. 12px is the workhorse body size, matching professional
+     desktop tooling. Do not inflate these to "improve readability" — density
+     is the point, and the supervisor needs 40 rows on one screen. */
+  --text-label:   10px;  /* uppercase eyebrows, letterspaced                  */
+  --text-caption: 11px;  /* secondary metadata                               */
+  --text-body:    12px;  /* DEFAULT — all UI text                            */
+  --text-emphasis:13px;  /* row primary, emphasised body                     */
+  --text-title:   15px;  /* panel titles                                     */
+  --text-heading: 20px;  /* page / site heading                              */
+  --text-metric:  28px;  /* the one big number per view, no more             */
+
+  --leading-tight:  1.25;
+  --leading-normal: 1.45;
+
+  --tracking-label: 0.10em;  /* uppercase labels only                        */
+  --tracking-tight: -0.01em; /* headings only                                */
+
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semi:    600;
+  --weight-bold:    700;
+
+  /* ==========================================================================
+     8. SPACE — 4px base unit
+     ====================================================================== */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* ==========================================================================
+     9. RADIUS — near-zero, and that is the point.
+     There is deliberately no value above 2px. Rounded cards are the single
+     strongest signal of a templated dashboard. Do not add one.
+     ====================================================================== */
+  --radius-none: 0;
+  --radius-sm:   2px;   /* buttons, chips, inputs — nothing else             */
+
+  /* ==========================================================================
+     10. ELEVATION — one shadow exists, for detached overlays only.
+     Panels, rows, tables and cards are delineated by borders. If you find
+     yourself wanting a shadow on an inline element, you want a border.
+     ====================================================================== */
+  --elevation-flat:   none;
+  --elevation-flyout: 0 2px 8px rgba(0, 0, 0, 0.14);
+
+  /* ==========================================================================
+     11. CONTROL METRICS — desktop density
+     ====================================================================== */
+  --control-height:      24px;  /* buttons, inputs, dropdowns                */
+  --row-height:          28px;  /* data grid row                             */
+  --row-height-relaxed:  36px;  /* roster row with secondary line            */
+  --ribbon-height:       92px;
+  --panel-title-height:  28px;
+  --statusbar-height:    24px;
+  --border-width:        1px;
+  --focus-width:         2px;
+
+  /* ==========================================================================
+     12. MOTION — minimal. This is an instrument, not a presentation.
+     ====================================================================== */
+  --duration-instant: 80ms;
+  --duration-quick:  140ms;
+  --easing:          cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   TOUCH DENSITY — the field surface
+   Same tokens, larger targets. The supervisor uses this at 6 a.m., outdoors,
+   in glare, one-handed, possibly gloved. Nothing below 44px is tappable.
+   Applied by adding data-density="touch" to the root element, NOT by writing
+   a second stylesheet.
+   ========================================================================== */
+[data-density="touch"] {
+  --text-body:     14px;
+  --text-emphasis: 16px;
+  --text-title:    18px;
+  --control-height:      44px;
+  --row-height:          52px;
+  --row-height-relaxed:  72px;
+}
+
+/* ==========================================================================
+   BASELINE
+   ========================================================================== */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--surface-app);
+  color: var(--ink-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numerals are tabular everywhere, without exception. Columns must align. */
+.num, td.num, .metric-value {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: var(--focus-width) solid var(--line-focus);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

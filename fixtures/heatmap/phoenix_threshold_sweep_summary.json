@@ -1,0 +1,47 @@
+{
+  "34C": {
+    "activity_id": "c0df2f78-9456-45ec-ab90-361253794d37",
+    "analytic_type": "exceedance",
+    "units": "hour",
+    "n_cells": 38569,
+    "min": 126.2765,
+    "max": 162.6627,
+    "mean": 155.17869171873787
+  },
+  "36C": {
+    "activity_id": "09101ac5-6b07-40e9-b507-f0752a3bf0df",
+    "analytic_type": "exceedance",
+    "units": "hour",
+    "n_cells": 38569,
+    "min": 104.1645,
+    "max": 128.6883,
+    "mean": 119.60488554020068
+  },
+  "38C": {
+    "activity_id": "cf0e7285-db29-4d08-8a4f-66c7c6cb3c6c",
+    "analytic_type": "exceedance",
+    "units": "hour",
+    "n_cells": 38569,
+    "min": 69.7774,
+    "max": 99.3853,
+    "mean": 90.67589898363971
+  },
+  "40C": {
+    "activity_id": "6fd9ff1a-3591-4217-bc38-ff1dd6258563",
+    "analytic_type": "exceedance",
+    "units": "hour",
+    "n_cells": 38569,
+    "min": 33.4225,
+    "max": 59.3686,
+    "mean": 52.31823556483186
+  },
+  "42C": {
+    "activity_id": "c69c5519-c652-4f5b-b690-f7263406f889",
+    "analytic_type": "exceedance",
+    "units": "hour",
+    "n_cells": 38569,
+    "min": -0.3176,
+    "max": 7.5178,
+    "mean": 4.887179981332158
+  }
+}
