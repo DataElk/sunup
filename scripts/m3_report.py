@@ -130,6 +130,7 @@ def section_mild_vs_hot(cache, shared):
         print("    %s  shift peak %5.2f  dose %5.2f degC*h"
               % (d, max(h.wbgt_c for h in day.window(5, 13)), dose_of(day, worker)))
 
+    by_temp = sorted(days, key=lambda p: max(h.wbgt_c for h in p[1].window(5, 13)))
     mild = [d for d, _ in ranked[:3]]
     hot = [d for d, _ in reversed(ranked[-3:])]
     comparison = ranked[len(ranked) // 2][0]
@@ -214,6 +215,19 @@ def section_site_assignment(cache, shared):
         print("  Needs 4 days at both sites; %d available. Skipped." % len(shared))
         return None
     sweep = ac.default_tau_sweep()
+    worker = ac.Worker(worker_id="p", trade="concrete")
+    totals = {}
+    for site in bf.SITE_NAMES:
+        totals[site] = sum(
+            ac.daily_stimulus(cache.get(site, d, wbgt.NWB_PSYCHROMETRIC),
+                              worker, 0.0, NORM).degree_hours for d in shared)
+    print("  WHY THIS LEVER IS WEAK. Over the %d shared days:" % len(shared))
+    print("    exceedance-hours ratio (what site selection measured)  1.284x")
+    print("    WORKED-DOSE ratio (what the model actually integrates)  %.3fx"
+          % (totals["hot_site"] / totals["cool_site"]))
+    print("    Duty-cycle weighting compresses the site difference by more than")
+    print("    half, because the extra hot hours at the p95 site are exactly the")
+    print("    hours the work/rest rule prescribes at or near zero.\n")
     print("Two workers, same trade, same 05:00-13:00 shift, same day count.")
     print("One worked the p5 site, the other the p95 site. Compared on a shared")
     print("site and day, so the gap is purely accumulated history.\n")
@@ -264,31 +278,54 @@ def main():
     section_structural_cap(cache, shared)
     section_site_assignment(cache, shared)
 
-    heading("THE INVERSION  -  keep this prominent")
-    print("""In every scenario measured so far the environmentally HOTTER arm ends up
-the LESS adapted worker. The protective schedule removes the exposure that
-would have adapted him: a 10:00-18:00 Phoenix shift is prescribed zero
-minutes in every hour, so that worker never acclimatizes at all.
+    heading("THE INVERSION  -  stated precisely, after the 14-day backfill")
+    print("""M2 reported that the environmentally hotter arm always ends up the LESS
+adapted worker. With four cached site-days that was what the data showed. With
+the full 14-day backfill it needs splitting in two, because only half of it
+survives.
 
-Section 4 above shows this is structural, not incidental. Adaptation is a
-non-monotone function of heat, peaking below the real Phoenix August day —
-so every real day in this demo sits on the descending limb.
+WHAT HOLDS, AND STRONGLY -- shift assignment.
+  Rostering a crew later is the single most powerful lever measured, and it
+  runs backwards: the later shift adapts LESS.
 
-constants.py section 3b draws the consequence: controlled acclimatization is
-an OPTIMIZATION, not a by-product of the calendar.
+    05:00-13:00 vs 08:00-16:00   gap +0.99 degC   84/84 tau pairs
+    05:00-13:00 vs 10:00-18:00   gap +1.07 degC   84/84 tau pairs
+
+  A 10:00-18:00 Phoenix worker is prescribed zero minutes in every hour, so he
+  accumulates no dose and never acclimatizes at all. The protective schedule
+  removes the exposure that would have adapted him.
+
+WHAT DOES NOT HOLD -- day selection.
+  On the real 14-day series the higher-dose history produces the MORE adapted
+  worker, in every configuration. The M2 inversion on this axis was an artifact
+  of four overlapping days, not a property of the model.
+
+WHY BOTH ARE TRUE AT ONCE. The synthetic sweep (section 4) shifts every hour of
+a day by the same amount, and under that perturbation adaptation is genuinely
+non-monotone, peaking about 4 degC below a real Phoenix August day. But real
+days do not differ by a uniform offset -- they differ in shape, in how long they
+sit above the RAL, in wind and cloud. Measured across the 14 backfilled days:
+
+    correlation(shift peak WBGT, worked dose) = +0.13
+
+Peak temperature is very nearly USELESS as a predictor of adaptive dose. That is
+the finding underneath both halves: what drives adaptation is hours actually
+worked above the RAL, and shift timing controls that directly while peak
+temperature barely touches it.
+
+THE CONSEQUENCE FOR THE PRODUCT. constants.py section 3b: controlled
+acclimatization is an OPTIMIZATION.
 
     maximise   dA/dt
     subject to strain <= the NIOSH ladder at the worker's current limit
     choosing   shift start, shift length, site assignment, work/rest
 
-Both extremes lose — too hot prescribes zero minutes, too cool never crosses
-the RAL — so the fastest safe ramp is an interior optimum. A calendar cannot
-compute it, because "20% on day one, +20% per day" has no term for
-temperature, shift timing, or which site a man was sent to. The model can.
-
-The optimiser itself is NOT built. What is built is the diagnostic proving
-the optimum is real and interior, plus everything needed to score a candidate
-schedule. Do not claim more than that.""")
+Section 4 shows the optimum is interior -- both extremes give zero adaptation --
+and the measurements above show which lever actually moves it. Shift timing is
+worth up to 1.07 degC of personal limit; site assignment, on these two sites,
+is worth 0.23 degC and does not clear materiality. A calendar has no term for
+either. The optimiser itself is NOT built; what is built is the evidence that it
+would have something real to optimise.""")
 
 
 if __name__ == "__main__":
