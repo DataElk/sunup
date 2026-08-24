@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Mapping, Sequence, Tuple
 
 from acclimate import constants as C
 from acclimate.errors import ImplausibleValue

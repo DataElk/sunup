@@ -31,7 +31,7 @@ from typing import List, Optional, Sequence, Tuple
 
 from acclimate import acclimatization as ac
 from acclimate import constants as C
-from acclimate.wbgt import WBGTDay, WBGTHour
+from acclimate.wbgt import WBGTDay
 
 
 def offset_day(day: WBGTDay, delta_c: float) -> WBGTDay:
