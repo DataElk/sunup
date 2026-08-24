@@ -265,6 +265,44 @@ def calendar_ramp_pct(day_on_job: int) -> int:
 
 
 @dataclass(frozen=True)
+class HourPrescription:
+    """One hour of a shift, with the reason for its prescription retained.
+
+    [GAP 5/9, fixed 2026-08-25] `simulate` used to compute the excess over the
+    personal limit, read a rung off the ladder, and throw the excess away. The
+    interface could then state a prescription but never explain it. Keeping the
+    excess costs nothing and is the difference between "15 minutes" and
+    "15 minutes because 13:00 is 2.4 degC over your limit".
+    """
+
+    hour: int                      # clock hour, local
+    effective_wbgt_c: float        # after the clothing adjustment
+    personal_limit_c: float
+    excess_over_limit_c: float     # what the ladder is actually read at
+    excess_over_ral_c: float       # what the stimulus integrates
+    minutes: int
+    duty_fraction: float
+
+    @property
+    def is_stop_work(self) -> bool:
+        return self.minutes == C.WORK_REST_STOP
+
+
+@dataclass(frozen=True)
+class Absence:
+    """A day the worker was not on site.
+
+    [GAP 14, fixed 2026-08-25] Previously a caller had to fabricate a WBGTDay to
+    represent leave, or leave a hole in the sequence that was indistinguishable
+    from missing data. Neither decays the state correctly. An Absence carries
+    s = 0, so adaptation decays at tau_decay exactly as the model intends.
+    """
+
+    date: dt.date
+    reason: str = "not scheduled"
+
+
+@dataclass(frozen=True)
 class DayRecord:
     date: dt.date
     day_on_job: int
@@ -273,11 +311,30 @@ class DayRecord:
     stimulus: Stimulus
     personal_limit_c: float
     peak_effective_wbgt_c: float
-    minutes_per_hour: Tuple[int, ...]
+    hours: Tuple[HourPrescription, ...]
     binding_minutes_per_hour: int
     shift_work_minutes: int
     model_pct: float
     calendar_pct: int
+    absent: bool = False
+    projected: bool = False
+    absence_reason: str = ""
+
+    @property
+    def minutes_per_hour(self) -> Tuple[int, ...]:
+        return tuple(h.minutes for h in self.hours)
+
+    @property
+    def binding_hour(self) -> Optional[HourPrescription]:
+        """The hour that sets the day's tightest restriction, and why.
+
+        None on an absent day. On a Phoenix afternoon several hours tie at zero;
+        the EARLIEST is returned, because that is when the crew has to stop.
+        """
+        if not self.hours:
+            return None
+        fewest = min(h.minutes for h in self.hours)
+        return next(h for h in self.hours if h.minutes == fewest)
 
     @property
     def model_minus_calendar_pct(self) -> float:
@@ -311,10 +368,36 @@ class Ramp:
     tau: Tau
     full_stimulus_degree_hours: float
     natural_wet_bulb_model: str
+    initial_adaptation: float = 0.0
 
     @property
     def final_adaptation(self) -> float:
-        return self.days[-1].adaptation_end if self.days else 0.0
+        """[GAP 14, fixed 2026-08-25] An empty ramp returns the state carried IN,
+        not zero.
+
+        The old `else 0.0` was a correctness bug, not an API wrinkle: a worker
+        who takes a week off and is simulated over an empty window came back
+        fully unadapted, which is the one thing the decay term exists to
+        prevent. Adaptation is lost over weeks, never reset by a gap in the
+        data.
+        """
+        return self.days[-1].adaptation_end if self.days else self.initial_adaptation
+
+    @property
+    def worked_days(self) -> int:
+        return sum(1 for d in self.days if not d.absent)
+
+    @property
+    def absent_days(self) -> int:
+        return sum(1 for d in self.days if d.absent)
+
+    @property
+    def observed(self) -> Tuple[DayRecord, ...]:
+        return tuple(d for d in self.days if not d.projected)
+
+    @property
+    def projected(self) -> Tuple[DayRecord, ...]:
+        return tuple(d for d in self.days if d.projected)
 
     @property
     def saturated_days(self) -> int:
@@ -337,56 +420,116 @@ class Ramp:
         raise KeyError("no record for day %d" % day_on_job)
 
 
+def prescribe_hours(
+    day: WBGTDay, worker: Worker, adaptation: float
+) -> Tuple[HourPrescription, ...]:
+    """The shift's hour-by-hour prescription, WITH the reason for each rung.
+
+    [GAP 5/9] Both excesses are retained: the one the ladder is read at (over the
+    worker's personal limit) and the one the stimulus integrates (over the fixed
+    RAL). They are different thresholds doing different jobs, and an interface
+    that shows one while the model uses the other will mislead.
+    """
+    limit = personal_limit_c(adaptation, worker.work_class)
+    ral = C.WBGT_LIMIT_UNACCLIMATIZED[worker.work_class]
+    out = []
+    for hour in day.window(worker.shift_start_hour, worker.shift_end_hour):
+        effective = effective_wbgt_c(hour.wbgt_c, worker.clothing)
+        minutes = work_minutes_per_hour(effective, limit)
+        out.append(
+            HourPrescription(
+                hour=hour.hour,
+                effective_wbgt_c=effective,
+                personal_limit_c=limit,
+                excess_over_limit_c=effective - limit,
+                excess_over_ral_c=effective - ral,
+                minutes=minutes,
+                duty_fraction=minutes / 60.0,
+            )
+        )
+    return tuple(out)
+
+
 def simulate(
     worker: Worker,
-    wbgt_days: Sequence[WBGTDay],
+    wbgt_days: Sequence[object],
     tau: Optional[Tau] = None,
     initial_adaptation: float = 0.0,
     full_stimulus_degree_hours: float = C.DEGREE_HOURS_FULL_STIMULUS,
     natural_wet_bulb_model: str = "psychrometric",
     first_day_on_job: int = 1,
+    projected: bool = False,
 ) -> Ramp:
     """Run a worker's ramp over a sequence of site-days.
+
+    Each entry is a `WBGTDay` or an `Absence`. An Absence carries s = 0, so the
+    state decays at tau_decay rather than resetting or being skipped.
 
     The prescription for a day uses the adaptation the worker STARTED that day
     with — you cannot credit a man for adaptation he has not earned yet, and a
     supervisor has to be able to write the schedule at 6 a.m.
+
+    `day_on_job` counts WORKED days only. A man on leave does not advance his
+    OSHA ramp position, which is what makes the calendar counterfactual honest.
     """
     tau = tau or Tau()
     adaptation = initial_adaptation
     records = []
+    day_on_job = first_day_on_job - 1
 
-    for index, day in enumerate(wbgt_days):
+    for entry in wbgt_days:
+        if isinstance(entry, Absence):
+            next_adaptation = advance_adaptation(adaptation, 0.0, tau)
+            records.append(
+                DayRecord(
+                    date=entry.date,
+                    day_on_job=day_on_job,
+                    adaptation_start=adaptation,
+                    adaptation_end=next_adaptation,
+                    stimulus=Stimulus(0.0, 0.0, False, 0, 0.0),
+                    personal_limit_c=personal_limit_c(adaptation, worker.work_class),
+                    peak_effective_wbgt_c=float("nan"),
+                    hours=(),
+                    binding_minutes_per_hour=0,
+                    shift_work_minutes=0,
+                    model_pct=0.0,
+                    calendar_pct=calendar_ramp_pct(max(day_on_job, 1)),
+                    absent=True,
+                    projected=projected,
+                    absence_reason=entry.reason,
+                )
+            )
+            adaptation = next_adaptation
+            continue
+
+        day: WBGTDay = entry  # type: ignore[assignment]
+        day_on_job += 1
         limit = personal_limit_c(adaptation, worker.work_class)
-        shift = day.window(worker.shift_start_hour, worker.shift_end_hour)
-        if not shift:
+        hours = prescribe_hours(day, worker, adaptation)
+        if not hours:
             raise ImplausibleValue(
                 "shift %02d:00-%02d:00 selected no hours from %s"
                 % (worker.shift_start_hour, worker.shift_end_hour, day.date)
             )
-        per_hour = [
-            work_minutes_per_hour(effective_wbgt_c(h.wbgt_c, worker.clothing), limit)
-            for h in shift
-        ]
+        minutes = [h.minutes for h in hours]
         stimulus = daily_stimulus(day, worker, adaptation, full_stimulus_degree_hours)
         next_adaptation = advance_adaptation(adaptation, stimulus.value, tau)
 
         records.append(
             DayRecord(
                 date=day.date,
-                day_on_job=first_day_on_job + index,
+                day_on_job=day_on_job,
                 adaptation_start=adaptation,
                 adaptation_end=next_adaptation,
                 stimulus=stimulus,
                 personal_limit_c=limit,
-                peak_effective_wbgt_c=max(
-                    effective_wbgt_c(h.wbgt_c, worker.clothing) for h in shift
-                ),
-                minutes_per_hour=tuple(per_hour),
-                binding_minutes_per_hour=min(per_hour),
-                shift_work_minutes=sum(per_hour),
-                model_pct=100.0 * sum(per_hour) / (60.0 * len(shift)),
-                calendar_pct=calendar_ramp_pct(first_day_on_job + index),
+                peak_effective_wbgt_c=max(h.effective_wbgt_c for h in hours),
+                hours=hours,
+                binding_minutes_per_hour=min(minutes),
+                shift_work_minutes=sum(minutes),
+                model_pct=100.0 * sum(minutes) / (60.0 * len(hours)),
+                calendar_pct=calendar_ramp_pct(day_on_job),
+                projected=projected,
             )
         )
         adaptation = next_adaptation
@@ -397,7 +540,62 @@ def simulate(
         tau=tau,
         full_stimulus_degree_hours=full_stimulus_degree_hours,
         natural_wet_bulb_model=natural_wet_bulb_model,
+        initial_adaptation=initial_adaptation,
     )
+
+
+def project(
+    ramp: Ramp,
+    future_days: Sequence[object],
+    tau: Optional[Tau] = None,
+) -> Ramp:
+    """Continue a ramp forward over projected site-days.
+
+    [GAP 13, fixed 2026-08-25] There was no projection API at all, which blocked
+    M4's ramp strip and M5's forecast-vs-actual overlay outright: `simulate`
+    needed WBGTDays for dates that do not exist yet, and nothing marked a record
+    as projected once they did.
+
+    The returned Ramp contains the observed history AND the projection, with
+    every projected record flagged. `Ramp.observed` and `Ramp.projected` split
+    them, which is what "past is solid, future is dashed" needs.
+
+    The forward days are the CALLER's problem, deliberately. Beyond FortyGuard's
+    coverage the honest source is Open-Meteo's regional forecast (constants.py
+    section 8), and pretending otherwise inside the engine would hide the
+    substitution.
+    """
+    tail = simulate(
+        worker=ramp.worker,
+        wbgt_days=future_days,
+        tau=tau or ramp.tau,
+        initial_adaptation=ramp.final_adaptation,
+        full_stimulus_degree_hours=ramp.full_stimulus_degree_hours,
+        natural_wet_bulb_model=ramp.natural_wet_bulb_model,
+        first_day_on_job=ramp.worked_days + 1,
+        projected=True,
+    )
+    return Ramp(
+        worker=ramp.worker,
+        days=ramp.days + tail.days,
+        tau=ramp.tau,
+        full_stimulus_degree_hours=ramp.full_stimulus_degree_hours,
+        natural_wet_bulb_model=ramp.natural_wet_bulb_model,
+        initial_adaptation=ramp.initial_adaptation,
+    )
+
+
+def repeat_day(day: WBGTDay, count: int) -> List[WBGTDay]:
+    """`count` copies of one site-day, for a "if conditions hold" projection.
+
+    The crudest possible forecast and it must be labelled as such wherever it is
+    shown. It exists because "where is this crew on Friday if this week
+    continues" is the question a supervisor actually asks, and answering it with
+    a real retrieved day is more honest than inventing a synthetic one.
+    """
+    if count < 0:
+        raise ValueError("count must not be negative")
+    return [day] * count
 
 
 # ---------------------------------------------------------------------------

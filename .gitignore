@@ -15,5 +15,3 @@ scripts/probe_state.json
 # Large raw grids: derived selection is committed, the grid is not
 data/*.json
 
-# Throwaway UI prototype - not part of the codebase
-prototype/
