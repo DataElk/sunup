@@ -1,0 +1,74 @@
+{
+  "source": "live /v1/heatmap exceedance, activity 066b2c19-a3dd-4db2-95ba-ba8b2c150260",
+  "retrieved": "2026-08-24",
+  "aoi_buffered": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "buffer_km": 1.0
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -112.2107815815417,
+                33.39100679636275
+              ],
+              [
+                -111.93921841845831,
+                33.39100679636275
+              ],
+              [
+                -111.93921841845831,
+                33.55899320363724
+              ],
+              [
+                -112.2107815815417,
+                33.55899320363724
+              ],
+              [
+                -112.2107815815417,
+                33.39100679636275
+              ]
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  "buffer_km": 1.0,
+  "window_hours": 336.0,
+  "threshold_c": 40.0,
+  "start_date": "2026-07-26",
+  "end_date": "2026-08-08",
+  "total_cells": 46931,
+  "discarded_edge_cells": 4201,
+  "surviving_cells": 42730,
+  "edge_discard_m": 500.0,
+  "raw_min": 55.2666,
+  "raw_max": 106.885,
+  "clamped_cells": 0,
+  "value_at_p5": 79.614045,
+  "value_at_p95": 102.21191,
+  "cool_site": {
+    "centroid_lon_lat": [
+      -111.9635912516575,
+      33.49962648390162
+    ],
+    "value_hours": 79.614,
+    "distance_to_edge_m": 2260.5990693419676,
+    "percentile": 4.998829861923707
+  },
+  "hot_site": {
+    "centroid_lon_lat": [
+      -112.16039184572648,
+      33.46193224919907
+    ],
+    "value_hours": 102.212,
+    "distance_to_edge_m": 4673.686844581896,
+    "percentile": 94.99882986192371
+  }
+}

@@ -275,6 +275,62 @@ MATERIAL_DIVERGENCE_MIN_PER_HOUR = 15
 MATERIAL_LIMIT_GAP_C = 0.25
 
 
+
+
+# ----------------------------------------------------------------------------
+# 3b. CONTROLLED ACCLIMATIZATION IS AN OPTIMIZATION
+# ----------------------------------------------------------------------------
+# Section 3a records that the protective schedule removes the exposure that
+# would have adapted the worker, so hotter conditions can produce LESS
+# adaptation. Read that as a bug and it is depressing. Read it correctly and it
+# is the most valuable thing the model does.
+#
+# It means acclimatization is not something that happens TO a worker as a
+# by-product of the calendar. It is a CONTROL PROBLEM with a real optimum:
+#
+#     maximise   dA/dt          the rate the worker adapts
+#     subject to strain <= ceiling   nobody is put at risk of heat illness
+#     choosing   shift start, shift length, site assignment, work/rest schedule
+#
+# Both extremes lose. Work a new hire through the afternoon peak and the
+# work/rest rule prescribes zero minutes: maximum protection, zero adaptation,
+# and he is still unadapted on day 14. Work him only in the cool of the morning
+# and he never crosses the RAL: also zero adaptation. The fastest safe ramp sits
+# between them, and [MEASURED 2026-08-24, scripts/m3_report.py] it is a genuine
+# interior maximum — for moderate work on the 05:00-13:00 shift the peak sits
+# around 3 degC BELOW the measured Phoenix August day, and adaptation falls away
+# on both sides.
+#
+# A CALENDAR CANNOT COMPUTE THIS. OSHA's "20% on day one, +20% per day" has no
+# term for temperature, for shift timing, or for which site a man was sent to.
+# It cannot tell you that moving a crew's start time forward by two hours would
+# halve their ramp, because it does not know what the heat was. The model can,
+# because it carries the two things the calendar lacks: a measured dose and a
+# state that integrates it.
+#
+# WHAT THIS CHANGES ABOUT THE PRODUCT'S CLAIM. The pitch is not only "we can
+# tell you this man is not as adapted as the calendar thinks". It is:
+#
+#     "Here is the schedule that gets him adapted fastest without exceeding the
+#      strain ceiling — and here is how many days it saves."
+#
+# That is a scheduling recommendation an employer can act on, not just a warning
+# they have to absorb. It also reframes the inversion finding from an awkward
+# caveat into the reason the optimum exists at all.
+#
+# [NOT YET BUILT] The optimiser itself is not in M2 or M3. What exists is the
+# diagnostic that proves the optimum is real and interior
+# (diagnostics.weather_history_sweep) plus everything needed to evaluate a
+# candidate schedule. Building the search is a natural M4/M5 addition; do not
+# claim it is implemented until it is.
+#
+# THE STRAIN CEILING IS THE PART TO GET RIGHT. "Fastest ramp" without a
+# constraint is just "work him in the hottest hours", which is how people die.
+# The ceiling must be the NIOSH work/rest ladder at the worker's CURRENT
+# personal limit, evaluated hour by hour — never a daily average, because a
+# daily average hides the 14:00 peak that does the damage.
+
+
 # ============================================================================
 # 4. CLOTHING ADJUSTMENT  —  ACGIH CAV
 # ============================================================================
@@ -852,6 +908,13 @@ POLL_INTERVAL_S = 3.0
 # be retrieved rather than resubmitted.
 POLL_TIMEOUT_S = 900.0
 
+# [MEASURED 2026-08-24] Large responses intermittently 504 at the gateway while
+# being serialised: a 46 931-cell exceedance grid (15 MB) failed one poll and
+# succeeded on the very next. A transient error must not discard an activity
+# that has already been paid for, so the client absorbs up to this many
+# CONSECUTIVE polling failures before giving up.
+POLL_MAX_CONSECUTIVE_ERRORS = 5
+
 # Contract section 3: 60, 80 or 100 metres only. 60 m is the finest available.
 ALLOWED_GRANULARITIES_M = frozenset({60, 80, 100})
 
@@ -887,3 +950,50 @@ EXCEEDANCE_CLAMP_MIN_H = 0.0
 # [TUNED] A cell landing further outside the window than this is a parse error —
 # wrong window length, wrong units — not interpolation noise. Raise, do not clamp.
 EXCEEDANCE_IMPLAUSIBLE_MARGIN_H = 24.0
+
+
+# ============================================================================
+# 10. SITE SELECTION  —  M3
+# ============================================================================
+# [VERIFIED 2026-08-23] FORTYGUARD_API_CONTRACT.md section 5 records the reason
+# every value here exists: on the 14-day 40 degC Phoenix run, all 5 highest
+# cells sat within 460 m of the west edge and all 5 lowest within 80 m of the
+# north edge, each a contiguous scanline at a single latitude. The extremes of
+# an exceedance grid are an artifact of the AOI boundary, not a fact about the
+# city. A site chosen from them is chosen from noise.
+#
+# The mitigation is mandatory and has four parts. All four are enforced in
+# siteselection.py and asserted by tests/test_m3_exit.py.
+
+# 1. Request an AOI at least this much larger than the region of interest.
+AOI_BUFFER_KM = 1.0
+
+# 2. Discard cells within this distance of the AOI boundary before ranking.
+EDGE_DISCARD_M = 500.0
+
+# 3. Rank by percentile, never by absolute min/max.
+RANK_PERCENTILE_LOW = 5.0
+RANK_PERCENTILE_HIGH = 95.0
+
+# 4. Cross-check any selected cell against satellite segmentation. A genuine hot
+#    cell has a high impervious share; if land cover does not explain the
+#    ranking, the cell is an artifact.
+#
+# [VERIFIED 2026-08-23] Contract section 7: class labels are ADE20K-style and
+# open-ended — a landlocked downtown Phoenix tile returned "ship": 2.74. Derive
+# impervious share by SUMMING the classes we recognise, never by subtracting
+# from 100, because the unrecognised remainder is not necessarily pervious.
+IMPERVIOUS_CLASSES = frozenset({
+    "building", "skyscraper", "road, route", "sidewalk, pavement",
+    "house", "wall", "fence", "bridge, span", "runway",
+})
+
+# [TUNED] A selected hot cell whose impervious share falls below this is flagged
+# for review rather than silently accepted. Downtown Phoenix measured 96.1%
+# impervious (building 72.7 + road 12.47 + sidewalk 8.9 + skyscraper 2.04), so
+# this is a low bar deliberately: it catches artifacts, not marginal sites.
+MIN_IMPERVIOUS_SHARE_FOR_HOT_SITE = 0.40
+
+# Mean Earth radius, for the local equirectangular projection used to convert
+# degrees to metres over a metro-scale AOI. [VERIFIED] IUGG mean radius.
+EARTH_MEAN_RADIUS_M = 6371008.8

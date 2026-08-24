@@ -11,3 +11,6 @@ CLAUDE.md
 # Derived: rebuild with `python scripts/seed_cache.py`
 data/cache/
 scripts/probe_state.json
+
+# Large raw grids: derived selection is committed, the grid is not
+data/*.json

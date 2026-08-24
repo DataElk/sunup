@@ -62,6 +62,7 @@ class CallRecord:
     key: str
     activity_id: Optional[str] = None
     polls: int = 0
+    transient_errors: int = 0
 
 
 @dataclass
@@ -152,12 +153,37 @@ class FortyGuardClient:
         record = CallRecord(endpoint, "live", key, activity_id=activity_id)
         self.records.append(record)
         deadline = time.time() + self.poll_timeout_s
+        consecutive_errors = 0
         while True:
             self._sleep(self.poll_interval_s)
             record.polls += 1
-            body = self.transport.get(
-                "%s%s/%s" % (self.base_url, STATUS, activity_id), self._headers
-            )
+            # [MEASURED 2026-08-24] A 46 931-cell exceedance grid is a 15 MB
+            # response, and the gateway intermittently 504s while serialising
+            # it. The activity is fine — the very next poll returned 200 and a
+            # completed result. Propagating that error would throw away an
+            # activity that has already been paid for, so transient failures are
+            # absorbed and only a sustained run of them gives up.
+            try:
+                body = self.transport.get(
+                    "%s%s/%s" % (self.base_url, STATUS, activity_id), self._headers
+                )
+                consecutive_errors = 0
+            except Exception as error:  # noqa: BLE001 - transport-agnostic by design
+                consecutive_errors += 1
+                record.transient_errors += 1
+                if consecutive_errors > C.POLL_MAX_CONSECUTIVE_ERRORS:
+                    raise PollTimeout(
+                        "activity %s: %d consecutive polling failures on %s, last "
+                        "was %s: %s. The activity may still be running — retrieve "
+                        "it by id rather than resubmitting."
+                        % (activity_id, consecutive_errors, endpoint,
+                           type(error).__name__, str(error)[:200])
+                    )
+                if time.time() > deadline:
+                    raise PollTimeout(
+                        "activity %s timed out on %s while polling was erroring"
+                        % (activity_id, endpoint))
+                continue
             status = str((body.get("data") or {}).get("status", "")).lower()
             if status in COMPLETED:
                 return body

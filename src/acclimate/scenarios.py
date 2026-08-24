@@ -29,6 +29,7 @@ from typing import Dict, List, Optional, Tuple
 
 from acclimate import constants as C
 from acclimate import wbgt
+from acclimate.errors import ImplausibleValue
 from acclimate.sources import openmeteo
 from acclimate.sources.fixtures import FixtureStore
 from acclimate.sources.fortyguard import parse_temperature_grid
@@ -250,3 +251,96 @@ def histories_differ(scenario: Scenario) -> bool:
     """True when the two workers actually had different exposure histories."""
     return (scenario.mild_dates != scenario.hot_dates
             or scenario.mild_shift != scenario.hot_shift)
+
+
+# ---------------------------------------------------------------------------
+# M3 — site assignment, the scenario the exceedance ratio actually supports
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SiteScenario:
+    """Two workers, same shift, same day count, DIFFERENT SITES.
+
+    This is the comparison the 1.28x mitigated exceedance ratio was measured to
+    support, and it is the one the product actually advises on: site assignment
+    is an employer decision, and constants.py section 7 permits scoring a worker
+    on where he was SENT but never on who he is.
+
+    Both workers are compared on the SAME site on the comparison day — crews get
+    moved, and it is the only way to isolate accumulated history from that day's
+    own exposure.
+    """
+
+    label: str
+    rationale: str
+    history_dates: Tuple[str, ...]
+    comparison_date: str
+    comparison_site: str
+    cool_site: str = "cool_site"
+    hot_site: str = "hot_site"
+    shift: Tuple[int, int] = EARLY_SHIFT
+    caveat: str = ""
+
+    @property
+    def day_on_job(self) -> int:
+        return len(self.history_dates) + 1
+
+
+def site_assignment_scenario(backfill_cache, model: str,
+                             history_days: int = 3) -> SiteScenario:
+    """Build the site-assignment comparison from the 14-day backfill."""
+    dates = backfill_cache.shared_dates(model)
+    if len(dates) < history_days + 1:
+        raise ImplausibleValue(
+            "site assignment needs %d days present at BOTH sites; only %d are "
+            "cached. Run scripts/m3_fetch.py --backfill."
+            % (history_days + 1, len(dates))
+        )
+    history = tuple(d.isoformat() for d in dates[:history_days])
+    return SiteScenario(
+        label="Site assignment (same shift, same days, different sites)",
+        rationale=(
+            "Two workers, same trade, same 05:00-13:00 shift, same %d days on "
+            "the job. One was sent to the 5th-percentile site, the other to the "
+            "95th. On day %d both are working the same site, so the only "
+            "difference is where they were before."
+            % (history_days, history_days + 1)
+        ),
+        history_dates=history,
+        comparison_date=dates[history_days].isoformat(),
+        comparison_site="hot_site",
+    )
+
+
+def build_site_ramps(scenario: "SiteScenario", backfill_cache, model: str, tau,
+                     full_stimulus_degree_hours: float, trade: str = "concrete"):
+    """(cool-site ramp, hot-site ramp) with a shared comparison day."""
+    import datetime as _dt
+
+    from acclimate import acclimatization as ac
+
+    def ramp(site_name):
+        worker = ac.Worker(
+            worker_id=site_name, trade=trade,
+            shift_start_hour=scenario.shift[0], shift_end_hour=scenario.shift[1])
+        history = [
+            backfill_cache.get(site_name, _dt.date.fromisoformat(d), model)
+            for d in scenario.history_dates
+        ]
+        head = ac.simulate(
+            worker=worker, wbgt_days=history, tau=tau,
+            full_stimulus_degree_hours=full_stimulus_degree_hours,
+            natural_wet_bulb_model=model)
+        tail = ac.simulate(
+            worker=worker,
+            wbgt_days=[backfill_cache.get(
+                scenario.comparison_site,
+                _dt.date.fromisoformat(scenario.comparison_date), model)],
+            tau=tau, initial_adaptation=head.final_adaptation,
+            full_stimulus_degree_hours=full_stimulus_degree_hours,
+            natural_wet_bulb_model=model,
+            first_day_on_job=len(scenario.history_dates) + 1)
+        return ac.splice(head, tail)
+
+    return ramp(scenario.cool_site), ramp(scenario.hot_site)
