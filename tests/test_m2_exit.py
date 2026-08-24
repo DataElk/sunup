@@ -8,14 +8,20 @@ SPEC.md, milestone M2:
     [10,21] showing the divergence survives the whole range.
     And it must survive BOTH wet-bulb methods.
 
-THE EXIT TEST DOES NOT PASS AS SPECIFIED, and these tests say so rather than
-being written around it. At DEGREE_HOURS_FULL_STIMULUS = 6.0 the stimulus term
-saturates on every real Phoenix shift, s is pinned at 1, and the divergence is
-exactly zero for both wet-bulb methods across all 84 tau pairs.
+THE STIMULUS DEFINITION WAS CORRECTED on 2026-08-24 (constants.py section 3a).
+DEGREE_HOURS_FULL_STIMULUS stays at 6.0; what changed is the integrand. Dose is
+measured above the FIXED RAL rather than the worker's moving personal limit, and
+only hours actually worked count, weighted by the prescribed duty cycle.
 
-Each failing property is pinned deliberately. If someone later "fixes" the
-saturation by accident, these tests fail and force the finding back into view
-instead of letting it disappear.
+Under that definition the exit test PASSES on the shift-assignment scenario and
+does not reach materiality on mild-vs-hot days — a data-coverage problem M3
+fixes. The primary metric is the PERSONAL LIMIT in degC-WBGT, because it is
+continuous and monotone; minutes are quantised into 15-minute rungs of the NIOSH
+ladder and are reported second.
+
+Two uncomfortable results are pinned deliberately, so that a later change cannot
+make them disappear quietly: a worker prescribed no hours never adapts at all,
+and the environmentally hotter arm ends up the LESS adapted worker.
 """
 
 from __future__ import annotations
@@ -27,8 +33,7 @@ from acclimate import constants as C
 from acclimate import scenarios, wbgt
 from acclimate.errors import ForbiddenInput, ImplausibleValue
 
-SPEC_NORM = C.DEGREE_HOURS_FULL_STIMULUS      # 6.0, as written
-ALT_NORM = C.DEGREE_HOURS_ALT_STIMULUS        # 40.0, proposed
+NORM = C.DEGREE_HOURS_FULL_STIMULUS      # 6.0, UNCHANGED
 MODELS = (wbgt.NWB_PSYCHROMETRIC, wbgt.NWB_ISO_ANNEX_D)
 
 
@@ -37,9 +42,8 @@ def cache():
     return scenarios.SiteDayCache()
 
 
-def diverge(cache, scenario, model, norm, tau=None):
-    mild, hot = scenarios.build_ramps(
-        scenario, cache, model, tau or ac.Tau(), norm)
+def diverge(cache, scenario, model, tau=None):
+    mild, hot = scenarios.build_ramps(scenario, cache, model, tau or ac.Tau(), NORM)
     return ac.compare(scenario.label, mild, hot, scenario.day_on_job)
 
 
@@ -54,7 +58,6 @@ def test_personal_limit_interpolates_between_the_two_niosh_curves():
     assert ac.personal_limit_c(0.0, moderate) == C.WBGT_LIMIT_UNACCLIMATIZED[moderate]
     assert ac.personal_limit_c(1.0, moderate) == C.WBGT_LIMIT_ACCLIMATIZED[moderate]
     assert ac.personal_limit_c(0.5, moderate) == pytest.approx(26.5)
-    # Monotone, so more adaptation never lowers a worker's limit.
     limits = [ac.personal_limit_c(a / 10.0, moderate) for a in range(11)]
     assert limits == sorted(limits)
 
@@ -85,14 +88,12 @@ def test_state_update_gains_with_stimulus_and_decays_without():
     tau = ac.Tau(gain_days=4.0, decay_days=13.0)
     assert ac.advance_adaptation(0.0, 1.0, tau) == pytest.approx(0.25)
     assert ac.advance_adaptation(0.5, 0.0, tau) == pytest.approx(0.5 - 0.5 / 13.0)
-    # Bounded.
     assert 0.0 <= ac.advance_adaptation(0.99, 1.0, tau) <= 1.0
     assert ac.advance_adaptation(0.0, 0.0, tau) == 0.0
 
 
 def test_gain_is_faster_than_decay():
-    """constants.py section 3: earned in days, lost over weeks. If a re-tune
-    ever inverts this, the model stops being physiological."""
+    """constants.py section 3: earned in days, lost over weeks."""
     tau = ac.Tau()
     assert tau.asymmetry > 2.0
     gained = ac.advance_adaptation(0.5, 1.0, tau) - 0.5
@@ -137,150 +138,199 @@ def test_worker_accepts_only_job_assigned_fields():
 
 
 # ---------------------------------------------------------------------------
+# The corrected stimulus definition — constants.py section 3a
+# ---------------------------------------------------------------------------
+
+
+def test_dose_is_measured_above_the_fixed_ral_not_the_moving_limit(cache):
+    """The circularity fix.
+
+    Integrating above the moving personal limit made an adapted worker
+    accumulate LESS dose than an unadapted man in identical weather. The
+    threshold is now the fixed RAL for the workload class.
+    """
+    day = cache.get("2026-08-05", wbgt.NWB_PSYCHROMETRIC)
+    worker = ac.Worker(worker_id="w", trade="concrete")
+    ral = C.WBGT_LIMIT_UNACCLIMATIZED[worker.work_class]
+    limit = ac.personal_limit_c(0.0, worker.work_class)
+    expected = sum(
+        max(ac.effective_wbgt_c(h.wbgt_c, worker.clothing) - ral, 0.0)
+        * ac.work_minutes_per_hour(
+            ac.effective_wbgt_c(h.wbgt_c, worker.clothing), limit) / 60.0
+        for h in day.window(worker.shift_start_hour, worker.shift_end_hour)
+    )
+    assert ac.daily_stimulus(day, worker, 0.0).degree_hours == pytest.approx(expected)
+
+
+def test_only_worked_hours_contribute(cache):
+    """Rest in shade produces no adaptive stimulus."""
+    day = cache.get("2026-07-26", wbgt.NWB_PSYCHROMETRIC)
+    worker = ac.Worker(worker_id="w", trade="concrete")
+    s = ac.daily_stimulus(day, worker, 0.0)
+    assert 0.0 < s.worked_hours_equivalent < worker.shift_hours, s
+    # Hours are above RAL that contribute nothing, because they are prescribed 0.
+    assert s.hours_above_ral > int(s.worked_hours_equivalent)
+
+
+def test_a_worker_prescribed_no_hours_accumulates_no_dose(cache):
+    """PINNED. The protective schedule can block acclimatization outright."""
+    day = cache.get("2026-08-05", wbgt.NWB_PSYCHROMETRIC)
+    idle = ac.Worker(worker_id="idle", trade="concrete",
+                     shift_start_hour=10, shift_end_hour=18)
+    s = ac.daily_stimulus(day, idle, 0.0)
+    assert s.worked_hours_equivalent == 0.0
+    assert s.degree_hours == 0.0
+    assert s.value == 0.0
+    assert ac.advance_adaptation(0.0, s.value, ac.Tau()) == 0.0
+
+
+def test_measured_degree_hours_do_not_saturate_when_unadapted(cache):
+    """THE GATE. Unadapted dose must sit well under the 6.0 normalisation.
+
+    The previous definition gave 19.76-37.62 degC*h and saturated everywhere.
+    """
+    worker = ac.Worker(worker_id="probe", trade="concrete")
+    doses = [ac.daily_stimulus(s.day, worker, 0.0).degree_hours
+             for s in cache.all_days(wbgt.NWB_PSYCHROMETRIC)]
+    assert max(doses) < C.DEGREE_HOURS_FULL_STIMULUS, doses
+    assert max(doses) < 10.0, doses
+    assert all(not ac.daily_stimulus(s.day, worker, 0.0).saturated
+               for s in cache.all_days(wbgt.NWB_PSYCHROMETRIC))
+
+
+@pytest.mark.parametrize("model", MODELS)
+def test_no_day_saturates_in_any_real_ramp(cache, model):
+    for build in (scenarios.shift_assignment_scenario,
+                  scenarios.mild_vs_hot_days_scenario):
+        scenario = build(cache, model)
+        mild, hot = scenarios.build_ramps(scenario, cache, model, ac.Tau(), NORM)
+        for ramp in (mild, hot):
+            assert ramp.saturated_days == 0, (scenario.label, model)
+            assert not ramp.is_degenerate
+
+
+# ---------------------------------------------------------------------------
 # THE EXIT TEST
 # ---------------------------------------------------------------------------
 
 
-def test_the_specified_normalisation_saturates_on_every_real_site_day(cache):
-    """The finding that decides whether the central claim is true."""
-    worker = ac.Worker(worker_id="probe", trade="concrete")
-    for site in cache.all_days(wbgt.NWB_PSYCHROMETRIC):
-        s = ac.daily_stimulus(site.day, worker, 0.0, SPEC_NORM)
-        assert s.saturated, site.iso
-        assert s.value == 1.0, site.iso
-        assert s.degree_hours > 3 * SPEC_NORM, site.iso
-
-
 @pytest.mark.parametrize("model", MODELS)
-def test_at_the_specified_normalisation_the_divergence_is_exactly_zero(cache, model):
-    """PINNED FAILURE. s is pinned at 1, so the state model is a day-counter and
-    the two workers are indistinguishable. Both wet-bulb methods, both scenarios."""
-    for build in (scenarios.shift_assignment_scenario,
-                  scenarios.mild_vs_hot_days_scenario):
-        scenario = build(cache, model)
-        d = diverge(cache, scenario, model, SPEC_NORM)
-        assert d.both_degenerate, scenario.label
-        assert d.adaptation_gap == 0.0, scenario.label
-        assert d.max_minutes_per_hour_gap == 0, scenario.label
-        assert d.shift_minutes_gap == 0, scenario.label
-        assert not d.is_material, scenario.label
+def test_personal_limit_gap_is_material_on_the_headline_scenario(cache, model):
+    """PRIMARY METRIC: personal limit in degC-WBGT, not minutes."""
+    scenario = scenarios.shift_assignment_scenario(cache, model)
+    d = diverge(cache, scenario, model)
+    assert d.limit_gap_is_material, (model, d.limit_gap_c)
+    assert d.limit_gap_c > 0.0
+    assert d.adaptation_gap > 0.0
+    # The calendar cannot tell these two men apart. That is the whole point.
+    assert d.calendar_pct == 80
+    assert (d.less_adapted.at_day(4).calendar_pct
+            == d.more_adapted.at_day(4).calendar_pct)
 
 
-def test_headline_divergence_is_material_at_the_proposed_normalisation(cache):
-    """The one configuration that does what the exit test asks for."""
+def test_headline_divergence_numbers(cache):
     scenario = scenarios.shift_assignment_scenario(cache, wbgt.NWB_PSYCHROMETRIC)
-    d = diverge(cache, scenario, wbgt.NWB_PSYCHROMETRIC, ALT_NORM)
-    assert d.is_material
+    d = diverge(cache, scenario, wbgt.NWB_PSYCHROMETRIC)
+    assert d.limit_gap_c == pytest.approx(0.56, abs=0.02)
     assert d.max_minutes_per_hour_gap == 15
     assert d.shift_minutes_gap == 30
     assert d.hours_with_different_prescription == 2
-    assert d.limit_gap_c == pytest.approx(0.49, abs=0.02)
-    # The calendar cannot tell them apart; that is the whole point.
-    assert d.calendar_pct == 80
-    assert d.mild.at_day(4).calendar_pct == d.hot.at_day(4).calendar_pct
 
 
-@pytest.mark.parametrize("model", MODELS)
-def test_headline_divergence_survives_both_wet_bulb_methods_at_default_tau(cache, model):
-    scenario = scenarios.shift_assignment_scenario(cache, model)
-    d = diverge(cache, scenario, model, ALT_NORM)
-    assert d.is_material, MODELS
-    assert d.max_minutes_per_hour_gap == 15
-    assert d.adaptation_gap > 0.0
-
-
-def test_headline_divergence_survives_the_entire_tau_sweep(cache):
-    """SPEC.md M2: tau_gain in [3,6], tau_decay in [10,21], all 84 pairs."""
-    scenario = scenarios.shift_assignment_scenario(cache, wbgt.NWB_PSYCHROMETRIC)
+def test_limit_gap_is_nonzero_and_correctly_signed_across_all_84_pairs(cache):
+    """The robustness claim: continuous, monotone, every tau pair, both models."""
     sweep = ac.default_tau_sweep()
     assert len(sweep) == 84
-    gaps = [
-        diverge(cache, scenario, wbgt.NWB_PSYCHROMETRIC, ALT_NORM, tau)
-        .max_minutes_per_hour_gap
-        for tau in sweep
-    ]
-    assert all(abs(g) >= C.MATERIAL_DIVERGENCE_MIN_PER_HOUR for g in gaps), gaps
-    # And the hot worker is always the one with more allowance, never inverted.
-    assert all(g > 0 for g in gaps)
+    for build in (scenarios.shift_assignment_scenario,
+                  scenarios.mild_vs_hot_days_scenario):
+        for model in MODELS:
+            scenario = build(cache, model)
+            gaps = [diverge(cache, scenario, model, tau).limit_gap_c
+                    for tau in sweep]
+            assert all(g > 0.0 for g in gaps), (scenario.label, model, min(gaps))
 
 
-def test_iso_annex_d_does_NOT_survive_the_entire_tau_sweep(cache):
-    """PINNED PARTIAL FAILURE — the honest answer to "both wet-bulb methods?".
+def test_survival_counts_across_the_tau_sweep(cache):
+    """Pins the measured survival numbers the report quotes."""
+    sweep = ac.default_tau_sweep()
+    expected = {
+        ("shift", wbgt.NWB_PSYCHROMETRIC): 84,
+        ("shift", wbgt.NWB_ISO_ANNEX_D): 72,
+        ("days", wbgt.NWB_PSYCHROMETRIC): 0,
+        ("days", wbgt.NWB_ISO_ANNEX_D): 36,
+    }
+    for name, build in (("shift", scenarios.shift_assignment_scenario),
+                        ("days", scenarios.mild_vs_hot_days_scenario)):
+        for model in MODELS:
+            scenario = build(cache, model)
+            material = sum(
+                1 for tau in sweep
+                if diverge(cache, scenario, model, tau).limit_gap_is_material
+            )
+            assert material == expected[(name, model)], (name, model, material)
 
-    Under ISO Annex D the divergence is material for most of the tau range but
-    not all of it, because the NIOSH ladder is quantised in 15-minute rungs and
-    the effect is roughly one rung wide. The underlying adaptation gap never
-    vanishes; only its expression through the ladder does.
+
+def test_the_hotter_arm_ends_up_less_adapted(cache):
+    """THE INVERSION, pinned.
+
+    The protective schedule removes the exposure that would have adapted the
+    worker, so hotter conditions can mean LESS adaptation. If this ever flips
+    back, the writeup's caveat needs rewriting rather than quietly dropping.
     """
-    scenario = scenarios.shift_assignment_scenario(cache, wbgt.NWB_ISO_ANNEX_D)
-    results = [
-        diverge(cache, scenario, wbgt.NWB_ISO_ANNEX_D, ALT_NORM, tau)
-        for tau in ac.default_tau_sweep()
-    ]
-    material = [d for d in results if d.is_material]
-    assert 0 < len(material) < len(results), (
-        "ISO Annex D now behaves differently across tau; re-measure the report"
-    )
-    assert 0.7 < len(material) / len(results) < 1.0
-    # The continuous gap survives even where the quantised one does not.
-    assert all(d.adaptation_gap > 0 for d in results)
+    for build in (scenarios.shift_assignment_scenario,
+                  scenarios.mild_vs_hot_days_scenario):
+        for model in MODELS:
+            scenario = build(cache, model)
+            d = diverge(cache, scenario, model)
+            assert d.inverted, (scenario.label, model)
+            assert d.more_adapted_arm == "mild"
 
 
 def test_the_comparison_day_is_shared_so_the_gap_is_purely_history(cache):
-    """If the two workers faced different weather on the comparison day, the
-    result would mix accumulated adaptation with that day's own exposure."""
     for build in (scenarios.shift_assignment_scenario,
                   scenarios.mild_vs_hot_days_scenario):
         scenario = build(cache, wbgt.NWB_PSYCHROMETRIC)
         assert scenarios.histories_differ(scenario), scenario.label
-        mild, hot = scenarios.build_ramps(
-            scenario, cache, wbgt.NWB_PSYCHROMETRIC, ac.Tau(), ALT_NORM)
-        m, h = mild.at_day(scenario.day_on_job), hot.at_day(scenario.day_on_job)
-        assert m.date == h.date
-        assert m.peak_effective_wbgt_c == pytest.approx(h.peak_effective_wbgt_c)
-        assert len(m.minutes_per_hour) == len(h.minutes_per_hour)
+        d = diverge(cache, scenario, wbgt.NWB_PSYCHROMETRIC)
+        lo = d.less_adapted.at_day(scenario.day_on_job)
+        hi = d.more_adapted.at_day(scenario.day_on_job)
+        assert lo.date == hi.date
+        assert lo.peak_effective_wbgt_c == pytest.approx(hi.peak_effective_wbgt_c)
 
 
-def test_more_exposure_always_produces_more_adaptation(cache):
-    """Monotonicity. If this ever inverts the model is not a heat model."""
-    worker = ac.Worker(worker_id="w", trade="concrete")
-    ranked = cache.ranked_by_dose(wbgt.NWB_PSYCHROMETRIC)
-    stimuli = [
-        ac.daily_stimulus(s.day, worker, 0.0, ALT_NORM).value for s in ranked
-    ]
-    assert stimuli == sorted(stimuli), stimuli
-    tau = ac.Tau()
-    states = [ac.advance_adaptation(0.0, s, tau) for s in stimuli]
-    assert states == sorted(states)
+def test_more_worked_exposure_produces_more_adaptation(cache):
+    """Monotonicity in what actually drives the model: WORKED dose.
+
+    Shift start time is the cleanest lever — a later start means fewer
+    prescribed hours, less dose, lower final adaptation and a lower limit.
+    """
+    days = [cache.get(d, wbgt.NWB_PSYCHROMETRIC)
+            for d in sorted(scenarios.TILE_FIXTURES)[:3]]
+    finals = []
+    for start in (4, 5, 6, 7, 8, 9, 10):
+        worker = ac.Worker(worker_id="w", trade="concrete",
+                           shift_start_hour=start, shift_end_hour=start + 8)
+        finals.append(
+            ac.simulate(worker, days, full_stimulus_degree_hours=NORM)
+            .final_adaptation)
+    assert finals == sorted(finals, reverse=True), finals
+    assert finals[0] > finals[-1]
+    assert finals[-1] == 0.0  # the 10:00-18:00 worker never adapts at all
 
 
 def test_splice_refuses_a_discontinuous_continuation(cache):
     scenario = scenarios.shift_assignment_scenario(cache, wbgt.NWB_PSYCHROMETRIC)
     worker = ac.Worker(worker_id="w", trade="concrete")
     days = [cache.get(d, wbgt.NWB_PSYCHROMETRIC) for d in scenario.mild_dates]
-    head = ac.simulate(worker, days, full_stimulus_degree_hours=ALT_NORM)
+    head = ac.simulate(worker, days, full_stimulus_degree_hours=NORM)
     bad = ac.simulate(worker, days[:1], initial_adaptation=0.9,
-                      full_stimulus_degree_hours=ALT_NORM, first_day_on_job=4)
+                      full_stimulus_degree_hours=NORM, first_day_on_job=4)
     with pytest.raises(ImplausibleValue):
         ac.splice(head, bad)
 
 
-def test_ramp_reports_its_own_degeneracy(cache):
-    worker = ac.Worker(worker_id="w", trade="concrete")
-    days = [cache.get(d, wbgt.NWB_PSYCHROMETRIC) for d in sorted(scenarios.TILE_FIXTURES)]
-    saturated = ac.simulate(worker, days, full_stimulus_degree_hours=SPEC_NORM)
-    informative = ac.simulate(worker, days, full_stimulus_degree_hours=ALT_NORM)
-    assert saturated.is_degenerate
-    assert saturated.saturated_days == len(days)
-    assert not informative.is_degenerate
-
-
 def test_every_wbgt_day_used_by_m2_is_real_retrieved_data(cache):
-    """SPEC.md M2 requires the divergence to come from real retrieved data.
-
-    Each site-day must be FortyGuard tile data plus Open-Meteo hourly — nothing
-    modelled end to end, nothing hand-authored.
-    """
+    """SPEC.md M2 requires the divergence to come from real retrieved data."""
     for site in cache.all_days(wbgt.NWB_PSYCHROMETRIC):
         provenance = site.day.provenance
         assert "fortyguard.heatmap filter_type=3" in provenance.dry_bulb

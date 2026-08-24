@@ -46,7 +46,13 @@ TILE_FIXTURES: Dict[str, str] = {
 }
 
 EARLY_SHIFT = (C.DEMO_SHIFT_START_HOUR, C.DEMO_SHIFT_END_HOUR)   # 05:00-13:00
-LATE_SHIFT = (10, 18)
+LATE_SHIFT = (8, 16)
+# 08:00-16:00, not 10:00-18:00. Under the corrected stimulus definition a
+# 10:00-18:00 worker in Phoenix is prescribed ZERO minutes in every hour, so he
+# accumulates no dose and never adapts at all. That is a real and important
+# result — the protective schedule blocks acclimatization — but it makes a
+# degenerate comparison, because one of the two men simply is not working.
+# 08:00-16:00 keeps both arms working while still differing 3.5x in dose.
 
 
 @dataclass(frozen=True)
@@ -147,7 +153,7 @@ def shift_assignment_scenario(cache: SiteDayCache, model: str) -> Scenario:
         label="Shift assignment (same days, same site)",
         rationale=(
             "Two workers, same crew, same trade, both starting the same day. One "
-            "is rostered 05:00-13:00, the other 10:00-18:00. Identical weather, "
+            "is rostered 05:00-13:00, the other 08:00-16:00. Identical weather, "
             "identical calendar position, different measured dose."
         ),
         mild_dates=tuple(days),

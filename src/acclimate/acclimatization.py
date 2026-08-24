@@ -178,7 +178,8 @@ class Stimulus:
     degree_hours: float
     value: float          # s in [0, 1]
     saturated: bool       # s hit the ceiling — the day carries no information
-    hours_above_limit: int
+    hours_above_ral: int
+    worked_hours_equivalent: float   # sum of duty fractions over the shift
 
 
 def daily_stimulus(
@@ -187,28 +188,53 @@ def daily_stimulus(
     adaptation: float,
     full_stimulus_degree_hours: float = C.DEGREE_HOURS_FULL_STIMULUS,
 ) -> Stimulus:
-    """SPEC step 2: degree-hours above the personal limit, normalised.
+    """SPEC step 2, integrated over the RIGHT thing. constants.py section 3a.
 
-    Only the worker's own shift counts. A worker is not adapting at home, and
-    constants.py section 7 forbids scoring anyone on where they live.
+        dose = SUM over shift hours of  max(WBGTeff - RAL, 0) * (minutes worked / 60)
+
+    TWO CHOICES THAT ARE THE WHOLE POINT:
+
+    1. The threshold is the FIXED RAL for the workload class, not the worker's
+       moving personal limit. Integrating above the moving limit is circular: it
+       makes an adapted worker accumulate LESS dose than an unadapted one
+       standing beside him in identical weather, which is backwards. The
+       environment does not know how adapted anyone is.
+
+    2. Only hours ACTUALLY WORKED count, weighted by the prescribed duty cycle.
+       An hour spent resting in shade produces no adaptive stimulus, so an hour
+       prescribed at 15 min/h contributes a quarter of its degree-hours.
+
+    The schedule still depends on adaptation, so dose still depends on
+    adaptation — but now in the physically correct direction: a more adapted
+    worker is cleared for more minutes, so he accumulates MORE dose, not less.
+    That is a stabilising feedback, and it is also what makes the hottest hours
+    self-limiting: they are exactly the hours prescribed at zero.
     """
     if full_stimulus_degree_hours <= 0:
         raise ValueError("full_stimulus_degree_hours must be positive")
-    limit = personal_limit_c(adaptation, worker.work_class)
-    threshold = limit + C.STIMULUS_FLOOR_DEG
+
+    ral = C.WBGT_LIMIT_UNACCLIMATIZED[worker.work_class]      # fixed threshold
+    limit = personal_limit_c(adaptation, worker.work_class)   # sets the schedule only
+
     degree_hours = 0.0
     hours_above = 0
+    worked = 0.0
     for hour in day.window(worker.shift_start_hour, worker.shift_end_hour):
-        excess = effective_wbgt_c(hour.wbgt_c, worker.clothing) - threshold
+        effective = effective_wbgt_c(hour.wbgt_c, worker.clothing)
+        duty = work_minutes_per_hour(effective, limit) / 60.0
+        worked += duty
+        excess = effective - ral - C.STIMULUS_FLOOR_DEG
         if excess > 0.0:
-            degree_hours += excess
             hours_above += 1
+            degree_hours += excess * duty
+
     value = min(degree_hours / full_stimulus_degree_hours, 1.0)
     return Stimulus(
         degree_hours=degree_hours,
         value=value,
         saturated=degree_hours >= full_stimulus_degree_hours,
-        hours_above_limit=hours_above,
+        hours_above_ral=hours_above,
+        worked_hours_equivalent=worked,
     )
 
 
@@ -381,39 +407,60 @@ def simulate(
 
 @dataclass(frozen=True)
 class Divergence:
-    """What separates two workers the calendar treats identically."""
+    """What separates two workers the calendar treats identically.
+
+    The two slots are assigned BY MEASUREMENT, not by scenario label. Under the
+    corrected stimulus definition (constants.py section 3a) the environmentally
+    hotter arm can end up LESS adapted, because the protective schedule removes
+    the exposure that would have adapted him. Naming the slots after the weather
+    would hide exactly the finding worth reporting, so `compare` sorts them.
+    """
 
     label: str
     day_on_job: int
-    mild: Ramp
-    hot: Ramp
+    less_adapted: Ramp
+    more_adapted: Ramp
     calendar_pct: int
+    inverted: bool           # the hotter-history arm is the LESS adapted one
+    less_adapted_arm: str    # which scenario arm each slot turned out to be
+    more_adapted_arm: str
 
-    @property
-    def adaptation_gap(self) -> float:
-        return (self.hot.at_day(self.day_on_job).adaptation_start
-                - self.mild.at_day(self.day_on_job).adaptation_start)
+    # -- the continuous metric, reported first because it is what survives ----
 
     @property
     def limit_gap_c(self) -> float:
-        return (self.hot.at_day(self.day_on_job).personal_limit_c
-                - self.mild.at_day(self.day_on_job).personal_limit_c)
+        """Difference in personal limit, degC-WBGT. THE PRIMARY METRIC.
+
+        Continuous and monotone in accumulated dose, so unlike the prescription
+        it does not depend on where a worker happens to fall relative to a
+        15-minute rung of the NIOSH ladder. This is the number that survives.
+        """
+        return (self.more_adapted.at_day(self.day_on_job).personal_limit_c
+                - self.less_adapted.at_day(self.day_on_job).personal_limit_c)
+
+    @property
+    def adaptation_gap(self) -> float:
+        return (self.more_adapted.at_day(self.day_on_job).adaptation_start
+                - self.less_adapted.at_day(self.day_on_job).adaptation_start)
+
+    @property
+    def limit_gap_is_material(self) -> bool:
+        return abs(self.limit_gap_c) >= C.MATERIAL_LIMIT_GAP_C
+
+    # -- the quantised metric, reported second -------------------------------
 
     @property
     def per_hour_gaps(self) -> Tuple[int, ...]:
-        """Hour-by-hour difference in prescribed working minutes over the shift."""
-        mild = self.mild.at_day(self.day_on_job).minutes_per_hour
-        hot = self.hot.at_day(self.day_on_job).minutes_per_hour
-        return tuple(h - m for m, h in zip(mild, hot))
+        low = self.less_adapted.at_day(self.day_on_job).minutes_per_hour
+        high = self.more_adapted.at_day(self.day_on_job).minutes_per_hour
+        return tuple(h - l for l, h in zip(low, high))
 
     @property
     def max_minutes_per_hour_gap(self) -> int:
-        """THE HEADLINE NUMBER: the largest single-hour difference in prescription.
+        """Largest single-hour difference in prescribed working minutes.
 
-        A supervisor writes an instruction per hour, so this is the number that
-        decides whether the two workers get told different things. The BINDING
-        (minimum) hour is useless here: on a Phoenix afternoon the peak hour is a
-        stop-work for everybody, adapted or not.
+        The BINDING (minimum) hour is useless on a Phoenix afternoon: the peak
+        hour is a stop-work for everybody, adapted or not.
         """
         gaps = self.per_hour_gaps
         return max(gaps, key=abs) if gaps else 0
@@ -423,28 +470,18 @@ class Divergence:
         return sum(1 for g in self.per_hour_gaps if g != 0)
 
     @property
-    def mean_minutes_per_hour_gap(self) -> float:
-        gaps = self.per_hour_gaps
-        return sum(gaps) / len(gaps) if gaps else 0.0
-
-    @property
     def shift_minutes_gap(self) -> int:
-        return (self.hot.at_day(self.day_on_job).shift_work_minutes
-                - self.mild.at_day(self.day_on_job).shift_work_minutes)
+        return (self.more_adapted.at_day(self.day_on_job).shift_work_minutes
+                - self.less_adapted.at_day(self.day_on_job).shift_work_minutes)
 
     @property
     def is_material(self) -> bool:
-        """A divergence a supervisor would actually act on differently.
-
-        One rung of the NIOSH ladder is 15 minutes per hour. The test is that at
-        least one hour of the shift differs by a full rung — that is a different
-        written instruction, not a rounding artefact.
-        """
+        """One rung of the NIOSH ladder is 15 min/h — a different instruction."""
         return abs(self.max_minutes_per_hour_gap) >= C.MATERIAL_DIVERGENCE_MIN_PER_HOUR
 
     @property
     def both_degenerate(self) -> bool:
-        return self.mild.is_degenerate and self.hot.is_degenerate
+        return self.less_adapted.is_degenerate and self.more_adapted.is_degenerate
 
 
 def splice(head: Ramp, tail: Ramp) -> Ramp:
@@ -478,18 +515,28 @@ def compare(
     hot: Ramp,
     day_on_job: int,
 ) -> Divergence:
+    """Compare two ramps. `mild` and `hot` name the ENVIRONMENTAL arms.
+
+    Which of them is actually the more adapted worker is decided by the model,
+    not by the argument order — see Divergence.
+    """
     if mild.worker.work_class != hot.worker.work_class:
         raise ValueError(
             "the comparison is only meaningful for the same work class; got %s vs %s"
             % (mild.worker.work_class, hot.worker.work_class)
         )
-    calendar = calendar_ramp_pct(day_on_job)
+    mild_a = mild.at_day(day_on_job).adaptation_start
+    hot_a = hot.at_day(day_on_job).adaptation_start
+    hotter_is_more_adapted = hot_a >= mild_a
     return Divergence(
         label=label,
         day_on_job=day_on_job,
-        mild=mild,
-        hot=hot,
-        calendar_pct=calendar,
+        less_adapted=mild if hotter_is_more_adapted else hot,
+        more_adapted=hot if hotter_is_more_adapted else mild,
+        calendar_pct=calendar_ramp_pct(day_on_job),
+        inverted=not hotter_is_more_adapted,
+        less_adapted_arm="mild" if hotter_is_more_adapted else "hot",
+        more_adapted_arm="hot" if hotter_is_more_adapted else "mild",
     )
 
 

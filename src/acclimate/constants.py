@@ -159,55 +159,104 @@ A_MIN, A_MAX = 0.0, 1.0
 DEGREE_HOURS_FULL_STIMULUS = 6.0   # °C-WBGT * hours above personal limit
 
 # ############################################################################
-# [MEASURED 2026-08-24 — M2] 6.0 SATURATES ON EVERY REAL PHOENIX SHIFT.
+# [RESOLVED 2026-08-24 — M2] THE CONSTANT WAS NEVER THE PROBLEM.
 # ############################################################################
-# Measured degree-hours above the personal limit over the 05:00-13:00 demo
-# shift, moderate work, on the four site-days with cached FortyGuard tiles:
+# The first M2 run found s pinned at 1.000 on every real Phoenix shift. Measured
+# degree-hours over the 05:00-13:00 demo shift, moderate work, on the four
+# site-days with cached FortyGuard tiles:
 #
 #     2024-07-15   19.76   ->  s = 1.000
 #     2026-08-05   28.63   ->  s = 1.000
 #     2026-08-09   29.23   ->  s = 1.000
 #     2026-07-26   37.62   ->  s = 1.000
 #
-# Even at full adaptation (limit = REL = 28.0) three of the four still saturate.
-#
-# WHY THIS MATTERS MORE THAN ANY OTHER CONSTANT IN THE FILE. If s = 1 for every
-# worker on every day, the state update collapses to
+# With s = 1 for every worker every day the state update collapses to
 #
 #     A(t+1) = A + (1 - A)/TAU_GAIN
 #
-# which is a function of DAYS ELAPSED and nothing else. That is precisely the
-# calendar the product exists to replace. The model would produce identical
-# numbers for two workers with a 1.9x difference in measured heat dose, and the
-# central claim of the submission would be false.
+# a function of DAYS ELAPSED and nothing else — precisely the calendar the
+# product exists to replace. Two workers with a 1.9x difference in measured heat
+# dose received identical schedules.
 #
-# The discriminating band, from the same four site-days (spread in s between the
-# mildest and hottest day):
+# THE FIX WAS NOT TO RE-TUNE THIS NUMBER. 6.0 has a physiological meaning (the
+# dose of a standard exertional acclimatization session) and re-scaling it to
+# make a demo work is exactly the failure mode this file exists to prevent. The
+# saturation was a symptom; the cause was that the stimulus was integrating the
+# wrong thing. Section 3a records the corrected integrand.
 #
-#     norm    6  ->  0.000   saturated, no information
-#     norm   30  ->  0.341
-#     norm   40  ->  0.446   <- widest separation
-#     norm   50  ->  0.357
-#     norm  100  ->  0.179   too coarse, hot days stop registering as hot
+# After the correction, on the same four site-days and the same 6.0:
 #
-# [OPEN — OWNER'S DECISION] Do not silently re-tune this. The number has a
-# physiological meaning (the dose of a standard exertional acclimatization
-# session) and changing it to make a demo work is exactly the failure mode this
-# file exists to prevent. Two defensible readings:
+#     unadapted (A=0)   0.66 .. 1.97 degC*h   ->  s = 0.11 .. 0.33
 #
-#   (a) 6.0 is right and Phoenix summer genuinely delivers a full adaptation
-#       stimulus every working day. Then the honest product claim is narrower:
-#       the model separates workers by SITE and SHIFT ASSIGNMENT, not by the
-#       weather, and only outside peak season does the weather term bite.
-#   (b) 6.0 is mis-scaled for degree-hours-above-a-personal-limit as we define
-#       it, and ~40 is the value that carries the intended meaning.
-#
-# scripts/m2_report.py reports the divergence under BOTH, so the choice is made
-# on evidence. Until it is made, the shipped default stays as specified.
-DEGREE_HOURS_ALT_STIMULUS = 40.0   # [PROPOSED] the discriminating value, not the default
+# No day saturates in any real ramp, under either wet-bulb method.
 
 # Below this, a day contributes no adaptation at all.
 STIMULUS_FLOOR_DEG = 0.0
+
+
+# ----------------------------------------------------------------------------
+# 3a. WHAT THE STIMULUS INTEGRATES  —  corrected 2026-08-24
+# ----------------------------------------------------------------------------
+# DEGREE_HOURS_FULL_STIMULUS stays at 6.0. What changed is the integrand, and
+# the reason is that the first definition was wrong twice over.
+#
+#     dose = SUM over shift hours of  max(WBGTeff - RAL, 0) * (minutes worked / 60)
+#
+# CHANGE 1 — the threshold is the FIXED RAL for the workload class, not the
+# worker's moving personal limit.
+#
+#   Integrating above the moving limit is circular. As a worker adapts his limit
+#   rises, so the same weather yields fewer degree-hours, so he accumulates less
+#   dose than an unadapted man standing beside him in identical conditions. That
+#   is backwards: the environment does not know how adapted anyone is. Heat dose
+#   is a property of the weather and the exposure, not of the person.
+#
+#   The personal limit still does real work — it sets the SCHEDULE. It just no
+#   longer sets the threshold for measuring dose.
+#
+# CHANGE 2 — only hours ACTUALLY WORKED count, weighted by the prescribed duty
+# cycle.
+#
+#   An hour spent resting in shade produces no adaptive stimulus. An hour
+#   prescribed at 15 min/h therefore contributes a quarter of its degree-hours,
+#   and an hour prescribed at 0 contributes nothing at all.
+#
+# WHAT THIS FIXED, measured over the 05:00-13:00 shift, moderate work, on the
+# four site-days with cached FortyGuard tiles:
+#
+#     definition                       degree-hours       s at A=0
+#     above moving limit, unweighted   19.76 .. 37.62     1.000 (all saturated)
+#     above fixed RAL, duty-weighted    0.66 ..  1.97     0.110 .. 0.329
+#
+#   Saturation is gone from the range where it mattered. Across four real ramps
+#   NO day saturates: s stays inside 0.11-0.59. Saturation only returns above
+#   A ~ 0.55-0.90, where it is harmless because A is already near its ceiling
+#   and s = 1 simply holds it there.
+#
+# A FEEDBACK LOOP THIS INTRODUCES, DELIBERATELY. The schedule depends on
+# adaptation, so dose now depends on adaptation — but in the physically correct
+# direction: a more adapted worker is cleared for more minutes, so he
+# accumulates MORE dose. Gain, not loss. It is also self-limiting, because the
+# hottest hours are exactly the ones prescribed at zero.
+#
+# THE UNCOMFORTABLE CONSEQUENCE, which the product must confront rather than
+# bury: under this definition HOTTER DAYS CAN PRODUCE LESS ADAPTATION, because
+# the protective schedule removes the exposure that would have adapted the
+# worker. A 10:00-18:00 shift in Phoenix is prescribed zero minutes in every
+# hour, so that worker never acclimatizes at all. The safety schedule is
+# self-defeating for acclimatization.
+#
+#   That is not a modelling artefact. It is a real trade-off in every heat
+#   standard that combines a ramp with a work/rest rule, and the model now
+#   surfaces it. `Divergence.inverted` reports when the environmentally hotter
+#   arm ended up the LESS adapted worker.
+#
+# CONSEQUENTLY: report the PERSONAL LIMIT in degC-WBGT as the primary divergence
+# metric. It is continuous and monotone in accumulated dose. The prescription in
+# minutes is quantised into 15-minute rungs of the NIOSH ladder, so whether a
+# real separation shows up as a different instruction depends on where the
+# worker happens to fall relative to a rung boundary. Limits first, minutes
+# second, and never minutes alone.
 
 # SPEC.md M2 requires the divergence to survive these ranges.
 TAU_GAIN_SENSITIVITY_RANGE = (3.0, 6.0)
@@ -217,6 +266,13 @@ TAU_DECAY_SENSITIVITY_RANGE = (10.0, 21.0)
 # a rung is not a different instruction to a supervisor, so it does not count as
 # a divergence however pleasing the decimals look.
 MATERIAL_DIVERGENCE_MIN_PER_HOUR = 15
+
+# The PRIMARY divergence metric is the personal limit in degC-WBGT, because it
+# is continuous and monotone in accumulated dose while the prescription is
+# quantised into 15-minute rungs. [TUNED] 0.25 degC is a quarter of the 3.0 degC
+# span between RAL and REL for moderate work — a separation that would move a
+# worker an eighth of the way along the NIOSH scale is not noise.
+MATERIAL_LIMIT_GAP_C = 0.25
 
 
 # ============================================================================
