@@ -206,6 +206,12 @@ CLOTHING_ADJUSTMENT_C = {
 #             radiation must come from Open-Meteo.
 #   wind    : NOT AVAILABLE from FortyGuard at all. Open-Meteo only.
 
+# [VERIFIED 2026-08-24 against ISO 7243:2017(E) Clause 5, Formulae (1) and (2)]
+#   without solar load:  WBGT = 0,7 t_nw + 0,3 t_g          Formula (1)
+#   with solar load:     WBGT = 0,7 t_nw + 0,2 t_g + 0,1 t_a Formula (2)
+# Independently corroborated: ISO Table D.1's WBGT column only reproduces with
+# Formula (1) — the outdoor form is out by up to 3,4 degC on those rows. See
+# tests/test_natural_wet_bulb.py.
 WBGT_OUTDOOR_WEIGHTS = (0.7, 0.2, 0.1)   # (nwb, globe, dry)
 WBGT_INDOOR_WEIGHTS = (0.7, 0.3, 0.0)
 
@@ -217,6 +223,389 @@ WBGT_PLAUSIBLE_MIN, WBGT_PLAUSIBLE_MAX = -20.0, 45.0
 #   At 06:00 the same day: T_wb 22.0 °C, weak solar  ->  WBGT ~ 24.8 °C
 # The day therefore crosses BOTH the RAL and REL curves for moderate work.
 # Use this as the regression fixture for the WBGT pipeline.
+
+# Reference targets, machine-readable so the M1 exit test cannot drift from the
+# prose above.
+WBGT_REFERENCE_SITE = {"latitude": 33.4484, "longitude": -112.0740}
+WBGT_REFERENCE_DATE = "2024-07-15"
+WBGT_REFERENCE_HOURS_C = {14: 31.0, 6: 24.8}
+WBGT_REFERENCE_TOLERANCE_C = 1.0
+
+
+# ----------------------------------------------------------------------------
+# 5a. BLACK GLOBE TEMPERATURE  —  T_globe is measured by neither API
+# ----------------------------------------------------------------------------
+# Section 5 requires either Liljegren et al. (2008) or an explicitly stated
+# simpler substitution. WE SUBSTITUTED. What we solve is the steady-state energy
+# balance of a standard 150 mm black globe:
+#
+#   alpha_g * S_sphere  +  eps_g * sigma * (F * Ta^4 - Tg^4)  -  h_c * (Tg - Ta) = 0
+#
+# with the longwave environment factor, sky above and ground below at view
+# factor 0.5 each, the ground both emitting and reflecting downwelling sky
+# longwave:
+#
+#   F = 0.5 * (eps_sky + eps_grd + (1 - eps_grd) * eps_sky)
+#
+# Under overcast (eps_sky = 1) this is exactly 1, so with no sun the globe sits
+# exactly at air temperature. Dropping the reflected term — easy to do, and we
+# did at first — costs about 0.5 degC of globe temperature on an overcast night.
+#
+# where S_sphere is shortwave irradiance averaged over the whole sphere surface.
+# That average follows from geometry alone, not from a fitted constant:
+#   - a collimated beam of intensity DNI presents pi*r^2 of a 4*pi*r^2 sphere
+#     -> DNI / 4
+#   - an isotropic hemisphere (sky) has view factor 0.5 -> DHI / 2
+#   - ground-reflected shortwave, view factor 0.5       -> albedo * GHI / 2
+#
+# DIFFERENCES FROM LILJEGREN, stated so the writeup can state them:
+#   1. Ground surface temperature is taken as air temperature. Liljegren does
+#      the same; real asphalt at 14:00 is far hotter, so this UNDER-estimates
+#      the globe, hence WBGT. Conservative direction, but a bias.
+#   2. Liljegren also models the natural wet bulb thermometer. We do not — we
+#      take FortyGuard psychrometric wet bulb directly (see 5b).
+#   3. No correction for globe thermal mass / non-steady state.
+#
+# [VERIFIED 2026-08-24 against ISO 7243:2017(E) Annex B.2, which specifies the
+#  globe normatively:
+#     a) diameter: 150 mm.
+#     b) mean emission coefficient: 0,95 (matte black globe);
+#  A secondary source claimed 0,97 — it is wrong. The standard says 0,95.]
+GLOBE_DIAMETER_M = 0.15            # [VERIFIED] ISO 7243:2017 Annex B.2 a)
+GLOBE_EMISSIVITY = 0.95            # [VERIFIED] ISO 7243:2017 Annex B.2 b)
+
+# [CHECK] ISO 7243 specifies only the LONGWAVE emission coefficient. Shortwave
+#         absorptivity is a different optical property and the standard does not
+#         give it. We set it equal to the emissivity, which is what Liljegren's
+#         reference implementation does (its ALB_GLOBE is 0.05, i.e. absorptivity
+#         0.95). Defensible for matte black paint, but it is our step, not ISO's.
+GLOBE_SOLAR_ABSORPTIVITY = 0.95
+
+# [CHECK] No primary source opened. Typical for built surfaces; the globe balance
+#         is weakly sensitive to it because the ground term is halved by the view
+#         factor and largely cancels against the sky term.
+GROUND_EMISSIVITY = 0.95
+
+# [CHECK] Typical urban albedo. Sensitivity is small and measured, not asserted:
+#         across 0.10-0.30 the downtown Phoenix 14:00 WBGT moves 30.66 -> 31.39,
+#         i.e. 0.18 degC per 0.05 of albedo. Reported by scripts/m1_report.py so
+#         the number is never taken on trust.
+GROUND_ALBEDO = 0.20
+
+# [VERIFIED] Exact by definition since the 2019 SI redefinition of the kelvin.
+#            CODATA: sigma = 5.670374419...e-8 W m^-2 K^-4.
+STEFAN_BOLTZMANN = 5.670374419e-8
+
+# Convection from a sphere in cross flow:
+#   Nu = 2 + 0.6 * Re^0.5 * Pr^(1/3)
+#
+# [VERIFIED 2026-08-24 against Liljegren's own reference implementation
+#  (github.com/mdljts/wbgt, src/wbgt.c, h_sphere_in_air), which computes
+#     Nu = 2.0 + 0.6 * sqrt(Re) * pow(Pr,0.3333)
+#  and cites it in-source as "Bird, Stewart, and Lightfoot (BSL), page 409".]
+#
+# NOTE ON ATTRIBUTION: this is the Ranz & Marshall (1952) correlation, but
+# Liljegren cites it via BSL (Transport Phenomena) p.409. Cite BSL in the
+# writeup, since that is the chain we actually verified.
+RANZ_MARSHALL_A = 2.0     # [VERIFIED] conduction limit for a sphere, Nu -> 2
+RANZ_MARSHALL_B = 0.6     # [VERIFIED]
+
+# At zero wind the forced-convection correlation collapses to Nu = 2 and the
+# globe runs implausibly hot. Real globes are ventilated by free convection.
+# [TUNED] We floor the air speed rather than add a free-convection branch, and
+#         say so. 0.5 m/s is below any measured urban daytime mean, so the floor
+#         only binds on calm nights, where the solar load is zero anyway.
+MIN_AIR_SPEED_M_S = 0.5
+
+# Air properties. Dynamic viscosity via Sutherland's law. [CHECK] — no primary
+# source opened for these five. They enter only through the convective
+# coefficient h = Nu*k/D, and the measured wind sensitivity below shows the whole
+# h term is worth well under 1 degC across a 20x range of wind, so a few percent
+# on k or nu is not a decisive error. Verify before submission anyway.
+AIR_SUTHERLAND_MU0_PA_S = 1.716e-5
+AIR_SUTHERLAND_T0_K = 273.15
+AIR_SUTHERLAND_S_K = 110.4
+AIR_GAS_CONSTANT_J_KG_K = 287.05        # [CHECK] dry air
+AIR_PRANDTL = 0.71                      # [CHECK] weakly temperature-dependent
+AIR_CONDUCTIVITY_REF_W_M_K = 0.02624    # [CHECK] at 300 K
+AIR_CONDUCTIVITY_REF_T_K = 300.0
+AIR_CONDUCTIVITY_EXPONENT = 0.8646      # [CHECK] k(T) = k_ref * (T/T_ref)^n
+
+# International Standard Atmosphere pressure vs geometric height. [CHECK]
+ISA_SEA_LEVEL_PRESSURE_PA = 101325.0
+ISA_LAPSE_COEFF = 2.25577e-5
+ISA_LAPSE_EXPONENT = 5.25588
+
+
+# ----------------------------------------------------------------------------
+# 5b. NATURAL WET BULB  —  SETTLED 2026-08-24
+# ----------------------------------------------------------------------------
+# DECISION: the default is the PSYCHROMETRIC value FortyGuard returns, used
+# unmodified as if it were the natural wet bulb. Settled by the project owner.
+# ISO 7243:2017 Annex D remains implemented and selectable (see §5g); it is not
+# the default, and nothing switches silently.
+#
+# THE FACTS BEHIND THE DECISION, so it can be defended rather than just asserted.
+#
+# 1. They are genuinely different instruments. ISO 7243:2017 Annex B.1:
+#
+#       "The natural wet bulb temperature is thus different from the
+#        thermo-dynamic temperature determined with a psychrometer."
+#
+#    So this is a real approximation, not a naming quibble. Say so in the writeup.
+#
+# 2. ISO gives a conversion, and we implemented it. Annex D Formulae (D.1)/(D.2)
+#    reproduce all 22 rows of the standard's own Table D.1 to within 0.50 °C
+#    (tests/test_natural_wet_bulb.py). The implementation is not in doubt.
+#
+# 3. ISO does not trust it here, and neither should we. Annex D's own preamble:
+#    the calculation "is neither simple nor reliable, especially when air
+#    velocity is low ... It is not recommended". Table D.1 is tabulated only to
+#    0,9 m/s; downtown Phoenix runs ~3,3 m/s at 14:00, so 23 of 24 hours fall
+#    outside the domain ISO validates. The pipeline flags every such hour.
+#
+# 4. The §5 reference cannot arbitrate, because it shares our assumption. The
+#    ≈31 °C was hand-computed using the psychrometric value in the 0.7 term. So
+#    "psychrometric reproduces the reference and Annex D does not" is NOT
+#    evidence that psychrometric is right — it is evidence they agree. SPEC.md's
+#    M1 exit criterion now states this explicitly.
+#
+# WHAT THIS COSTS, stated plainly because it is the one bias that runs the wrong
+# way. A sunlit wick absorbs radiation a shielded psychrometer does not, so the
+# natural wet bulb reads HIGHER. Using the psychrometric value therefore
+# UNDER-reads WBGT, which UNDER-reads heat stress. Every other simplification in
+# this pipeline errs toward restricting work; this one errs toward permitting it.
+# Measured on the reference site-day, Annex D would raise 14:00 by 1.10 °C.
+#
+# HOW THE PROJECT STAYS HONEST ABOUT IT:
+#   - the choice is recorded in every day's provenance and listed under
+#     `assumed_inputs`, so no result can be mistaken for a measurement;
+#   - SPEC.md M2's exit test requires the two-worker divergence to survive BOTH
+#     methods. If the headline claim only holds under one, it is an artifact of
+#     that method and the claim is withdrawn;
+#   - the writeup states the direction of the bias before a judge asks.
+#
+# Selectable at the call site: wbgt.NWB_PSYCHROMETRIC (default) or
+# wbgt.NWB_ISO_ANNEX_D.
+
+
+# ----------------------------------------------------------------------------
+# 5c. HOURLY SOLAR — reconstructed, because no API gives it offline
+# ----------------------------------------------------------------------------
+# FortyGuard /v1/env_params returns ONE daily clear-sky mean (ghi/dni/dhi), not
+# 24 values (FORTYGUARD_API_CONTRACT.md section 6, trap 1). Open-Meteo has the
+# hourly field but no fixture is cached yet. So the hourly curve is computed from
+# solar geometry and then ANCHORED to FortyGuard: the clear-sky GHI curve is
+# scaled by a single factor so its own daylight-hours mean equals the value
+# FortyGuard reported for that site-day.
+#
+# The shape is astronomy (exact); the level is FortyGuard (measured). Nothing
+# here is a free parameter.
+#
+# Solar position: NOAA Global Monitoring Laboratory solar calculator equations.
+# [VERIFIED 2026-08-24 against NOAA GML "General Solar Position Calculations"
+#  (solareqns.PDF). Fractional year, equation of time, declination, true solar
+#  time, hour angle and zenith all match coefficient for coefficient.
+#  CONVENTION NOTE: NOAA writes time_offset = eqtime - 4*longitude + 60*timezone
+#  with longitude and timezone POSITIVE WEST (it gives MST = +7). We use
+#  positive EAST for both (-112.074, -7), so ours reads
+#  time_offset = eqtime + 4*longitude - 60*timezone. Algebraically identical;
+#  the double sign flip cancels. Empirically confirmed: the model puts Phoenix
+#  solar noon at 12:34 local, sunrise 05:33, sunset 19:35 on 2024-07-15.]
+
+# [CHECK] The modern best estimate of total solar irradiance is 1361 W/m^2
+#         (Kopp & Lean 2011), not 1367. We keep 1367 because the Meinel DNI
+#         formulation below was fitted against the older value, and because this
+#         constant only scales the beam/diffuse SPLIT of a GHI curve that is
+#         already anchored to FortyGuard. Revisit if DNI is ever used directly.
+SOLAR_CONSTANT_W_M2 = 1367.0
+
+# Haurwitz (1945) clear-sky global horizontal model:
+#   GHI = 1098 * cos(z) * exp(-0.059 / cos(z))
+# [VERIFIED 2026-08-24 against the pvlib-python reference implementation
+#  (pvlib.clearsky.haurwitz), whose source line is
+#     clearsky_ghi = 1098.0 * cos_zenith * np.exp(-0.059/cos_zenith)
+#  citing B. Haurwitz, "Insolation in Relation to Cloudiness and Cloud Density",
+#  Journal of Meteorology 2:154-166, 1945, and Reno, Hansen & Stein, "Global
+#  Horizontal Irradiance Clear Sky Models", Sandia SAND2012-2389, 2012.]
+HAURWITZ_A = 1098.0
+HAURWITZ_B = 0.059
+
+# Meinel & Meinel (1976) clear-sky direct normal model:
+#   DNI = SOLAR_CONSTANT * 0.7 ^ (AM ^ 0.678),  AM = 1 / cos(z)
+# [VERIFIED 2026-08-24 — but against SECONDARY sources only (PVEducation and the
+#  clear-sky model literature, which reproduce it as DNI = I0 * 0.7^(AM^0.678)
+#  and attribute it to Meinel, A.B. & Meinel, M.P., "Applied Solar Energy: An
+#  Introduction", Addison-Wesley, 1976). The 1976 book itself was not opened.
+#  This is the weakest citation in section 5c; it is also the least consequential,
+#  because it only splits an already-anchored GHI into beam and diffuse.]
+MEINEL_TAU = 0.7
+MEINEL_AM_EXPONENT = 0.678
+
+# Below this solar elevation the irradiance is treated as zero. [TUNED]
+MIN_SOLAR_ELEVATION_DEG = 0.0
+
+# Kasten & Czeplak (1980) cloud attenuation of global irradiance:
+#   GHI / GHI_clear = 1 - 0.75 * (N/8)^3.4,  N = cloud cover in OCTAS (0-8)
+# [VERIFIED 2026-08-24. Kasten, F. & Czeplak, G., "Solar and terrestrial
+#  radiation dependent on the amount and type of cloud", Solar Energy 24(2):
+#  177-189, 1980. Derived from 10 years of hourly data at Hamburg.]
+# We pass cloud as a FRACTION (N/8 already applied), so the code reads
+# 1 - 0.75 * c^3.4 with c in [0,1] — algebraically the same expression.
+KASTEN_CZEPLAK_A = 0.75
+KASTEN_CZEPLAK_EXPONENT = 3.4
+
+# [TUNED] Beam attenuation under cloud. We assume the direct beam survives in
+# proportion to the clear fraction, DNI_allsky = DNI_clear * (1 - C), and take
+# diffuse as the remainder needed to close GHI = DNI*cos(z) + DHI. Both
+# endpoints are exact by construction (C=0 -> clear sky; C=1 -> fully diffuse);
+# only the interior is an assumption.
+BEAM_SURVIVES_LINEARLY_IN_CLEAR_FRACTION = True
+
+
+# ----------------------------------------------------------------------------
+# 5d. WIND — available from NEITHER API. The pipeline weakest input.
+# ----------------------------------------------------------------------------
+# Section 5 already records it: "wind: NOT AVAILABLE from FortyGuard at all.
+# Open-Meteo only." No Open-Meteo fixture is cached, so offline runs use an
+# assumed constant. THIS IS TAGGED IN THE PROVENANCE OF EVERY RESULT — a run on
+# assumed wind can never be mistaken for a run on retrieved wind.
+#
+# [RESOLVED 2026-08-24] An Open-Meteo fixture now exists for the reference
+# site-day, so wind is MEASURED there and the default below is used only where
+# no Open-Meteo coverage is cached. Which one a given result used is recorded in
+# that day's provenance and must never be inferred.
+#
+# The assumption held up well. Measured 2024-07-15 downtown Phoenix, after the
+# 10 m -> 2 m log-profile conversion:
+#     min 0.53   mean 2.81   max 4.68 m/s      (06:00 1.42, 14:00 3.28)
+# against the 3.0 m/s that was assumed. Swapping the assumption for the measured
+# series moves WBGT at 14:00 by 0.07 degC, so the earlier offline result was not
+# luck — pinned by test_measured_wind_did_not_rescue_a_broken_model.
+DEFAULT_WIND_SPEED_M_S = 3.0
+
+# The band of plausible daytime 2 m wind speeds the writeup reports over.
+WIND_SENSITIVITY_BAND_M_S = (1.0, 8.0)
+
+# [MEASURED 2026-08-24, scripts/m1_report.py] The sub-band over which the M1
+# reference in section 5 actually reproduces to within +/-1 degC. It is NARROWER
+# than the plausible band above, and that gap is a real limitation, not a
+# rounding detail:
+#
+#   0.5 m/s -> 14:00 reads 32.69 degC (+1.69 over the reference)
+#   1.0 m/s -> 14:00 reads 32.08 degC (+1.08)
+#   1.5 m/s -> 14:00 reads 31.71 degC (+0.71)  <- gate reopens here
+#   3.0 m/s -> 14:00 reads 31.12 degC (+0.12)  <- the assumed default
+#  10.0 m/s -> 14:00 reads 30.24 degC (-0.76)
+#
+# So on a near-calm afternoon the pipeline over-reads WBGT by up to 1.7 degC.
+# That errs toward restricting work rather than permitting it, which is the safe
+# direction, but it is an error. It disappears the moment a real wind series is
+# cached — see the Open-Meteo call in sources/openmeteo.py.
+WIND_BAND_REPRODUCING_REFERENCE_M_S = (1.5, 10.0)
+
+# Wind is reported at 10 m; the globe sits at roughly 2 m. Logarithmic wind
+# profile, v(z) = v_ref * ln(z/z0) / ln(z_ref/z0). [CHECK] the roughness length
+# for built-up terrain against a boundary-layer reference.
+WIND_MEASUREMENT_HEIGHT_M = 10.0
+GLOBE_HEIGHT_M = 2.0
+SURFACE_ROUGHNESS_LENGTH_M = 0.1   # [CHECK] suburban / built-up
+
+
+# ----------------------------------------------------------------------------
+# 5e. LONGWAVE SKY EMISSIVITY AND VAPOUR PRESSURE
+# ----------------------------------------------------------------------------
+# Brutsaert (1975), clear-sky atmospheric emissivity from screen-level vapour
+# pressure:  eps_cs = 1.24 * (e_a / T_a) ^ (1/7),  e_a in mbar, T_a in K
+# [VERIFIED 2026-08-24. Brutsaert, W., "On a derivable formula for long-wave
+#  radiation from clear skies", Water Resources Research 11(5):742-744, 1975,
+#  doi:10.1029/WR011i005p00742. mbar == hPa, which is the unit we convert to.]
+#
+# NOTE: Liljegren's implementation uses a DIFFERENT sky emissivity form,
+# 0.575 * e^0.143, attributed in-source to Oke. Ours is Brutsaert and is cited
+# as Brutsaert. Do not describe the radiation scheme as "Liljegren's".
+#
+# Cloud raises emissivity toward unity in proportion to cover — our step, and
+# exact at both endpoints (clear -> Brutsaert, overcast -> 1).
+BRUTSAERT_A = 1.24
+BRUTSAERT_EXPONENT = 1.0 / 7.0
+
+# Tetens saturation vapour pressure over water, kPa, T in degC:
+#   e_s = 0.6108 * exp(17.27 * T / (T + 237.3))
+# [VERIFIED 2026-08-24. Tetens, O., "Uber einige meteorologische Begriffe",
+#  Zeitschrift fur Geophysik 6:297-309, 1930, as reproduced in FAO Irrigation and
+#  Drainage Paper 56 (Allen et al. 1998) Equation 11. Monteith & Unsworth note
+#  values are within 1 Pa of exact up to 35 degC.
+#  The primary form is sometimes written 0.61078; FAO-56 rounds to 0.6108. The
+#  difference is 2e-5 kPa and we use the FAO-56 value.]
+MAGNUS_A_KPA = 0.6108
+MAGNUS_B = 17.27
+MAGNUS_C = 237.3
+
+
+# ----------------------------------------------------------------------------
+# 5f. HOURLY DRY BULB RECONSTRUCTION
+# ----------------------------------------------------------------------------
+# FortyGuard filter_type=3 gives THREE numbers per cell for the whole day: min,
+# mean and max (FORTYGUARD_API_CONTRACT.md section 4 — these are the TEMPORAL
+# axis, not the spatial one). A separate source supplies the diurnal SHAPE.
+# FortyGuard sets amplitude and offset; the shape provider sets shape.
+#
+# A shape mapped linearly onto [min, max] honours two of the three numbers and
+# silently discards the third. We keep the third by warping the normalised shape
+# with n -> n^gamma and solving gamma so the reconstructed daily mean equals
+# FortyGuard. The warp is monotone and fixes both endpoints, so min and max
+# survive exactly.
+#
+# gamma is a DIAGNOSTIC as much as a correction: gamma far from 1 means the
+# shape source and FortyGuard disagree about where the day mass sits.
+DIURNAL_WARP_GAMMA_BOUNDS = (0.05, 20.0)
+DIURNAL_WARP_TOLERANCE_C = 1e-4
+
+# Reported by the M1 amplitude check. A gamma outside this band is flagged, not
+# silently applied. [TUNED]
+DIURNAL_WARP_GAMMA_PLAUSIBLE = (0.4, 2.5)
+
+
+# ----------------------------------------------------------------------------
+# 5g. NATURAL WET BULB BY CALCULATION  —  ISO 7243:2017 Annex D
+# ----------------------------------------------------------------------------
+# [VERIFIED 2026-08-24 against ISO 7243:2017(E) Annex D, Formulae (D.1) and
+#  (D.2), and validated against all 22 rows of the standard's own Table D.1 —
+#  see tests/test_natural_wet_bulb.py, worst error 0.16 degC.]
+#
+# Formula (D.1), solved iteratively for t_nw:
+#   4,18 * v^0,444 * (t_a - t_nw)
+#     + 1e-8 * [(t_r + 273)^4 - (t_nw + 273)^4]
+#     - 77,1 * v^0,421 * [p_as(t_nw) - RH * p_as(t_a)]  =  0
+#
+# Formula (D.2), mean radiant temperature from globe temperature:
+#   t_r = [ (t_g+273)^4 + (1,1e8 * v^0,6)/(eps_g * d^0,4) * (t_g - t_a) ]^0,25 - 273
+#
+# The standard uses 273, not 273,15, in both. We keep ISO's value rather than
+# "improving" it, because the coefficients were fitted against it.
+
+ISO_KELVIN_OFFSET = 273.0          # [VERIFIED] as written in ISO 7243 D.1/D.2
+
+ISO_NWB_CONVECTIVE_COEFF = 4.18    # [VERIFIED] ISO 7243:2017 Formula (D.1)
+ISO_NWB_CONVECTIVE_EXPONENT = 0.444
+ISO_NWB_RADIATIVE_COEFF = 1.0e-8
+ISO_NWB_EVAPORATIVE_COEFF = 77.1
+ISO_NWB_EVAPORATIVE_EXPONENT = 0.421
+
+ISO_MRT_COEFFICIENT = 1.1e8        # [VERIFIED] ISO 7243:2017 Formula (D.2)
+ISO_MRT_SPEED_EXPONENT = 0.6
+ISO_MRT_DIAMETER_EXPONENT = 0.4
+
+# The domain ISO actually tabulates. Outside it the standard offers no worked
+# example, and Annex D's own preamble says the method "is not recommended".
+# Phoenix afternoons run about 3 m/s — over 3x the tabulated ceiling.
+ISO_TABLE_D1_TNW_RANGE_C = (15.0, 30.0)   # [VERIFIED] Table D.1 caption
+ISO_TABLE_D1_MAX_SPEED_M_S = 0.9          # [VERIFIED] Table D.1 largest v_a
+
+# FAO-56 (Allen et al. 1998) Equation 8: gamma = 0.665e-3 * P, P in kPa.
+# [VERIFIED 2026-08-24] Used only to report the natural-vs-psychrometric gap.
+PSYCHROMETRIC_CONSTANT_COEFF = 0.665e-3
 
 
 # ============================================================================
@@ -329,3 +718,59 @@ class SiteProfile:
     clothing: str = "work_clothes"  # -> CLOTHING_ADJUSTMENT_C
     shift_start_hour: int = DEMO_SHIFT_START_HOUR
     shift_end_hour: int = DEMO_SHIFT_END_HOUR
+
+
+# ============================================================================
+# 9. API ACCESS  —  M0 client and cache
+# ============================================================================
+# [VERIFIED 2026-08-23/24 against FORTYGUARD_API_CONTRACT.md sections 1-8.]
+# Transport-level facts only. Nothing here is physical or regulatory.
+
+FORTYGUARD_BASE_URL = "https://api.fortyguard.com"
+FORTYGUARD_DEV_BASE_URL = "https://tos-enterprise-api.dev.app.fortyguard.com"
+
+# Contract section 1: the Python client polls at 3 s intervals.
+POLL_INTERVAL_S = 3.0
+
+# [TUNED] How long to wait before giving up on an activity. Two live env_params
+# probes on 2026-08-24 sat at `Processing` for 3 and 30 minutes without ever
+# completing, so a generous budget is not paranoia. On timeout the client raises
+# with the activity_id attached: the call has already been paid for, so it must
+# be retrieved rather than resubmitted.
+POLL_TIMEOUT_S = 900.0
+
+# Contract section 3: 60, 80 or 100 metres only. 60 m is the finest available.
+ALLOWED_GRANULARITIES_M = frozenset({60, 80, 100})
+
+# Contract section 5: these need `threshold` and `direction`, and a multi-hour or
+# multi-day window (filter_type 2 or 4).
+ANALYTIC_TYPES_NEEDING_THRESHOLD = frozenset({"exceedance", "persistence"})
+ANALYTIC_TYPES = frozenset({"tcm", "time_of_measure", "exceedance", "persistence"})
+
+# Contract section 2: Basic/Startup tiers are capped at 3 analysis parameters per
+# /v1/env_params request. Whether the cap actually binds on the hackathon key is
+# UNRESOLVED — see contract section 6, "analysis may not be applied". The client
+# chunks to this size regardless, which is correct either way and free when the
+# whole request fits in one chunk.
+ENV_PARAMS_MAX_ANALYSIS = 3
+
+
+# ----------------------------------------------------------------------------
+# 9a. EXCEEDANCE CLAMPING  —  mandatory on ingest
+# ----------------------------------------------------------------------------
+# [VERIFIED 2026-08-23] Contract section 5: the exceedance field is INTERPOLATED,
+# not counted. Measured pathologies on real responses:
+#     min = -0.3176 h at threshold 42 degC   -- a negative duration
+#     max = 168.62 h on a 168-hour window    -- 0.62 h past the ceiling
+#
+# Both are physically impossible. They are clamped at the parse boundary, in
+# fortyguard.parse_analysis_grid, so an impossible duration cannot reach the
+# stimulus term. The number of clamped cells is REPORTED, never swallowed: a
+# grid where many cells clamp is a grid whose threshold is badly chosen.
+#
+# We never claim integer-hour precision from this field, and never plot it raw.
+EXCEEDANCE_CLAMP_MIN_H = 0.0
+
+# [TUNED] A cell landing further outside the window than this is a parse error —
+# wrong window length, wrong units — not interpolation noise. Raise, do not clamp.
+EXCEEDANCE_IMPLAUSIBLE_MARGIN_H = 24.0

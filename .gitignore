@@ -7,3 +7,7 @@ CLAUDE.md
 .claude/
 *.md
 !README.md
+
+# Derived: rebuild with `python scripts/seed_cache.py`
+data/cache/
+scripts/probe_state.json
