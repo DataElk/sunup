@@ -158,8 +158,65 @@ A_MIN, A_MAX = 0.0, 1.0
 #         [CHECK] the protocol duration you cite.
 DEGREE_HOURS_FULL_STIMULUS = 6.0   # °C-WBGT * hours above personal limit
 
+# ############################################################################
+# [MEASURED 2026-08-24 — M2] 6.0 SATURATES ON EVERY REAL PHOENIX SHIFT.
+# ############################################################################
+# Measured degree-hours above the personal limit over the 05:00-13:00 demo
+# shift, moderate work, on the four site-days with cached FortyGuard tiles:
+#
+#     2024-07-15   19.76   ->  s = 1.000
+#     2026-08-05   28.63   ->  s = 1.000
+#     2026-08-09   29.23   ->  s = 1.000
+#     2026-07-26   37.62   ->  s = 1.000
+#
+# Even at full adaptation (limit = REL = 28.0) three of the four still saturate.
+#
+# WHY THIS MATTERS MORE THAN ANY OTHER CONSTANT IN THE FILE. If s = 1 for every
+# worker on every day, the state update collapses to
+#
+#     A(t+1) = A + (1 - A)/TAU_GAIN
+#
+# which is a function of DAYS ELAPSED and nothing else. That is precisely the
+# calendar the product exists to replace. The model would produce identical
+# numbers for two workers with a 1.9x difference in measured heat dose, and the
+# central claim of the submission would be false.
+#
+# The discriminating band, from the same four site-days (spread in s between the
+# mildest and hottest day):
+#
+#     norm    6  ->  0.000   saturated, no information
+#     norm   30  ->  0.341
+#     norm   40  ->  0.446   <- widest separation
+#     norm   50  ->  0.357
+#     norm  100  ->  0.179   too coarse, hot days stop registering as hot
+#
+# [OPEN — OWNER'S DECISION] Do not silently re-tune this. The number has a
+# physiological meaning (the dose of a standard exertional acclimatization
+# session) and changing it to make a demo work is exactly the failure mode this
+# file exists to prevent. Two defensible readings:
+#
+#   (a) 6.0 is right and Phoenix summer genuinely delivers a full adaptation
+#       stimulus every working day. Then the honest product claim is narrower:
+#       the model separates workers by SITE and SHIFT ASSIGNMENT, not by the
+#       weather, and only outside peak season does the weather term bite.
+#   (b) 6.0 is mis-scaled for degree-hours-above-a-personal-limit as we define
+#       it, and ~40 is the value that carries the intended meaning.
+#
+# scripts/m2_report.py reports the divergence under BOTH, so the choice is made
+# on evidence. Until it is made, the shipped default stays as specified.
+DEGREE_HOURS_ALT_STIMULUS = 40.0   # [PROPOSED] the discriminating value, not the default
+
 # Below this, a day contributes no adaptation at all.
 STIMULUS_FLOOR_DEG = 0.0
+
+# SPEC.md M2 requires the divergence to survive these ranges.
+TAU_GAIN_SENSITIVITY_RANGE = (3.0, 6.0)
+TAU_DECAY_SENSITIVITY_RANGE = (10.0, 21.0)
+
+# One rung of WORK_REST_LADDER is 15 minutes per hour. A difference smaller than
+# a rung is not a different instruction to a supervisor, so it does not count as
+# a divergence however pleasing the decimals look.
+MATERIAL_DIVERGENCE_MIN_PER_HOUR = 15
 
 
 # ============================================================================

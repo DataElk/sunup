@@ -223,7 +223,7 @@ def _wind_series(
 def build_wbgt_day(
     site_id: str,
     grid: TemperatureGrid,
-    env: EnvParamsDay,
+    env: Optional[EnvParamsDay],
     site_longitude: float,
     site_latitude: float,
     open_meteo: Optional[OpenMeteoDay] = None,
@@ -248,6 +248,23 @@ def build_wbgt_day(
     if open_meteo is None:
         use = SourceSelection.none()
 
+    # env_params was only ever called for one site-day. On every other day
+    # Open-Meteo supplies the wet bulb and humidity instead — justified by the
+    # provenance audit, which showed the two agree to 0.1 degC and are not
+    # independent sources anyway (FORTYGUARD_API_CONTRACT.md section 6).
+    if env is None:
+        if open_meteo is None or not open_meteo.can_replace_env_params:
+            raise ImplausibleValue(
+                "no env_params for this site-day and no Open-Meteo day carrying "
+                "wet_bulb_temperature_2m / relative_humidity_2m to stand in for "
+                "it. Fetch one with scripts/fetch_openmeteo.py."
+            )
+    date = env.date if env is not None else open_meteo.date
+    elevation_m = env.elevation_m if env is not None else open_meteo.elevation_m
+    utc_offset = (
+        env.utc_offset_hours if env is not None else open_meteo.utc_offset_hours
+    )
+
     cell = grid.cell_at(site_longitude, site_latitude)
     notes = []
 
@@ -260,7 +277,7 @@ def build_wbgt_day(
         )
 
     # --- diurnal shape ------------------------------------------------------
-    if use.shape:
+    if use.shape or env is None:
         shape_values: Sequence[float] = open_meteo.temperature_2m_c
         shape_source = SHAPE_OPEN_METEO
     else:
@@ -295,13 +312,24 @@ def build_wbgt_day(
     dry_bulb = reconstruction.dry_bulb_c
 
     # --- humidity and wet bulb ---------------------------------------------
-    wet_bulb = env.hourly("wet_bulb_temperature_celsius")
-    humidity = env.hourly("relative_humidity_percent")
+    if env is not None:
+        wet_bulb = env.hourly("wet_bulb_temperature_celsius")
+        humidity = env.hourly("relative_humidity_percent")
+        wet_bulb_source = (
+            "fortyguard.env_params.wet_bulb_temperature_celsius (psychrometric)"
+        )
+    else:
+        wet_bulb = open_meteo.wet_bulb_temperature_c
+        humidity = open_meteo.relative_humidity_pct
+        wet_bulb_source = (
+            "openmeteo.wet_bulb_temperature_2m (psychrometric) — env_params was "
+            "never called for this site-day; the two agree to 0.1 degC"
+        )
 
     # --- cloud --------------------------------------------------------------
     # Cloud drives two different terms — solar attenuation and longwave sky
     # emissivity — so it should come from the same provider as the radiation.
-    if use.cloud:
+    if use.cloud or env is None:
         cloud = open_meteo.cloud_cover_fraction
         cloud_source = CLOUD_OPEN_METEO
     else:
@@ -315,12 +343,12 @@ def build_wbgt_day(
             )
 
     # --- solar --------------------------------------------------------------
-    if use.solar:
+    if use.solar or env is None:
         solar_day = solar.solar_day(
-            date=env.date,
+            date=date,
             latitude=site_latitude,
             longitude=site_longitude,
-            utc_offset_hours=env.utc_offset_hours,
+            utc_offset_hours=utc_offset,
         )
         # Open-Meteo measures the total; the model only supplies the beam/diffuse
         # split. Clamp the beam: at a sun a fraction of a degree above the
@@ -344,10 +372,10 @@ def build_wbgt_day(
         solar_source = SOLAR_OPEN_METEO
     else:
         solar_day = solar.solar_day(
-            date=env.date,
+            date=date,
             latitude=site_latitude,
             longitude=site_longitude,
-            utc_offset_hours=env.utc_offset_hours,
+            utc_offset_hours=utc_offset,
             anchor_daily_ghi_w_m2=env.clear_sky_ghi_w_m2,
             anchor_daily_dni_w_m2=env.clear_sky_dni_w_m2,
             anchor_daily_dhi_w_m2=env.clear_sky_dhi_w_m2,
@@ -379,7 +407,7 @@ def build_wbgt_day(
             dhi_w_m2=dhi[h],
             ghi_w_m2=ghi[h],
             cloud_fraction=cloud[h],
-            elevation_m=env.elevation_m,
+            elevation_m=elevation_m,
             ground_albedo=ground_albedo,
         )
 
@@ -479,9 +507,10 @@ def build_wbgt_day(
         dry_bulb="fortyguard.heatmap filter_type=3 cell %d (temporal min/mean/max)"
         % cell.tile_id,
         dry_bulb_shape=shape_source,
-        wet_bulb="fortyguard.env_params.wet_bulb_temperature_celsius (psychrometric)",
+        wet_bulb=wet_bulb_source,
         natural_wet_bulb=nwb_source,
-        relative_humidity="fortyguard.env_params.relative_humidity_percent",
+        relative_humidity=("fortyguard.env_params.relative_humidity_percent"
+                           if env is not None else "openmeteo.relative_humidity_2m"),
         cloud=cloud_source,
         solar=solar_source,
         wind=wind_source,
@@ -491,10 +520,10 @@ def build_wbgt_day(
 
     return WBGTDay(
         site_id=site_id,
-        date=env.date,
+        date=date,
         latitude=site_latitude,
         longitude=site_longitude,
-        elevation_m=env.elevation_m,
+        elevation_m=elevation_m,
         hours=tuple(hours),
         provenance=provenance,
         reconstruction=reconstruction,

@@ -28,10 +28,24 @@ from acclimate.sources.fixtures import FixtureStore
 
 ARCHIVE_HOURLY_FIELDS = (
     "temperature_2m",
+    "relative_humidity_2m",
+    "wet_bulb_temperature_2m",
     "shortwave_radiation",
     "wind_speed_10m",
     "cloud_cover",
 )
+
+# Wet bulb and relative humidity were added on 2026-08-24 so Open-Meteo can stand
+# in for /v1/env_params on site-days where no env_params call was ever made.
+#
+# That substitution is justified, not convenient: the provenance audit
+# (scripts/audit_env_params_provenance.py, and FORTYGUARD_API_CONTRACT.md
+# section 6) established that FortyGuard's wet_bulb_temperature_celsius agrees
+# with Open-Meteo's wet_bulb_temperature_2m on 15 of 24 hours with a worst
+# difference of 0.1 degC, and its relative_humidity_percent agrees to within
+# rounding. The two are not independent sources. Using Open-Meteo directly costs
+# nothing, needs no key, and covers dates FortyGuard was never asked about.
+ENV_PARAMS_SUBSTITUTE_FIELDS = ("relative_humidity_2m", "wet_bulb_temperature_2m")
 
 
 @dataclass(frozen=True)
@@ -43,6 +57,15 @@ class OpenMeteoDay:
     shortwave_radiation_w_m2: Tuple[float, ...]
     wind_speed_10m_m_s: Tuple[float, ...]
     cloud_cover_fraction: Tuple[float, ...]
+    relative_humidity_pct: Tuple[float, ...] = ()
+    wet_bulb_temperature_c: Tuple[float, ...] = ()
+    elevation_m: float = 0.0
+    utc_offset_hours: float = 0.0
+
+    @property
+    def can_replace_env_params(self) -> bool:
+        """True when this day carries the two fields env_params would supply."""
+        return len(self.relative_humidity_pct) == 24 and len(self.wet_bulb_temperature_c) == 24
 
 
 def fixture_key(latitude: float, longitude: float, date: dt.date) -> str:
@@ -106,6 +129,10 @@ def load_day(
         shortwave_radiation_w_m2=series("shortwave_radiation"),
         wind_speed_10m_m_s=series("wind_speed_10m"),
         cloud_cover_fraction=tuple(min(max(v / 100.0, 0.0), 1.0) for v in cloud),
+        relative_humidity_pct=series("relative_humidity_2m"),
+        wet_bulb_temperature_c=series("wet_bulb_temperature_2m"),
+        elevation_m=float(payload.get("elevation", 0.0)),
+        utc_offset_hours=float(payload.get("utc_offset_seconds", 0)) / 3600.0,
     )
 
 

@@ -35,6 +35,8 @@ ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 
 EXPECTED_UNITS = {
     "temperature_2m": "°C",
+    "relative_humidity_2m": "%",
+    "wet_bulb_temperature_2m": "°C",
     "shortwave_radiation": "W/m²",
     "wind_speed_10m": "m/s",
     "cloud_cover": "%",
@@ -47,6 +49,7 @@ def main():
     parser.add_argument("--longitude", type=float, default=-112.0740)
     parser.add_argument("--date", default="2024-07-15")
     parser.add_argument("--refresh", action="store_true", help="actually make the call")
+    parser.add_argument("--force", action="store_true", help="overwrite an existing fixture")
     args = parser.parse_args()
 
     date = dt.date.fromisoformat(args.date)
@@ -72,9 +75,9 @@ def main():
         print("\nRe-run with --refresh to make the call.")
         return 0
 
-    if os.path.exists(target):
+    if os.path.exists(target) and not args.force:
         print("Fixture already exists: %s" % target)
-        print("Delete it first if you really mean to re-fetch.")
+        print("Pass --force if you really mean to re-fetch.")
         return 0
 
     print("GET %s" % ARCHIVE_URL)

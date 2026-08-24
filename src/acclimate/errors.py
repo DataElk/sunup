@@ -57,3 +57,12 @@ class PollTimeout(AcclimateError):
     The activity_id is included: a submitted activity has already been paid for,
     so it should be retrieved rather than resubmitted.
     """
+
+
+class ForbiddenInput(AcclimateError):
+    """An input constants.py section 7 forbids was offered to the model.
+
+    Age, sex, BMI, fitness, medical history, hydration, residence. The reason is
+    legal, not stylistic: restricting a worker's hours on any of these is
+    discrimination or ADA exposure. Refuse loudly; never accept and ignore.
+    """
