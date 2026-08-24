@@ -49,14 +49,21 @@ const RULES = [
   {
     id: 'no-rounded-cards',
     severity: 'error',
-    pattern: /border-radius\s*:\s*(?!0|2px|var\()|rounded-(?:md|lg|xl|2xl|3xl|full)/g,
+    // FIXED 2026-08-25. The negative lookahead used to sit after `\s*`, which
+    // can backtrack to zero width and land the lookahead on the space rather
+    // than the value - so `border-radius: var(--radius-sm)` was reported as a
+    // violation while a genuine `border-radius: 8px` still matched. Moving the
+    // whitespace INSIDE the lookahead removes the backtracking path. Verified:
+    // correct token usage passes, literal radii are still caught.
+    pattern: /border-radius\s*:(?!\s*(?:0|2px|var\())|rounded-(?:md|lg|xl|2xl|3xl|full)/g,
     why: 'Radius above 2px. Rounded cards are the strongest single tell of a ' +
          'templated dashboard. Only --radius-none and --radius-sm exist, by design.',
   },
   {
     id: 'no-ad-hoc-shadow',
     severity: 'error',
-    pattern: /box-shadow\s*:\s*(?!none|var\()|shadow-(?:sm|md|lg|xl|2xl)\b/g,
+    // FIXED 2026-08-25 - same backtracking bug as no-rounded-cards.
+    pattern: /box-shadow\s*:(?!\s*(?:none|var\())|shadow-(?:sm|md|lg|xl|2xl)\b/g,
     skipTokenFile: true,
     why: 'Ad-hoc shadow. Exactly one elevation exists (--elevation-flyout) and it ' +
          'is for detached overlays. Inline elements are delineated by borders.',
@@ -70,7 +77,8 @@ const RULES = [
   {
     id: 'no-default-fonts',
     severity: 'error',
-    pattern: /font-family\s*:\s*(?!var\()|['"]Inter['"]|\bfont-sans\b/g,
+    // FIXED 2026-08-25 - same backtracking bug as no-rounded-cards.
+    pattern: /font-family\s*:(?!\s*var\()|['"]Inter['"]|\bfont-sans\b/g,
     skipTokenFile: true,
     why: 'Font declared outside tokens. Use var(--font-ui) or var(--font-data). ' +
          'Inter in particular is the default-look tell.',
@@ -126,7 +134,10 @@ function semanticChecks(file, text) {
   // The adaptation state must never surface on a collapsed row. A foreman gets
   // minutes; the state variable appears only in the detail view.
   if (/roster|worker.?row/i.test(basename(file)) &&
-      /A\s*=\s*\{|adaptationState.*toFixed|\{\s*A\.toFixed/i.test(text)) {
+      // FIXED 2026-08-25: `A\s*=` with no word boundary matched any
+      // identifier ending in A, so the generated `window.ROSTER_DATA = {`
+      // tripped it. The rule is about a bare adaptation variable; it needs \b.
+      /\bA\s*=\s*\{|adaptationState.*toFixed|\{\s*A\.toFixed/i.test(text)) {
     record(warnings, file, 0, 'exposed-state-variable',
       'Adaptation state appears to render on a roster row. It belongs in the ' +
       'detail view only — the roster shows minutes.',

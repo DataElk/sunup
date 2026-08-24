@@ -1,0 +1,11 @@
+{
+  "name": "acclimate",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Per-worker heat acclimatization state estimator. The interface is a static app with no build step, so the demo runs from file:// with zero network access.",
+  "scripts": {
+    "check:design": "node scripts/check-design.mjs",
+    "prebuild": "npm run check:design",
+    "build": "python scripts/build_roster_data.py"
+  }
+}

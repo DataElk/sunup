@@ -1,0 +1,417 @@
+/* ============================================================================
+   ACCLIMATE — COMPONENT LAYER
+   ----------------------------------------------------------------------------
+   Every value here is a var(--token) from web/tokens.css. There is deliberately
+   not one literal colour, radius, shadow or font name in this file; that is what
+   `npm run check:design` enforces.
+
+   Components implemented, in the order DESIGN_SYSTEM.md's inventory lists them:
+   Ribbon, RibbonGroup, Panel, PanelTitle, DataGrid, DataRow, StatusChip, Metric,
+   RampStrip, Counterfactual, Toolbar, StatusBar, Splitter.
+   ========================================================================== */
+
+/* --- App frame ----------------------------------------------------------- */
+
+.app {
+  display: grid;
+  grid-template-rows: var(--ribbon-height) 1fr var(--statusbar-height);
+  height: 100vh;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4px minmax(0, 27rem);
+  min-height: 0;
+  background: var(--surface-app);
+}
+
+/* --- Ribbon -------------------------------------------------------------- */
+
+.ribbon {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3) 0;
+  background: var(--surface-app);
+  border-bottom: var(--border-width) solid var(--line-default);
+}
+
+.ribbon-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0 var(--space-3);
+  border-right: var(--border-width) solid var(--line-strong);
+}
+
+.ribbon-group:last-of-type { border-right: 0; }
+
+.ribbon-group-body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--space-7);
+}
+
+.ribbon-group-label {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+  text-align: center;
+  padding-bottom: var(--space-1);
+}
+
+.ribbon-title {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-right: var(--space-4);
+  border-right: var(--border-width) solid var(--line-strong);
+}
+
+.ribbon-title strong {
+  font-size: var(--text-heading);
+  font-weight: var(--weight-semi);
+  letter-spacing: var(--tracking-tight);
+}
+
+.ribbon-title span {
+  font-size: var(--text-caption);
+  color: var(--ink-secondary);
+}
+
+/* --- Button (ribbon + toolbar) ------------------------------------------- */
+
+.btn {
+  height: var(--control-height);
+  min-width: var(--control-height);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  background: var(--surface-panel);
+  color: var(--ink-primary);
+  border: var(--border-width) solid var(--line-default);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  cursor: pointer;
+}
+
+.btn:hover { background: var(--surface-hover); border-color: var(--line-strong); }
+.btn:active { background: var(--surface-sunken); }
+
+.btn[aria-pressed="true"] {
+  background: var(--accent-wash);
+  border-color: var(--accent);
+  color: var(--accent-press);
+}
+
+.btn svg { display: block; }
+
+/* --- Panel --------------------------------------------------------------- */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--surface-panel);
+  border: var(--border-width) solid var(--line-default);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  height: var(--panel-title-height);
+  padding: 0 var(--space-3);
+  background: var(--surface-panel);
+  border-bottom: var(--border-width) solid var(--line-default);
+  font-size: var(--text-title);
+  font-weight: var(--weight-semi);
+}
+
+.panel-title .sub {
+  font-size: var(--text-caption);
+  font-weight: var(--weight-regular);
+  color: var(--ink-secondary);
+}
+
+.panel-body { overflow: auto; min-height: 0; flex: 1; }
+
+/* --- Toolbar ------------------------------------------------------------- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface-sunken);
+  border-bottom: var(--border-width) solid var(--line-default);
+}
+
+.toolbar-label {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+
+.toolbar .spacer { flex: 1; }
+
+/* --- Splitter ------------------------------------------------------------ */
+
+.splitter {
+  background: var(--surface-app);
+  border-left: var(--border-width) solid var(--line-default);
+  border-right: var(--border-width) solid var(--line-default);
+  cursor: col-resize;
+}
+
+/* --- DataGrid / DataRow -------------------------------------------------- */
+
+.grid { width: 100%; border-collapse: collapse; }
+
+.grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-sunken);
+  border-bottom: var(--border-width) solid var(--line-default);
+  padding: 0 var(--space-2);
+  height: var(--panel-title-height);
+  text-align: left;
+  font-size: var(--text-label);
+  font-weight: var(--weight-semi);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+  white-space: nowrap;
+}
+
+.grid tbody tr {
+  height: var(--row-height-relaxed);
+  border-bottom: var(--border-width) solid var(--line-hairline);
+  cursor: pointer;
+}
+
+.grid tbody tr:hover { background: var(--surface-hover); }
+.grid tbody tr[aria-selected="true"] { background: var(--surface-selected); }
+
+.grid td {
+  padding: 0 var(--space-2);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.grid td.num, .grid th.num { text-align: right; }
+
+.cell-primary {
+  font-size: var(--text-emphasis);
+  font-weight: var(--weight-medium);
+}
+
+.cell-sub {
+  font-size: var(--text-caption);
+  color: var(--ink-secondary);
+}
+
+/* --- StatusChip ---------------------------------------------------------- */
+
+.chip {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid transparent;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-medium);
+  line-height: calc(var(--control-height) - var(--space-2));
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.chip[data-status="cleared"] {
+  background: var(--status-cleared-wash);
+  border-color: var(--status-cleared);
+  color: var(--status-cleared);
+}
+.chip[data-status="reduced"] {
+  background: var(--status-reduced-wash);
+  border-color: var(--status-reduced);
+  color: var(--status-reduced);
+}
+.chip[data-status="restricted"] {
+  background: var(--status-restricted-wash);
+  border-color: var(--status-restricted);
+  color: var(--status-restricted);
+}
+.chip[data-status="stop"] {
+  background: var(--status-stop-wash);
+  border-color: var(--status-stop);
+  color: var(--status-stop);
+}
+.chip[data-status="absent"] {
+  background: var(--surface-sunken);
+  border-color: var(--line-default);
+  color: var(--ink-tertiary);
+}
+
+/* --- Metric -------------------------------------------------------------- */
+
+.metric { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.metric-label {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+
+.metric-value {
+  font-size: var(--text-metric);
+  font-weight: var(--weight-semi);
+  line-height: var(--leading-tight);
+}
+
+.metric-sub { font-size: var(--text-caption); color: var(--ink-secondary); }
+
+/* --- Counterfactual ------------------------------------------------------ */
+
+.counterfactual {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--divergence);
+  border-radius: var(--radius-sm);
+  background: var(--divergence-wash);
+}
+
+.counterfactual .side { display: flex; flex-direction: column; }
+.counterfactual .side.model { text-align: right; }
+
+.counterfactual .cf-label {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+
+.counterfactual .cf-value {
+  font-size: var(--text-emphasis);
+  font-weight: var(--weight-semi);
+}
+
+.counterfactual .delta {
+  padding: 0 var(--space-2);
+  font-weight: var(--weight-bold);
+  color: var(--divergence);
+}
+
+/* Inline form for a grid cell. */
+.cf-inline { display: flex; align-items: baseline; gap: var(--space-1); }
+.cf-inline .was { color: var(--ink-tertiary); text-decoration: line-through; }
+.cf-inline .delta { color: var(--divergence); font-weight: var(--weight-semi); }
+
+/* --- RampStrip — the signature ------------------------------------------- */
+
+.ramp { display: block; width: 100%; height: auto; }
+
+.ramp .cell-observed { stroke: var(--line-default); stroke-width: 1; }
+
+.ramp .cell-projected {
+  stroke: var(--projected-stroke);
+  stroke-dasharray: var(--projected-dash);
+  stroke-width: 1;
+  opacity: var(--projected-alpha);
+}
+
+.ramp .bar[data-status="cleared"]    { fill: var(--status-cleared); }
+.ramp .bar[data-status="reduced"]    { fill: var(--status-reduced); }
+.ramp .bar[data-status="restricted"] { fill: var(--status-restricted); }
+.ramp .bar[data-status="stop"]       { fill: var(--status-stop); }
+.ramp .bar[data-status="absent"]     { fill: var(--surface-sunken); }
+
+.ramp .adapt-line {
+  fill: none;
+  stroke: var(--adapt-4);
+  stroke-width: 1.5;
+}
+
+.ramp .adapt-line.projected {
+  stroke-dasharray: var(--projected-dash);
+  opacity: var(--projected-alpha);
+}
+
+.ramp .today-mark { stroke: var(--ink-primary); stroke-width: 1; }
+.ramp .axis { stroke: var(--line-hairline); stroke-width: 1; }
+
+.ramp .tick {
+  font-family: var(--font-data);
+  font-size: var(--text-label);
+  fill: var(--ink-tertiary);
+}
+
+.ramp-mini { height: var(--space-5); }
+
+/* --- Hour table (detail) ------------------------------------------------- */
+
+.hours { width: 100%; border-collapse: collapse; }
+
+.hours th {
+  text-align: left;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+  border-bottom: var(--border-width) solid var(--line-default);
+}
+
+.hours td {
+  padding: var(--space-1) var(--space-2);
+  border-bottom: var(--border-width) solid var(--line-hairline);
+}
+
+.hours td.num, .hours th.num { text-align: right; }
+.hours tr[data-stop="true"] { background: var(--status-stop-wash); }
+.hours tr[data-binding="true"] { outline: var(--border-width) solid var(--status-stop); }
+
+/* --- StatusBar ----------------------------------------------------------- */
+
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--space-3);
+  background: var(--surface-inverse);
+  color: var(--ink-inverse);
+  font-size: var(--text-caption);
+}
+
+.statusbar .spacer { flex: 1; }
+.statusbar .sb-label { color: var(--ink-tertiary); }
+
+/* --- Detail sections ----------------------------------------------------- */
+
+.section { padding: var(--space-3); border-bottom: var(--border-width) solid var(--line-hairline); }
+.section-label {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+  margin-bottom: var(--space-2);
+}
+.kv { display: grid; grid-template-columns: auto 1fr; gap: var(--space-1) var(--space-3); }
+.kv dt { color: var(--ink-secondary); }
+.kv dd { margin: 0; }
+
+.empty {
+  padding: var(--space-5);
+  color: var(--ink-tertiary);
+  text-align: center;
+}
