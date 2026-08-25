@@ -1,0 +1,194 @@
+"""Derive a compact exceedance raster for the Map view.
+
+    python scripts/build_map_data.py
+
+The cached exceedance response is 46 931 cells / 16 MB and gitignored. Shipping
+it to the browser as GeoJSON polygons would be absurd for a choropleth that is
+ultimately a grid of coloured rectangles, so this bins it into a raster: bounds,
+width, height, and a flat array of mean exceedance hours per bin.
+
+Canvas draws that directly with no library and no basemap tiles, which is what
+keeps the demo offline (SPEC.md hard constraint 6).
+
+Cells inside the 500 m edge-discard band are marked null rather than dropped, so
+the map can SHOW the discarded band instead of quietly hiding it — the boundary
+artifact is part of the story, not an embarrassment.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
+
+from acclimate import constants as C  # noqa: E402
+from acclimate import siteselection as ss  # noqa: E402
+from acclimate.sources.fixtures import FixtureStore  # noqa: E402
+from acclimate.sources.fortyguard import parse_analysis_grid  # noqa: E402
+
+RAW = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                   "data", "metro_exceedance_raw.json")
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                   "app", "data", "map.js")
+
+BINS_X = 132
+BINS_Y = 92
+WINDOW_HOURS = 24.0 * 14
+
+# One class per --heat-* stop in web/tokens.css. Named here only to fix the
+# COUNT; the colours themselves stay in the stylesheet.
+HEAT_STOPS = ("--heat-0", "--heat-1", "--heat-2", "--heat-3", "--heat-4", "--heat-5")
+
+# Measured, not assumed -- all four by scripts/audit_resolution.py, which runs
+# the identical statistic on every layer so they can be compared.
+#
+# The smoothness below belongs to THE EXCEEDANCE LAYER, not to FortyGuard's
+# temperature product. Exceedance counts hours above a threshold across 336
+# hours, and counting is a low-pass filter: a single-hour tile is about fifteen
+# times rougher relative to its own range. Reporting "the API has no
+# street-scale structure" would have been an over-claim drawn from an aggregate.
+TILE_RESOLUTION_M = 101
+EFFECTIVE_RESOLUTION_M = 2000
+
+# Lag-1 roughness: mean |difference| between neighbouring tiles as a percentage
+# of the layer's own range.
+LAG1_PCT_OF_RANGE = 0.40           # this exceedance layer
+SNAPSHOT_LAG1_PCT_OF_RANGE = 6.5   # filter_type=1 single instant, median of 3
+BLUR_500M_VARIANCE_KEPT_PCT = 98.9     # exceedance, 500 m box blur
+SNAPSHOT_BLUR_300M_VARIANCE_KEPT_PCT = 84  # single instant, 300 m box blur
+
+
+def main():
+    if not os.path.exists(RAW):
+        raise SystemExit(
+            "No raw exceedance grid at %s.\n"
+            "It is gitignored (16 MB). Re-fetch with "
+            "`python scripts/m3_fetch.py --exceedance`." % os.path.relpath(RAW))
+
+    store = FixtureStore()
+    selection = store.load("site_selection/phoenix_40c_selection.json")
+    aoi = selection["aoi_buffered"]
+    ring = ss.ring_of(aoi)
+    west, south, east, north = ss.bbox_of(ring)
+
+    with open(RAW, "r", encoding="utf-8") as fh:
+        grid = parse_analysis_grid(json.load(fh), WINDOW_HOURS)
+
+    sums = [0.0] * (BINS_X * BINS_Y)
+    counts = [0] * (BINS_X * BINS_Y)
+    edge = [0] * (BINS_X * BINS_Y)
+
+    for cell in grid.cells:
+        lon, lat = cell.centroid
+        bx = int((lon - west) / (east - west) * BINS_X)
+        by = int((north - lat) / (north - south) * BINS_Y)   # row 0 = north
+        if not (0 <= bx < BINS_X and 0 <= by < BINS_Y):
+            continue
+        index = by * BINS_X + bx
+        sums[index] += cell.value
+        counts[index] += 1
+        if ss.distance_to_boundary_m((lon, lat), ring) < C.EDGE_DISCARD_M:
+            edge[index] += 1
+
+    values = []
+    discarded = []
+    for index in range(BINS_X * BINS_Y):
+        if counts[index] == 0:
+            values.append(None)
+            discarded.append(0)
+        else:
+            values.append(round(sums[index] / counts[index], 2))
+            # A bin is "in the discard band" when most of its cells are.
+            discarded.append(1 if edge[index] * 2 > counts[index] else 0)
+
+    present = [v for v in values if v is not None]
+
+    # QUANTILE BREAKS, computed on the SOURCE cells rather than the raster, so
+    # the classing describes the data and not the binning.
+    #
+    # Equal-interval classing put 81% of cells in the top two classes and made
+    # the whole metro one flat smear: the distribution is strongly left-skewed
+    # (p5 79.3 h, p50 96.7 h, max 106.9 h), so equal steps in value are nothing
+    # like equal steps in area. Six classes, one per --heat-* stop, each holding
+    # about a sixth of the cells.
+    ordered = sorted(c.value for c in grid.cells)
+    classes = len(HEAT_STOPS)
+    breaks = [round(ordered[int(k / classes * (len(ordered) - 1))], 2)
+              for k in range(1, classes)]
+
+    # EFFECTIVE RESOLUTION OF THIS LAYER. The tiles are 101 m, but the
+    # exceedance field is far smoother: a 500 m box blur destroys 1.1% of its
+    # variance and neighbouring tiles differ by 0.40% of the range on average.
+    # Rendering it as if it resolved streets would be a lie told with pixels, so
+    # the number travels with the data and is printed on the map.
+    #
+    # SCOPE. This is NOT a statement about FortyGuard's temperature data. Most
+    # of the smoothing is the 336-hour count itself; single-hour tiles score
+    # 6.5% and lose ~16% of their variance to a 300 m blur. The legend says
+    # which layer the number describes.
+    payload = {
+        "bounds": {"west": west, "south": south, "east": east, "north": north},
+        "width": BINS_X,
+        "height": BINS_Y,
+        "values": values,
+        "discarded": discarded,
+        "min": min(present),
+        "max": max(present),
+        "breaks": breaks,
+        "classOccupancyPct": round(100.0 / len(HEAT_STOPS), 1),
+        "effectiveResolutionM": EFFECTIVE_RESOLUTION_M,
+        "tileResolutionM": TILE_RESOLUTION_M,
+        "resolutionAudit": {
+            "lag1PctOfRange": LAG1_PCT_OF_RANGE,
+            "blur500VarianceKeptPct": BLUR_500M_VARIANCE_KEPT_PCT,
+            "snapshotLag1PctOfRange": SNAPSHOT_LAG1_PCT_OF_RANGE,
+            "snapshotBlur300VarianceKeptPct": SNAPSHOT_BLUR_300M_VARIANCE_KEPT_PCT,
+            "script": "scripts/audit_resolution.py",
+        },
+        "windowHours": WINDOW_HOURS,
+        "thresholdC": selection["threshold_c"],
+        "sourceCells": len(grid.cells),
+        "edgeDiscardM": C.EDGE_DISCARD_M,
+        "sites": {
+            name: {
+                "lon": selection[name]["centroid_lon_lat"][0],
+                "lat": selection[name]["centroid_lon_lat"][1],
+                "valueHours": selection[name]["value_hours"],
+                "percentile": selection[name]["percentile"],
+                "distanceToEdgeM": selection[name]["distance_to_edge_m"],
+            }
+            for name in ("cool_site", "hot_site")
+        },
+    }
+
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    with open(OUT, "w", encoding="utf-8") as fh:
+        fh.write("/* GENERATED by scripts/build_map_data.py - do not edit. */\n")
+        fh.write("window.MAP_DATA = ")
+        json.dump(payload, fh, separators=(",", ":"))
+        fh.write(";\n")
+
+    size = os.path.getsize(OUT)
+    print("wrote %s (%.0f KB)" % (os.path.relpath(OUT), size / 1024))
+    print("  %d source cells -> %dx%d raster, %d populated bins"
+          % (len(grid.cells), BINS_X, BINS_Y, len(present)))
+    print("  exceedance %.2f .. %.2f h of %.0f  (%d bins in the discard band)"
+          % (payload["min"], payload["max"], WINDOW_HOURS, sum(discarded)))
+    edges = [round(min(ordered), 2)] + breaks + [round(max(ordered), 2)]
+    print("  quantile breaks (%d classes, %.1f%% each): %s"
+          % (len(HEAT_STOPS), payload["classOccupancyPct"],
+             " | ".join("%.1f" % e for e in edges)))
+    counts_per_class = [0] * len(HEAT_STOPS)
+    for value in ordered:
+        k = 0
+        while k < len(breaks) and value >= breaks[k]:
+            k += 1
+        counts_per_class[k] += 1
+    print("  realised occupancy: %s"
+          % [round(100.0 * c / len(ordered), 1) for c in counts_per_class])
+
+
+if __name__ == "__main__":
+    main()

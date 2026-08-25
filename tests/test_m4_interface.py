@@ -89,7 +89,8 @@ def test_no_emoji_anywhere_in_the_interface():
     emoji = re.compile("[\U0001F300-\U0001FAFF☀-➿]")
     for name in ("index.html", os.path.join("styles", "components.css")):
         assert not emoji.search(read(name)), name
-    for name in ("roster.js", "detail.js", "rampstrip.js", "compliance.js", "main.js"):
+    for name in ("roster.js", "detail.js", "rampstrip.js", "compliance.js",
+                 "main.js", "map.js", "format.js"):
         assert not emoji.search(read("js", name)), name
 
 
@@ -177,8 +178,13 @@ def test_the_calendar_figure_matches_the_osha_rule(data):
 
 
 def test_both_roster_and_detail_render_the_counterfactual():
-    assert "counterfactualCell" in read("js", "roster.js")
-    assert "counterfactual" in read("js", "detail.js")
+    """Rendered as a RELATIONSHIP in both places -- one reading line carrying
+    calendar, model and the signed gap -- never as two adjacent numbers with a
+    strikethrough, which was a puzzle rather than a comparison."""
+    for source in (read("js", "roster.js"), read("js", "detail.js")):
+        assert "counterfactual" in source
+        assert "cf-read" in source
+        assert "line-through" not in source
 
 
 def test_the_divergence_is_not_uniformly_one_directional(data):
@@ -209,14 +215,23 @@ def test_projected_days_are_flagged_and_all_follow_today(data):
         assert len(projected) == data["daysAhead"]
         assert all(d["date"] <= data["today"] for d in observed)
         assert observed[-1]["date"] == data["today"]
+        # Projected days must sit on consecutive dates AFTER today. They once
+        # all carried today's date, which put the strip's "today" marker on
+        # every future cell and made every projected tooltip claim to be today.
+        dates = [d["date"] for d in projected]
+        assert dates == sorted(set(dates)), worker["name"]
+        assert all(d > data["today"] for d in dates), worker["name"]
 
 
 def test_the_strip_draws_projection_differently():
     strip = read("js", "rampstrip.js")
     assert "cell-projected" in strip
-    assert "adapt-line projected" in strip
+    assert "adapt-line-projected" in strip
     css = read("styles", "components.css")
-    assert "--projected-dash" in css
+    # The dash pattern is a component decision, not a palette one, so it lives
+    # in components.css; the palette owns the stroke colour and the alpha.
+    assert "stroke-dasharray" in css
+    assert "--projected-stroke" in css
     assert "--projected-alpha" in css
 
 
@@ -278,7 +293,8 @@ def test_no_forbidden_input_appears_anywhere_in_the_payload(data):
 def test_the_interface_makes_no_network_calls():
     """SPEC.md hard constraint 6. The data is a script tag, not a fetch, so the
     page also works straight from file:// with no server."""
-    for name in ("roster.js", "detail.js", "rampstrip.js", "compliance.js", "main.js"):
+    for name in ("roster.js", "detail.js", "rampstrip.js", "compliance.js",
+                 "main.js", "map.js", "format.js"):
         source = read("js", name)
         for forbidden in ("fetch(", "XMLHttpRequest", "WebSocket", "import("):
             assert forbidden not in source, (name, forbidden)
@@ -292,3 +308,243 @@ def test_the_data_file_is_generated_not_hand_edited():
         first = fh.readline()
     assert "GENERATED" in first
     assert "build_roster_data.py" in first
+
+
+# ---------------------------------------------------------------------------
+# The WHY column — rule 13, and the "five rows say the same thing" failure
+# ---------------------------------------------------------------------------
+
+
+def test_every_worker_gets_a_distinct_reason(data):
+    """A column where five of six rows read "not yet adapted" is true and
+    useless. The diagnosis is read off the binding hour, so it cannot collapse
+    to one phrase unless the workers really are identical."""
+    reasons = [w["levers"]["reason"] for w in data["workers"]]
+    assert len(set(reasons)) == len(reasons), reasons
+
+
+def test_every_worker_gets_a_distinct_priced_action(data):
+    actions = [w["levers"]["short"] for w in data["workers"]]
+    assert len(set(actions)) == len(actions), actions
+
+
+def test_the_reason_names_the_hour_the_worker_goes_over(data):
+    """The diagnosis has to be checkable against the hour table in the drawer."""
+    for worker in data["workers"]:
+        hours = worker["today"]["hours"]
+        reason = worker["levers"]["reason"]
+        over = [h for h in hours if h["overLimit"] > 0]
+        if not over:
+            assert "within limit" in reason, worker["name"]
+            continue
+        assert "%02d:00" % over[0]["hour"] in reason, (worker["name"], reason)
+        worst = max(h["overLimit"] for h in over)
+        assert ("%.1f" % worst) in reason, (worker["name"], reason)
+
+
+def test_the_action_is_priced_in_minutes(data):
+    for worker in data["workers"]:
+        assert "min" in worker["levers"]["short"], worker["name"]
+
+
+def test_the_worker_the_calendar_holds_back_is_named_as_such(data):
+    """The teal case. Its reason must not read like a restriction."""
+    held = [w for w in data["workers"] if w["today"]["mismatch"] == "under"]
+    assert held, "the crew must retain at least one under-protective-calendar case"
+    for worker in held:
+        assert "calendar discards" in worker["levers"]["short"], worker["name"]
+
+
+def test_a_lever_that_does_nothing_is_still_priced(data):
+    """Site assignment is kept as a counterfactual precisely because M3
+    measured it as NOT surviving. A lever you drop is a lever you cannot show
+    to be worthless."""
+    for worker in data["workers"]:
+        assert "ifOtherSite" in worker["levers"], worker["name"]
+        assert "ifEarlyShift" in worker["levers"]
+        assert "ifFullyAdapted" in worker["levers"]
+
+
+def test_no_lever_promises_a_trade_reassignment(data):
+    """Rejected deliberately: moderate RAL 25.0 vs light 28.0 prices enormously
+    but "make him an electrician" is not an action a foreman can take."""
+    for worker in data["workers"]:
+        assert "ifLighterWork" not in worker["levers"], worker["name"]
+
+
+# ---------------------------------------------------------------------------
+# Rule 12 — magnitude, not existence
+# ---------------------------------------------------------------------------
+
+
+def test_the_mismatch_indicator_encodes_magnitude():
+    """A fixed stripe on five of six rows carries no information. The weight is
+    |divergence| / shift and drives both width and opacity."""
+    source = strip_comments(read("js", "roster.js"))
+    assert "mismatch-weight" in source
+    assert "divergence" in source
+
+    css = read("styles", "components.css")
+    assert "--mismatch-weight" in css
+    assert "var(--mismatch-weight)" in css
+    # Width and opacity must BOTH scale, otherwise the weakest cases vanish.
+    stripe = css[css.index("td:first-child::before"):]
+    stripe = stripe[:stripe.index("}")]
+    assert "width" in stripe and "var(--mismatch-weight)" in stripe
+    assert "opacity" in stripe
+
+
+def test_the_mismatch_weights_actually_differ(data):
+    """If every worker lands on the same weight the encoding is decorative."""
+    weights = {round(abs(w["today"]["divergence"]) / (w["shiftHours"] * 60), 2)
+               for w in data["workers"]}
+    assert len(weights) >= 3, sorted(weights)
+
+
+# ---------------------------------------------------------------------------
+# The crew strip
+# ---------------------------------------------------------------------------
+
+
+def test_the_crew_strip_states_the_pair_and_the_discarded_hours():
+    """The two stories the roster buries: the matched pair, which a reader
+    otherwise has to diff by eye, and the teal case, which severity sorting
+    pushes to the bottom of the list."""
+    source = read("js", "roster.js")
+    assert "crewStrip" in source
+    assert "The matched pair" in source
+    assert "Hours the calendar discards" in source
+
+
+# ---------------------------------------------------------------------------
+# Density — a different layout, not a padded table
+# ---------------------------------------------------------------------------
+
+
+def test_touch_density_renders_cards_not_a_table():
+    """--row-height never binds: the ramp strip already makes rows ~100px, so
+    "touch mode" was desktop with bigger type and nothing else."""
+    source = strip_comments(read("js", "roster.js"))
+    assert "renderCards" in source
+    assert "renderTable" in source
+    assert "data-density" in source
+    css = read("styles", "components.css")
+    assert ".cards" in css and ".card {" in css
+
+
+def test_the_card_strip_is_height_bounded():
+    """At width:100% in a card the strip scaled to 3.8x and stood 320px tall,
+    so a single worker filled the screen."""
+    css = read("styles", "components.css")
+    rule = css[css.index(".card .ramp"):]
+    rule = rule[:rule.index("}")]
+    assert "height:" in rule
+    assert "auto" not in rule.split("height:")[1]
+
+
+def test_both_densities_render_the_same_facts():
+    """Cards are a different layout, not a different dataset."""
+    source = read("js", "roster.js")
+    for part in ("counterfactual(", "reasonCell(", "rampStrip(", "statusChip("):
+        assert source.count(part) >= 2, part
+
+
+# ---------------------------------------------------------------------------
+# The map
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def mapdata():
+    with open(os.path.join(APP, "data", "map.js"), "r", encoding="utf-8") as fh:
+        text = fh.read()
+    return json.loads(text[text.index("{"): text.rindex("}") + 1])
+
+
+def test_the_choropleth_uses_quantile_classes(mapdata):
+    """Equal-interval classing put 81% of cells in the top two classes and the
+    metro rendered as one flat smear. The distribution is strongly left-skewed,
+    so equal steps in value are nothing like equal steps in area."""
+    breaks = mapdata["breaks"]
+    assert breaks == sorted(breaks)
+    assert len(breaks) == 5, "six classes, one per --heat-* stop"
+    assert mapdata["min"] < breaks[0] and breaks[-1] < mapdata["max"]
+
+
+def test_the_classes_are_actually_equally_occupied(mapdata):
+    values = [v for v in mapdata["values"] if v is not None]
+    counts = [0] * (len(mapdata["breaks"]) + 1)
+    for value in values:
+        k = 0
+        while k < len(mapdata["breaks"]) and value >= mapdata["breaks"][k]:
+            k += 1
+        counts[k] += 1
+    share = [c / len(values) for c in counts]
+    # The raster is binned, so this is looser than the source-cell classing it
+    # was derived from; it still must not degenerate the way equal-interval did.
+    assert min(share) > 0.08, share
+    assert max(share) < 0.30, share
+
+
+def test_the_map_declares_its_effective_resolution(mapdata):
+    """The tiles are 101 m but a 500 m blur destroys 1.1% of the variance.
+    Rendering at tile resolution implies a precision the field does not have,
+    so the number ships with the data and is printed on the map."""
+    assert mapdata["tileResolutionM"] == 101
+    assert mapdata["effectiveResolutionM"] >= 1000
+    assert "effectiveResolution" in read("js", "map.js")
+
+
+def test_the_basemap_is_cached_not_fetched():
+    """SPEC.md hard constraint 6. A build-time fetch cached to a script tag is
+    a fixture; a tile server at render time is a live dependency on stage."""
+    html = read("index.html")
+    assert 'src="data/basemap.js"' in html
+    assert "http://" not in html
+    source = read("js", "map.js")
+    for forbidden in ("fetch(", "XMLHttpRequest", "tile.openstreetmap", "https://"):
+        assert forbidden not in source, forbidden
+
+
+def test_the_basemap_carries_its_attribution():
+    """ODbL requires it, and it is also just honest."""
+    with open(os.path.join(APP, "data", "basemap.js"), "r", encoding="utf-8") as fh:
+        text = fh.read()
+    payload = json.loads(text[text.index("{"): text.rindex("}") + 1])
+    assert "OpenStreetMap" in payload["attribution"]
+    assert payload["roads"] and payload["river"] and payload["parks"]
+    assert "attribution" in read("js", "map.js")
+
+
+def test_the_basemap_geometry_is_normalised_into_the_aoi():
+    """Coordinates are 0..1 within the AOI so the renderer needs no projection
+    code. Anything outside that range would draw off-canvas."""
+    with open(os.path.join(APP, "data", "basemap.js"), "r", encoding="utf-8") as fh:
+        text = fh.read()
+    payload = json.loads(text[text.index("{"): text.rindex("}") + 1])
+    for road in payload["roads"][:200]:
+        for value in road[1:]:
+            assert -0.5 <= value <= 1.5, value
+
+
+# ---------------------------------------------------------------------------
+# The redundant metadata
+# ---------------------------------------------------------------------------
+
+
+def test_the_reason_reads_the_same_everywhere_it_appears():
+    """The builders emit ASCII on purpose; the browser is where it becomes
+    typography. With the conversion duplicated, the roster prettified and the
+    drawer did not, so one worker's reason read two different ways."""
+    shared = read("js", "format.js")
+    assert "export function pretty" in shared
+    for name in ("roster.js", "detail.js"):
+        source = read("js", name)
+        assert "from './format.js'" in source, name
+        assert "function pretty(" not in source, name
+
+
+def test_the_roster_does_not_repeat_the_shift_length():
+    """It read "8 h" on all six rows and the drawer already gives the window."""
+    source = strip_comments(read("js", "roster.js"))
+    assert "shiftHours} h" not in source

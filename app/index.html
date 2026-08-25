@@ -8,113 +8,78 @@
 <link rel="stylesheet" href="styles/components.css">
 </head>
 <body>
-<div class="app">
+<div class="app" id="app">
 
-  <!-- Ribbon ------------------------------------------------------------- -->
-  <header class="ribbon">
-    <div class="ribbon-title">
-      <strong>Acclimate</strong>
-      <span>Crew roster · <span id="crew-summary"></span></span>
+  <!-- NavRail: one entry per view --------------------------------------- -->
+  <nav class="rail" aria-label="Views">
+    <button class="rail-btn" data-view="roster" aria-selected="true" title="Crew roster">
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none"
+           stroke="currentColor" stroke-width="1.5">
+        <rect x="2.75" y="3.75" width="14.5" height="12.5"/>
+        <line x1="2.75" y1="7.75" x2="17.25" y2="7.75"/>
+        <line x1="2.75" y1="12" x2="17.25" y2="12"/>
+        <line x1="8" y1="7.75" x2="8" y2="16.25"/>
+      </svg>
+    </button>
+    <button class="rail-btn" data-view="map" aria-selected="false" title="Exposure map">
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none"
+           stroke="currentColor" stroke-width="1.5">
+        <path d="M2.75 5.25 7.25 3.5v11.25L2.75 16.5z"/>
+        <path d="M7.25 3.5l5.5 1.75v11.25L7.25 14.75z"/>
+        <path d="M12.75 5.25 17.25 3.5v11.25L12.75 16.5z"/>
+      </svg>
+    </button>
+    <span class="rail-spacer"></span>
+    <button class="rail-btn" id="cmd-copy" title="Copy compliance record">
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none"
+           stroke="currentColor" stroke-width="1.5">
+        <rect x="3.25" y="3.25" width="9" height="9"/>
+        <rect x="7.75" y="7.75" width="9" height="9"/>
+      </svg>
+    </button>
+    <button class="rail-btn" id="cmd-density" aria-pressed="false" title="Field density">
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none"
+           stroke="currentColor" stroke-width="1.5">
+        <line x1="3.25" y1="5" x2="16.75" y2="5"/>
+        <line x1="3.25" y1="10" x2="16.75" y2="10"/>
+        <line x1="3.25" y1="15" x2="16.75" y2="15"/>
+      </svg>
+    </button>
+  </nav>
+
+  <!-- Main: slim command bar + full-width content ------------------------ -->
+  <main class="main">
+    <div class="commandbar">
+      <h1 id="bar-title">Crew roster</h1>
+      <span class="sub" id="bar-sub"></span>
+      <span class="spacer"></span>
+      <span id="commands"></span>
     </div>
-
-    <div class="ribbon-group">
-      <div class="ribbon-group-body">
-        <button class="btn" id="cmd-detail" aria-pressed="true">
-          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-            <rect x="1.5" y="1.5" width="11" height="11" fill="none"
-                  stroke="currentColor"/>
-            <line x1="1.5" y1="5" x2="12.5" y2="5" stroke="currentColor"/>
-            <line x1="6" y1="5" x2="6" y2="12.5" stroke="currentColor"/>
-          </svg>
-          Worker detail
-        </button>
-        <button class="btn" id="cmd-compliance" aria-pressed="false">
-          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-            <rect x="2.5" y="1.5" width="9" height="11" fill="none"
-                  stroke="currentColor"/>
-            <line x1="4.5" y1="4.5" x2="9.5" y2="4.5" stroke="currentColor"/>
-            <line x1="4.5" y1="7" x2="9.5" y2="7" stroke="currentColor"/>
-            <line x1="4.5" y1="9.5" x2="7.5" y2="9.5" stroke="currentColor"/>
-          </svg>
-          Compliance record
-        </button>
-      </div>
-      <div class="ribbon-group-label">View</div>
-    </div>
-
-    <div class="ribbon-group">
-      <div class="ribbon-group-body">
-        <button class="btn" id="cmd-print">
-          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-            <rect x="3.5" y="1.5" width="7" height="3" fill="none"
-                  stroke="currentColor"/>
-            <rect x="1.5" y="4.5" width="11" height="5" fill="none"
-                  stroke="currentColor"/>
-            <rect x="3.5" y="9.5" width="7" height="3" fill="none"
-                  stroke="currentColor"/>
-          </svg>
-          Print
-        </button>
-        <button class="btn" id="cmd-copy">
-          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-            <rect x="1.5" y="1.5" width="8" height="8" fill="none"
-                  stroke="currentColor"/>
-            <rect x="4.5" y="4.5" width="8" height="8" fill="none"
-                  stroke="currentColor"/>
-          </svg>
-          Copy record
-        </button>
-      </div>
-      <div class="ribbon-group-label">Export</div>
-    </div>
-
-    <div class="ribbon-group">
-      <div class="ribbon-group-body">
-        <button class="btn" id="cmd-density" aria-pressed="false">
-          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-            <line x1="1.5" y1="3" x2="12.5" y2="3" stroke="currentColor"/>
-            <line x1="1.5" y1="7" x2="12.5" y2="7" stroke="currentColor"/>
-            <line x1="1.5" y1="11" x2="12.5" y2="11" stroke="currentColor"/>
-          </svg>
-          Field density
-        </button>
-      </div>
-      <div class="ribbon-group-label">Display</div>
-    </div>
-  </header>
-
-  <!-- Workspace ---------------------------------------------------------- -->
-  <main class="workspace">
-    <section class="panel">
-      <div class="panel-title">
-        Who works today
-        <span class="sub">worst first · click a row for why</span>
-      </div>
-      <div class="toolbar">
-        <span class="toolbar-label">Crew</span>
-        <span class="spacer"></span>
-        <span class="toolbar-label">Calendar vs model shown on every row</span>
-      </div>
-      <div class="panel-body" id="roster-body"></div>
-    </section>
-
-    <div class="splitter" role="separator" aria-orientation="vertical"></div>
-
-    <section class="panel">
-      <div class="panel-title">
-        <span id="side-title">Worker</span>
-        <span class="sub" id="side-sub"></span>
-      </div>
-      <div class="panel-body" id="side-body"></div>
-    </section>
+    <div class="content" id="content"></div>
   </main>
 
-  <!-- Status bar --------------------------------------------------------- -->
+  <!-- Drawer: opens on demand -------------------------------------------- -->
+  <aside class="drawer" aria-label="Detail">
+    <div class="drawer-head">
+      <strong id="drawer-title">Worker</strong>
+      <span class="spacer"></span>
+      <button class="btn btn-quiet" id="drawer-close" title="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"
+             stroke="currentColor" stroke-width="1.5">
+          <line x1="3" y1="3" x2="11" y2="11"/>
+          <line x1="11" y1="3" x2="3" y2="11"/>
+        </svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </aside>
+
+  <!-- StatusBar ----------------------------------------------------------- -->
   <footer class="statusbar">
     <span><span class="sb-label">Source</span> <span id="sb-source"></span></span>
     <span><span class="sb-label">Date</span> <span id="sb-date"></span></span>
     <span><span class="sb-label">Cache</span> <span id="sb-cache"></span></span>
-    <span><span class="sb-label">Model</span> <span id="sb-assumed"></span></span>
+    <span><span class="sb-label">Model</span> <span id="sb-model"></span></span>
     <span class="spacer"></span>
     <span id="sb-message"></span>
   </footer>
@@ -122,6 +87,8 @@
 </div>
 
 <script src="data/roster.js"></script>
+<script src="data/map.js"></script>
+<script src="data/basemap.js"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

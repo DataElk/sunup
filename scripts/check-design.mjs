@@ -55,9 +55,10 @@ const RULES = [
     // violation while a genuine `border-radius: 8px` still matched. Moving the
     // whitespace INSIDE the lookahead removes the backtracking path. Verified:
     // correct token usage passes, literal radii are still caught.
-    pattern: /border-radius\s*:(?!\s*(?:0|2px|var\())|rounded-(?:md|lg|xl|2xl|3xl|full)/g,
-    why: 'Radius above 2px. Rounded cards are the strongest single tell of a ' +
-         'templated dashboard. Only --radius-none and --radius-sm exist, by design.',
+    pattern: /border-radius\s*:(?!\s*(?:0|2px|4px|var\())|rounded-(?:lg|xl|2xl|3xl|full)/g,
+    why: 'Radius above 4px. Rounded cards are the strongest single tell of a ' +
+         'templated dashboard. Fluent allows --radius-control (2px) for controls ' +
+         'and --radius-surface (4px) for surfaces. Nothing else exists.',
   },
   {
     id: 'no-ad-hoc-shadow',
@@ -80,15 +81,16 @@ const RULES = [
     // FIXED 2026-08-25 - same backtracking bug as no-rounded-cards.
     pattern: /font-family\s*:(?!\s*var\()|['"]Inter['"]|\bfont-sans\b/g,
     skipTokenFile: true,
-    why: 'Font declared outside tokens. Use var(--font-ui) or var(--font-data). ' +
-         'Inter in particular is the default-look tell.',
+    why: 'Font declared outside tokens. Use var(--font-ui), var(--font-display) ' +
+         'or var(--font-data). Inter in particular is the default-look tell; ' +
+         'Segoe UI belongs in tokens.css only.',
   },
   {
     id: 'no-generic-accent',
     severity: 'error',
-    pattern: /\b(?:indigo|violet|purple|fuchsia|teal|cyan|sky)-[3-9]00\b/g,
-    why: 'Generic accent palette. Interactive color is --accent; data color comes ' +
-         'from the ramps in tokens.css §6.',
+    pattern: /\b(?:indigo|violet|purple|fuchsia|cyan|sky|emerald)-[3-9]00\b/g,
+    why: 'Generic accent palette. Interactive color is --accent (Fluent blue); ' +
+         'data color comes from --heat-*, --status-* and --mismatch-*.',
   },
   {
     id: 'no-emoji-icons',
@@ -141,6 +143,41 @@ function semanticChecks(file, text) {
     record(warnings, file, 0, 'exposed-state-variable',
       'Adaptation state appears to render on a roster row. It belongs in the ' +
       'detail view only — the roster shows minutes.',
+      basename(file));
+  }
+
+  // RULE 12. Colour encodes mismatch, not temperature. Every roster view must
+  // carry a signed mismatch indicator from the --mismatch-* scale. This was
+  // unimplemented for a whole milestone and the lint did not notice, which is
+  // exactly the failure mode the lint exists to prevent.
+  if (/roster|worker.?row|crew/i.test(basename(file)) &&
+      /\.css$/i.test(file) === false &&
+      !/mismatch/i.test(text)) {
+    record(errors, file, 0, 'missing-mismatch-indicator',
+      'A roster view with no --mismatch-* indicator. Rule 12: colour encodes ' +
+      'whether the plan fits the person, not how hot it is. Status severity ' +
+      'alone does not carry the calendar comparison.',
+      basename(file));
+  }
+
+  // RULE 12, stylesheet half: the mismatch scale must actually be consumed.
+  if (/\.css$/i.test(file) && /roster|grid|row/i.test(text) &&
+      !/--mismatch-/.test(text)) {
+    record(warnings, file, 0, 'unused-mismatch-scale',
+      'Stylesheet defines row styling but never references --mismatch-*. The ' +
+      'signed calendar comparison has no visual channel.',
+      basename(file));
+  }
+
+  // RULE 13. A restricted worker must say why. "0 min" with no explanation is
+  // not an instruction, and three workers at zero for three different reasons
+  // must not look identical.
+  if (/roster|worker.?row/i.test(basename(file)) &&
+      /\.css$/i.test(file) === false &&
+      !/reason|lever|why/i.test(text)) {
+    record(warnings, file, 0, 'unexplained-restriction',
+      'A roster view that never names why a worker is restricted. Rule 13: ' +
+      'show the reason and the lever that recovers the hours, priced in minutes.',
       basename(file));
   }
 

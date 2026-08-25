@@ -1,191 +1,144 @@
 /* ============================================================================
-   ACCLIMATE — COMPONENT LAYER
+   ACCLIMATE — COMPONENT LAYER  (Fluent)
    ----------------------------------------------------------------------------
-   Every value here is a var(--token) from web/tokens.css. There is deliberately
-   not one literal colour, radius, shadow or font name in this file; that is what
-   `npm run check:design` enforces.
+   Every value is a var(--token) from web/tokens.css. Not one literal colour,
+   radius, shadow or font name lives here; `npm run check:design` enforces that.
 
-   Components implemented, in the order DESIGN_SYSTEM.md's inventory lists them:
-   Ribbon, RibbonGroup, Panel, PanelTitle, DataGrid, DataRow, StatusChip, Metric,
-   RampStrip, Counterfactual, Toolbar, StatusBar, Splitter.
+   Shell: NavRail | CommandBar + content | Drawer, StatusBar beneath.
+   Rule 12 lives in .mismatch-* and is consumed on every roster row.
    ========================================================================== */
 
-/* --- App frame ----------------------------------------------------------- */
+/* --- Shell ---------------------------------------------------------------- */
 
 .app {
   display: grid;
-  grid-template-rows: var(--ribbon-height) 1fr var(--statusbar-height);
+  grid-template-columns: var(--rail-width) minmax(0, 1fr) 0;
+  grid-template-rows: 1fr var(--statusbar-height);
+  grid-template-areas:
+    "rail main drawer"
+    "status status status";
   height: 100vh;
 }
 
-.workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 4px minmax(0, 27rem);
-  min-height: 0;
-  background: var(--surface-app);
-}
+.app[data-drawer="open"] { grid-template-columns: var(--rail-width) minmax(0, 1fr) var(--drawer-width); }
 
-/* --- Ribbon -------------------------------------------------------------- */
+/* --- NavRail -------------------------------------------------------------- */
 
-.ribbon {
-  display: flex;
-  align-items: stretch;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-3) 0;
-  background: var(--surface-app);
-  border-bottom: var(--border-width) solid var(--line-default);
-}
-
-.ribbon-group {
+.rail {
+  grid-area: rail;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 0 var(--space-3);
-  border-right: var(--border-width) solid var(--line-strong);
+  align-items: center;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+  background: var(--surface-sunken);
+  border-right: var(--border-width) solid var(--line-default);
 }
 
-.ribbon-group:last-of-type { border-right: 0; }
+.rail-btn {
+  width: calc(var(--rail-width) - var(--space-2));
+  height: calc(var(--rail-width) - var(--space-2));
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  border-left: 3px solid transparent;
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
 
-.ribbon-group-body {
+.rail-btn:hover { background: var(--surface-hover); color: var(--ink-primary); }
+
+.rail-btn[aria-selected="true"] {
+  background: var(--surface-panel);
+  border-left-color: var(--accent);
+  color: var(--accent);
+}
+
+.rail-spacer { flex: 1; }
+
+/* --- CommandBar ----------------------------------------------------------- */
+
+.main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--surface-panel);
+}
+
+.commandbar {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: var(--space-7);
+  /* Slim by token, but it must not clip its own controls: at touch density
+     --control-height is 44px, taller than the 40px bar. It grows to fit
+     rather than cropping the button inside it. */
+  min-height: var(--toolbar-height);
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface-panel);
+  border-bottom: var(--border-width) solid var(--line-default);
+  flex: none;
 }
 
-.ribbon-group-label {
-  font-size: var(--text-label);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--ink-tertiary);
-  text-align: center;
-  padding-bottom: var(--space-1);
+.commandbar h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-body-lg);
+  font-weight: var(--weight-semibold);
 }
 
-.ribbon-title {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding-right: var(--space-4);
-  border-right: var(--border-width) solid var(--line-strong);
-}
-
-.ribbon-title strong {
-  font-size: var(--text-heading);
-  font-weight: var(--weight-semi);
-  letter-spacing: var(--tracking-tight);
-}
-
-.ribbon-title span {
-  font-size: var(--text-caption);
-  color: var(--ink-secondary);
-}
-
-/* --- Button (ribbon + toolbar) ------------------------------------------- */
+.commandbar .sub { color: var(--ink-secondary); font-size: var(--text-caption); }
+.commandbar .spacer { flex: 1; }
 
 .btn {
   height: var(--control-height);
-  min-width: var(--control-height);
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: 0 var(--space-2);
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
   background: var(--surface-panel);
   color: var(--ink-primary);
-  border: var(--border-width) solid var(--line-default);
-  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-control);
   font-family: var(--font-ui);
   font-size: var(--text-body);
   cursor: pointer;
 }
 
-.btn:hover { background: var(--surface-hover); border-color: var(--line-strong); }
-.btn:active { background: var(--surface-sunken); }
+.btn:hover { background: var(--surface-hover); }
+.btn:active { background: var(--surface-pressed); }
 
 .btn[aria-pressed="true"] {
-  background: var(--accent-wash);
-  border-color: var(--accent);
-  color: var(--accent-press);
+  background: var(--accent-subtle);
+  border-color: var(--accent-border);
+  color: var(--accent-pressed);
 }
 
 .btn svg { display: block; }
+.btn-quiet { border-color: transparent; background: transparent; }
 
-/* --- Panel --------------------------------------------------------------- */
+/* A flex column so the crew strip can take `margin-top: auto` and sit at the
+   bottom of the viewport rather than leaving 180px of nothing under the last
+   row. Six rows do not fill a 1600x980 screen and never will; the answer is
+   to put something worth reading there, not to inflate the rows. */
+.content { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
 
-.panel {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  min-width: 0;
-  background: var(--surface-panel);
-  border: var(--border-width) solid var(--line-default);
-}
+/* --- DataGrid ------------------------------------------------------------- */
 
-.panel-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  height: var(--panel-title-height);
-  padding: 0 var(--space-3);
-  background: var(--surface-panel);
-  border-bottom: var(--border-width) solid var(--line-default);
-  font-size: var(--text-title);
-  font-weight: var(--weight-semi);
-}
-
-.panel-title .sub {
-  font-size: var(--text-caption);
-  font-weight: var(--weight-regular);
-  color: var(--ink-secondary);
-}
-
-.panel-body { overflow: auto; min-height: 0; flex: 1; }
-
-/* --- Toolbar ------------------------------------------------------------- */
-
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
-  background: var(--surface-sunken);
-  border-bottom: var(--border-width) solid var(--line-default);
-}
-
-.toolbar-label {
-  font-size: var(--text-label);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--ink-tertiary);
-}
-
-.toolbar .spacer { flex: 1; }
-
-/* --- Splitter ------------------------------------------------------------ */
-
-.splitter {
-  background: var(--surface-app);
-  border-left: var(--border-width) solid var(--line-default);
-  border-right: var(--border-width) solid var(--line-default);
-  cursor: col-resize;
-}
-
-/* --- DataGrid / DataRow -------------------------------------------------- */
-
-.grid { width: 100%; border-collapse: collapse; }
+.grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
 
 .grid thead th {
   position: sticky;
   top: 0;
   z-index: 1;
   background: var(--surface-sunken);
-  border-bottom: var(--border-width) solid var(--line-default);
-  padding: 0 var(--space-2);
-  height: var(--panel-title-height);
+  border-bottom: var(--border-width) solid var(--line-strong);
+  padding: var(--space-2) var(--space-3);
   text-align: left;
   font-size: var(--text-label);
-  font-weight: var(--weight-semi);
+  font-weight: var(--weight-semibold);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--ink-secondary);
@@ -200,155 +153,206 @@
 
 .grid tbody tr:hover { background: var(--surface-hover); }
 .grid tbody tr[aria-selected="true"] { background: var(--surface-selected); }
-
-.grid td {
-  padding: 0 var(--space-2);
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
+.grid td { padding: var(--space-2) var(--space-3); vertical-align: middle; }
 .grid td.num, .grid th.num { text-align: right; }
 
-.cell-primary {
-  font-size: var(--text-emphasis);
-  font-weight: var(--weight-medium);
+/* The matched pair is the product. Mark it, and keep the two rows adjacent. */
+.grid tbody tr[data-pair] { background: var(--accent-subtle); }
+.grid tbody tr[data-pair]:hover { background: var(--surface-selected-hover); }
+.grid tbody tr[data-pair="a"] { border-top: 2px solid var(--accent); }
+.grid tbody tr[data-pair="b"] { border-bottom: 2px solid var(--accent); }
+
+.pair-flag {
+  display: inline-block;
+  padding: 0 var(--space-1);
+  margin-right: var(--space-2);
+  border: var(--border-width) solid var(--accent);
+  border-radius: var(--radius-control);
+  background: var(--surface-panel);
+  color: var(--accent-pressed);
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-label);
 }
 
-.cell-sub {
-  font-size: var(--text-caption);
-  color: var(--ink-secondary);
+.name { font-size: var(--text-body); font-weight: var(--weight-semibold); }
+.sub { font-size: var(--text-caption); color: var(--ink-secondary); }
+
+/* --- Shift: the strongest lever in the findings, so a primary column ------- */
+
+.shift {
+  font-family: var(--font-data);
+  font-size: var(--text-body-lg);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
-/* --- StatusChip ---------------------------------------------------------- */
+.shift-late { color: var(--mismatch-over); }
+
+/* --- StatusChip — severity only ------------------------------------------- */
 
 .chip {
   display: inline-block;
   padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
   border: var(--border-width) solid transparent;
+  border-radius: var(--radius-control);
   font-size: var(--text-caption);
-  font-weight: var(--weight-medium);
-  line-height: calc(var(--control-height) - var(--space-2));
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
+  font-weight: var(--weight-semibold);
+  line-height: var(--space-6);
+  white-space: nowrap;
 }
 
-.chip[data-status="cleared"] {
-  background: var(--status-cleared-wash);
-  border-color: var(--status-cleared);
-  color: var(--status-cleared);
-}
-.chip[data-status="reduced"] {
-  background: var(--status-reduced-wash);
-  border-color: var(--status-reduced);
-  color: var(--status-reduced);
-}
-.chip[data-status="restricted"] {
-  background: var(--status-restricted-wash);
-  border-color: var(--status-restricted);
-  color: var(--status-restricted);
-}
-.chip[data-status="stop"] {
-  background: var(--status-stop-wash);
-  border-color: var(--status-stop);
-  color: var(--status-stop);
-}
-.chip[data-status="absent"] {
-  background: var(--surface-sunken);
-  border-color: var(--line-default);
-  color: var(--ink-tertiary);
-}
+.chip[data-status="cleared"]    { background: var(--status-cleared-bg);    border-color: var(--status-cleared);    color: var(--status-cleared); }
+.chip[data-status="reduced"]    { background: var(--status-reduced-bg);    border-color: var(--status-reduced);    color: var(--status-reduced); }
+.chip[data-status="restricted"] { background: var(--status-restricted-bg); border-color: var(--status-restricted); color: var(--status-restricted); }
+.chip[data-status="stop"]       { background: var(--status-stop-bg);       border-color: var(--status-stop);       color: var(--status-stop); }
+.chip[data-status="absent"]     { background: var(--surface-sunken);       border-color: var(--line-default);      color: var(--ink-tertiary); }
 
-/* --- Metric -------------------------------------------------------------- */
+/* --- Today's prescription ------------------------------------------------- */
 
-.metric { display: flex; flex-direction: column; gap: var(--space-1); }
-
-.metric-label {
-  font-size: var(--text-label);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--ink-tertiary);
-}
-
-.metric-value {
-  font-size: var(--text-metric);
-  font-weight: var(--weight-semi);
+.minutes {
+  font-family: var(--font-data);
+  font-size: var(--text-subtitle);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
   line-height: var(--leading-tight);
 }
 
-.metric-sub { font-size: var(--text-caption); color: var(--ink-secondary); }
+.minutes-unit { font-size: var(--text-caption); color: var(--ink-secondary); }
 
-/* --- Counterfactual ------------------------------------------------------ */
+/* --- Counterfactual as a RELATIONSHIP, not two adjacent numbers ------------ */
 
-.counterfactual {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--divergence);
-  border-radius: var(--radius-sm);
-  background: var(--divergence-wash);
+.cf { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.cf-track {
+  position: relative;
+  height: var(--space-4);
+  background: var(--surface-sunken);
+  border: var(--border-width) solid var(--line-default);
+  border-radius: var(--radius-control);
+  overflow: hidden;
 }
 
-.counterfactual .side { display: flex; flex-direction: column; }
-.counterfactual .side.model { text-align: right; }
+/* The calendar's allowance, drawn as the reference span. */
+.cf-calendar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--surface-pressed);
+}
 
-.counterfactual .cf-label {
-  font-size: var(--text-label);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
+/* The gap between the two — the product's argument, coloured by sign. */
+.cf-gap { position: absolute; top: 0; bottom: 0; }
+.cf-gap[data-mismatch="over"]  { background: var(--mismatch-over-bg); }
+.cf-gap[data-mismatch="under"] { background: var(--mismatch-under-bg); }
+
+/* What the model actually allows. */
+.cf-model {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--ink-secondary);
+}
+
+.cf-model[data-status="cleared"]    { background: var(--status-cleared); }
+.cf-model[data-status="reduced"]    { background: var(--status-reduced); }
+.cf-model[data-status="restricted"] { background: var(--status-restricted); }
+.cf-model[data-status="stop"]       { background: var(--status-stop); }
+
+/* The reading line wraps as a BLOCK, never mid-phrase. Left to itself the
+   flex items shrank and "calendar 480" broke into "calendar" over "480",
+   which put every label on a different line from its own value. The signed
+   badge is allowed to drop to a second line; the calendar-to-model phrase is
+   not allowed to break at all. */
+.cf-read {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  font-size: var(--text-caption);
   color: var(--ink-secondary);
 }
 
-.counterfactual .cf-value {
-  font-size: var(--text-emphasis);
-  font-weight: var(--weight-semi);
-}
+.cf-read > * { white-space: nowrap; flex: 0 0 auto; }
+.cf-phrase { color: var(--ink-primary); }
+.cf-read .num { font-size: var(--text-caption); }
 
-.counterfactual .delta {
+/* --- MismatchBar — rule 12, the signed indicator --------------------------- */
+
+.mismatch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   padding: 0 var(--space-2);
-  font-weight: var(--weight-bold);
-  color: var(--divergence);
+  border-radius: var(--radius-control);
+  font-family: var(--font-data);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-/* Inline form for a grid cell. */
-.cf-inline { display: flex; align-items: baseline; gap: var(--space-1); }
-.cf-inline .was { color: var(--ink-tertiary); text-decoration: line-through; }
-.cf-inline .delta { color: var(--divergence); font-weight: var(--weight-semi); }
+.mismatch[data-mismatch="over"]  { background: var(--mismatch-over-bg);  color: var(--mismatch-over); }
+.mismatch[data-mismatch="under"] { background: var(--mismatch-under-bg); color: var(--mismatch-under); }
+.mismatch[data-mismatch="none"]  { color: var(--mismatch-none); }
 
-/* --- RampStrip — the signature ------------------------------------------- */
+/* Full-height edge stripe: the row's mismatch, encoding MAGNITUDE.
+
+   A fixed 4px bar in one of two colours marked five of six rows identically,
+   which is the same as marking none of them -- if almost every worker is
+   under-protected, "is under-protected" is not the signal, "by how much" is.
+   --mismatch-weight is set per row by roster.js as |divergence| / shift, so
+   the stripe is 2px and faint at the margin and 10px and solid at a whole
+   shift. Hue still carries the sign; only intensity carries the size. */
+.grid tbody tr td:first-child,
+.card {
+  position: relative;
+  --mismatch-weight: 0;
+}
+
+.grid tbody tr td:first-child::before,
+.card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: calc(2px + var(--mismatch-weight) * 8px);
+  background: var(--mismatch-none);
+  opacity: calc(0.25 + var(--mismatch-weight) * 0.75);
+}
+
+.grid tbody tr[data-mismatch="over"] td:first-child::before,
+.card[data-mismatch="over"]::before  { background: var(--mismatch-over); }
+.grid tbody tr[data-mismatch="under"] td:first-child::before,
+.card[data-mismatch="under"]::before { background: var(--mismatch-under); }
+
+.grid tbody tr td:first-child { padding-left: var(--space-4); }
+
+/* --- ReasonTag — rule 13 --------------------------------------------------- */
+
+.reason { display: flex; flex-direction: column; gap: var(--space-1); }
+.reason-what { font-size: var(--text-body); font-weight: var(--weight-medium); }
+.reason-lever { font-size: var(--text-caption); color: var(--ink-secondary); }
+
+/* --- RampStrip — the signature, and the largest thing on the row ----------- */
 
 .ramp { display: block; width: 100%; height: auto; }
-
-.ramp .cell-observed { stroke: var(--line-default); stroke-width: 1; }
-
-.ramp .cell-projected {
-  stroke: var(--projected-stroke);
-  stroke-dasharray: var(--projected-dash);
-  stroke-width: 1;
-  opacity: var(--projected-alpha);
-}
+.ramp .cell-observed  { fill: var(--surface-panel); stroke: var(--line-default); stroke-width: 1; }
+.ramp .cell-projected { fill: var(--projected-fill); stroke: var(--projected-stroke); stroke-width: 1; stroke-dasharray: 3 2; }
+.ramp .cell-absent    { fill: var(--surface-sunken); stroke: var(--line-hairline); stroke-width: 1; }
 
 .ramp .bar[data-status="cleared"]    { fill: var(--status-cleared); }
 .ramp .bar[data-status="reduced"]    { fill: var(--status-reduced); }
 .ramp .bar[data-status="restricted"] { fill: var(--status-restricted); }
 .ramp .bar[data-status="stop"]       { fill: var(--status-stop); }
-.ramp .bar[data-status="absent"]     { fill: var(--surface-sunken); }
+.ramp .bar-projected { opacity: var(--projected-alpha); }
 
-.ramp .adapt-line {
-  fill: none;
-  stroke: var(--adapt-4);
-  stroke-width: 1.5;
-}
-
-.ramp .adapt-line.projected {
-  stroke-dasharray: var(--projected-dash);
-  opacity: var(--projected-alpha);
-}
-
-.ramp .today-mark { stroke: var(--ink-primary); stroke-width: 1; }
-.ramp .axis { stroke: var(--line-hairline); stroke-width: 1; }
+.ramp .adapt-line { fill: none; stroke: var(--adapt-line); stroke-width: 2; }
+.ramp .adapt-line-projected { fill: none; stroke: var(--adapt-line-projected); stroke-width: 2; stroke-dasharray: 4 3; }
+.ramp .today-mark { stroke: var(--accent); stroke-width: 2; }
 
 .ramp .tick {
   font-family: var(--font-data);
@@ -356,34 +360,134 @@
   fill: var(--ink-tertiary);
 }
 
-.ramp-mini { height: var(--space-5); }
+/* --- Drawer --------------------------------------------------------------- */
 
-/* --- Hour table (detail) ------------------------------------------------- */
+.drawer {
+  grid-area: drawer;
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface-panel);
+  border-left: var(--border-width) solid var(--line-strong);
+  box-shadow: var(--elevation-flyout);
+}
+
+.app[data-drawer="open"] .drawer { display: flex; }
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  /* Slim by token, but it must not clip its own controls: at touch density
+     --control-height is 44px, taller than the 40px bar. It grows to fit
+     rather than cropping the button inside it. */
+  min-height: var(--toolbar-height);
+  padding: var(--space-1) var(--space-3);
+  border-bottom: var(--border-width) solid var(--line-default);
+  flex: none;
+}
+
+.drawer-head strong { font-size: var(--text-body-lg); font-weight: var(--weight-semibold); }
+.drawer-head .spacer { flex: 1; }
+.drawer-body { flex: 1; min-height: 0; overflow: auto; }
+
+.section { padding: var(--space-3); border-bottom: var(--border-width) solid var(--line-hairline); }
+
+.section-label {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.metric-value {
+  font-size: var(--text-metric);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.metric-sub { font-size: var(--text-caption); color: var(--ink-secondary); }
+
+.kv { display: grid; grid-template-columns: auto 1fr; gap: var(--space-1) var(--space-3); margin: 0; }
+.kv dt { color: var(--ink-secondary); font-size: var(--text-caption); }
+.kv dd { margin: 0; font-size: var(--text-caption); }
+
+.note {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--accent-subtle);
+  border-left: 3px solid var(--accent);
+  font-size: var(--text-caption);
+}
+
+/* --- Hour table ------------------------------------------------------------ */
 
 .hours { width: 100%; border-collapse: collapse; }
-
 .hours th {
   text-align: left;
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-label);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
-  color: var(--ink-tertiary);
+  color: var(--ink-secondary);
   border-bottom: var(--border-width) solid var(--line-default);
 }
+.hours td { padding: var(--space-1) var(--space-2); border-bottom: var(--border-width) solid var(--line-hairline); font-size: var(--text-caption); }
+.hours td.num, .hours th.num { text-align: right; }
+.hours tr[data-stop="true"] { background: var(--status-stop-bg); }
+.hours tr[data-binding="true"] td { font-weight: var(--weight-semibold); }
 
-.hours td {
-  padding: var(--space-1) var(--space-2);
-  border-bottom: var(--border-width) solid var(--line-hairline);
+/* --- MapCanvas ------------------------------------------------------------- */
+
+.map-wrap { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.map-canvas-holder { flex: 1; min-height: 0; padding: var(--space-3); background: var(--map-bg); }
+.map-canvas-holder canvas { display: block; width: 100%; height: 100%; border: var(--border-width) solid var(--line-default); }
+
+/* The legend wraps: it now carries the quantile breaks and three honesty
+   notes, which will not fit on one line at any sane width. */
+.legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--border-width) solid var(--line-default);
+  background: var(--surface-sunken);
+  font-size: var(--text-caption);
 }
 
-.hours td.num, .hours th.num { text-align: right; }
-.hours tr[data-stop="true"] { background: var(--status-stop-wash); }
-.hours tr[data-binding="true"] { outline: var(--border-width) solid var(--status-stop); }
+.legend-label { font-weight: var(--weight-semibold); }
 
-/* --- StatusBar ----------------------------------------------------------- */
+/* Each class is a swatch with its LOWER BOUND printed under it. A quantile
+   scale whose thresholds are invisible cannot be read back to a number. */
+.legend-scale { display: flex; align-items: flex-start; }
+.legend-cell { display: flex; flex-direction: column; }
+.legend-swatch {
+  width: var(--space-8);
+  height: var(--space-3);
+  border: var(--border-width) solid var(--line-default);
+  border-right: 0;
+}
+.legend-cell:last-of-type .legend-swatch { border-right: var(--border-width) solid var(--line-default); }
+/* Each tick labels the LEFT edge of its swatch; the final one labels the right
+   edge of the last swatch and simply follows it. It used to be pulled back a
+   full swatch width, which sat it on top of the previous tick. */
+.legend-tick {
+  font-size: var(--text-label);
+  color: var(--ink-secondary);
+  margin-top: var(--space-1);
+  margin-left: -1px;
+}
+/* The per-class ticks sit under their swatch; this one has no swatch above
+   it, so it needs the swatch's height to land on the same baseline. */
+.legend-tick-end { align-self: flex-start; margin-top: calc(var(--space-3) + var(--space-1)); }
+.legend-note { color: var(--ink-secondary); }
+
+/* --- StatusBar ------------------------------------------------------------- */
 
 .statusbar {
+  grid-area: status;
   display: flex;
   align-items: center;
   gap: var(--space-4);
@@ -396,22 +500,151 @@
 .statusbar .spacer { flex: 1; }
 .statusbar .sb-label { color: var(--ink-tertiary); }
 
-/* --- Detail sections ----------------------------------------------------- */
+.empty { padding: var(--space-8); text-align: center; color: var(--ink-tertiary); }
 
-.section { padding: var(--space-3); border-bottom: var(--border-width) solid var(--line-hairline); }
-.section-label {
+
+/* --- Cards — the touch density, not a padded table ------------------------- */
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
+  background: var(--surface-panel);
+  border: var(--border-width) solid var(--line-default);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--elevation-card);
+  cursor: pointer;
+}
+
+.card:hover { background: var(--surface-hover); }
+.card[aria-selected="true"] { border-color: var(--accent-border); background: var(--accent-subtle); }
+.card[data-pair] { background: var(--accent-subtle); }
+.card[data-pair]:hover { background: var(--surface-selected-hover); }
+
+/* The strip is sized by HEIGHT here, not width. At `width: 100%` in a card it
+   scaled to 3.8x and stood 320px tall, so one worker filled the screen. */
+.card .ramp { width: 100%; height: 180px; }
+
+.card-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.card[data-expanded="false"] .card-detail { display: none; }
+
+.card-more { align-self: flex-start; }
+
+.card-head { display: flex; align-items: flex-start; gap: var(--space-3); }
+.card-head .spacer { flex: 1; }
+
+.card-figures { display: flex; align-items: baseline; gap: var(--space-5); }
+.card-metric { display: flex; align-items: baseline; gap: var(--space-2); }
+.card-start { display: flex; align-items: baseline; gap: var(--space-2); }
+.card-label {
   font-size: var(--text-label);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--ink-tertiary);
-  margin-bottom: var(--space-2);
 }
-.kv { display: grid; grid-template-columns: auto 1fr; gap: var(--space-1) var(--space-3); }
-.kv dt { color: var(--ink-secondary); }
-.kv dd { margin: 0; }
 
-.empty {
-  padding: var(--space-5);
+/* --- CrewStrip — what the roster cannot say -------------------------------- */
+
+.crewbar {
+  display: grid;
+  /* Stacks on a tablet rather than squeezing three panels into 1024px. */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--border-width);
+  margin-top: auto;
+  background: var(--line-default);
+  border-top: var(--border-width) solid var(--line-strong);
+}
+
+.crewpanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface-panel);
+}
+
+.crewpanel-label {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
   color: var(--ink-tertiary);
-  text-align: center;
+}
+
+.crewpanel-note {
+  font-size: var(--text-caption);
+  color: var(--ink-secondary);
+  line-height: var(--leading-normal);
+}
+
+.crew-figures { display: flex; gap: var(--space-6); }
+.crew-figure { display: flex; flex-direction: column; }
+
+.crew-value {
+  font-size: var(--text-subtitle);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  color: var(--ink-primary);
+}
+
+.crew-value-muted { color: var(--ink-tertiary); }
+.crew-value-under { color: var(--mismatch-under); }
+
+.crew-unit { font-size: var(--text-caption); color: var(--ink-secondary); }
+
+.pair-compare { display: flex; gap: var(--space-6); }
+.pair-cell { display: flex; flex-direction: column; }
+.pair-when {
+  font-family: var(--font-data);
+  font-size: var(--text-body-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-secondary);
+}
+
+
+/* --- Narrow viewports ------------------------------------------------------
+   The shell already uses minmax(0, 1fr) and min-width: 0 on .main, so overflow
+   at 450px came from flex CHILDREN that refuse to shrink below their content:
+   a card's identity block pushing the status chip off the right edge, the
+   command bar's summary line pushing the button off, the status bar's four
+   fields refusing to give way. Every one of them needs an explicit escape. */
+
+.content { min-width: 0; }
+
+.commandbar h1 { flex: none; }
+.commandbar .sub {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.commandbar .btn { flex: none; }
+
+.card-head > div:first-child { min-width: 0; flex: 1; }
+.card-head .chip { flex: none; }
+.card .sub { overflow-wrap: anywhere; }
+.card-figures { flex-wrap: wrap; gap: var(--space-3) var(--space-5); }
+
+.statusbar { overflow: hidden; }
+.statusbar > span { white-space: nowrap; flex: none; }
+.statusbar .spacer { flex: 1; }
+
+/* Below this the status bar cannot hold four labelled fields. Source and date
+   are the two a reader needs to trust what is on screen; cache state and the
+   assumed-input note are available in the compliance record. */
+@media (max-width: 700px) {
+  .statusbar > span:nth-of-type(3),
+  .statusbar > span:nth-of-type(4) { display: none; }
 }

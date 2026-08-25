@@ -1,16 +1,16 @@
 /* ============================================================================
-   Worker detail — the "why" panel.
+   Worker detail — drawer content.
 
-   This is the ONLY place the adaptation state is allowed to appear
-   (DESIGN_SYSTEM.md non-negotiable 10). The foreman opens this asking why a man
-   he thinks is fine has been cut to 135 minutes, and the answer has to be here
-   in full: the state, the personal limit it implies, and the hour that binds.
+   Opens on demand and closes. It is a thing you ASK for, not a permanent
+   half-screen panel over eight rows.
 
-   The hour table is what the engine's HourPrescription made possible. Before
-   that fix the interface could state a prescription but not explain it.
+   This is the ONLY place the adaptation state may appear (rule 10). The foreman
+   opens this asking why a man he thinks is fine has been cut, and the answer has
+   to be here in full: the state, the limit it implies, and the hour that binds.
    ========================================================================== */
 
 import { rampStrip } from './rampstrip.js';
+import { pretty } from './format.js';
 
 function section(label, ...children) {
   const wrap = document.createElement('section');
@@ -21,71 +21,52 @@ function section(label, ...children) {
     head.textContent = label;
     wrap.appendChild(head);
   }
-  wrap.append(...children);
+  wrap.append(...children.filter(Boolean));
   return wrap;
 }
 
-function metric(label, value, sub) {
-  const wrap = document.createElement('div');
-  wrap.className = 'metric';
-  const l = document.createElement('div');
-  l.className = 'metric-label';
-  l.textContent = label;
-  const v = document.createElement('div');
-  v.className = 'metric-value';
-  v.textContent = value;
-  wrap.append(l, v);
-  if (sub) {
-    const s = document.createElement('div');
-    s.className = 'metric-sub';
-    s.textContent = sub;
-    wrap.appendChild(s);
+function div(className, text) {
+  const node = document.createElement('div');
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function keyValues(rows) {
+  const dl = document.createElement('dl');
+  dl.className = 'kv';
+  for (const [key, value] of rows) {
+    const dt = document.createElement('dt');
+    dt.textContent = key;
+    const dd = document.createElement('dd');
+    dd.className = 'num';
+    dd.textContent = value;
+    dl.append(dt, dd);
   }
-  return wrap;
+  return dl;
 }
 
-/* The full-width counterfactual. Non-negotiable 9: this appears on every worker
-   view, because the model's output without the calendar's is just a number. */
-function counterfactual(day, shiftHours) {
-  const wrap = document.createElement('div');
-  wrap.className = 'counterfactual';
-
-  const left = document.createElement('div');
-  left.className = 'side';
-  const ll = document.createElement('div');
-  ll.className = 'cf-label';
-  ll.textContent = `OSHA calendar · day ${day.dayOnJob}`;
-  const lv = document.createElement('div');
-  lv.className = 'cf-value num';
-  lv.textContent = `${day.calendarMinutes} min`;
-  left.append(ll, lv);
-
-  const delta = document.createElement('div');
-  delta.className = 'delta num';
-  delta.textContent = `${day.divergence > 0 ? '+' : ''}${day.divergence}`;
-
-  const right = document.createElement('div');
-  right.className = 'side model';
-  const rl = document.createElement('div');
-  rl.className = 'cf-label';
-  rl.textContent = 'Acclimate · measured';
-  const rv = document.createElement('div');
-  rv.className = 'cf-value num';
-  rv.textContent = `${day.minutes} min`;
-  right.append(rl, rv);
-
-  wrap.append(left, delta, right);
-  wrap.title = `The calendar assigns ${day.calendarMinutes} minutes from the day `
-    + `count alone. The model measures this worker's exposure and prescribes `
-    + `${day.minutes}.`;
+function counterfactual(day) {
+  const wrap = div('cf');
+  const read = div('cf-read');
+  const cal = document.createElement('span');
+  cal.className = 'num';
+  cal.textContent = `OSHA calendar, day ${day.dayOnJob}: ${day.calendarMinutes} min`;
+  const badge = document.createElement('span');
+  badge.className = 'mismatch';
+  badge.setAttribute('data-mismatch', day.mismatch);
+  badge.textContent = day.mismatch === 'none'
+    ? 'agree' : `${day.divergence > 0 ? '+' : ''}${day.divergence} min`;
+  read.append(cal, badge);
+  wrap.append(read);
   return wrap;
 }
 
 function hourTable(day) {
   const table = document.createElement('table');
   table.className = 'hours';
+
   const head = document.createElement('thead');
-  head.innerHTML = '';
   const hr = document.createElement('tr');
   for (const [label, cls] of [['Hour', ''], ['WBGT', 'num'], ['Limit', 'num'],
                               ['Over', 'num'], ['Work', 'num']]) {
@@ -97,19 +78,19 @@ function hourTable(day) {
   head.appendChild(hr);
 
   const fewest = Math.min(...day.hours.map((h) => h.minutes));
-  const bindingHour = day.hours.find((h) => h.minutes === fewest);
+  const binding = day.hours.find((h) => h.minutes === fewest);
 
   const body = document.createElement('tbody');
   for (const hour of day.hours) {
     const tr = document.createElement('tr');
     tr.setAttribute('data-stop', String(hour.stop));
-    tr.setAttribute('data-binding', String(hour === bindingHour));
+    tr.setAttribute('data-binding', String(hour === binding));
     const cells = [
       [`${String(hour.hour).padStart(2, '0')}:00`, ''],
       [hour.wbgt.toFixed(1), 'num'],
       [hour.limit.toFixed(1), 'num'],
       [`${hour.overLimit > 0 ? '+' : ''}${hour.overLimit.toFixed(1)}`, 'num'],
-      [`${hour.minutes} min`, 'num'],
+      [`${hour.minutes}`, 'num'],
     ];
     for (const [text, cls] of cells) {
       const cell = document.createElement('td');
@@ -120,61 +101,64 @@ function hourTable(day) {
     body.appendChild(tr);
   }
   table.append(head, body);
-  return { table, bindingHour };
+  return { table, binding };
 }
 
 export function renderDetail(root, worker, data) {
   if (!worker) {
-    const empty = document.createElement('div');
-    empty.className = 'empty';
-    empty.textContent = 'Select a worker.';
-    root.replaceChildren(empty);
+    root.replaceChildren(div('empty', 'Select a worker.'));
     return;
   }
-
   const day = worker.today;
   const parts = [];
 
-  parts.push(section(null,
-    metric('Prescribed today', `${day.minutes} min`,
-           `${worker.shift} · ${worker.trade} · ${worker.workClass} work`)));
+  const headline = section(null,
+    div('metric-value', `${day.minutes} min`),
+    div('metric-sub',
+      `${worker.shiftFull} · ${worker.trade} · ${worker.workClass} work · ${worker.siteLabel}`));
+  parts.push(headline);
 
-  parts.push(section('Counterfactual', counterfactual(day, worker.shiftHours)));
+  if (worker.pair) {
+    const note = document.createElement('p');
+    note.className = 'note';
+    note.textContent = worker.note;
+    parts.push(note);
+  }
 
-  parts.push(section(`${data.daysBehind} days behind · today · ${data.daysAhead} ahead`,
-                     rampStrip(worker.strip, data.today)));
+  parts.push(section('Counterfactual', counterfactual(day)));
+
+  parts.push(section('Why', div('reason-what', pretty(worker.levers.reason)),
+                     div('reason-lever', pretty(worker.levers.detail)),
+                     keyValues([
+                       ['If started 05:00', `${worker.levers.ifEarlyShift} min`],
+                       ['If fully adapted', `${worker.levers.ifFullyAdapted} min`],
+                     ])));
+
+  parts.push(section(
+    `${data.daysBehind} days behind · today · ${data.daysAhead} ahead`,
+    rampStrip(worker.strip, data.today, { labels: true })));
 
   if (day.hours.length) {
-    const { table, bindingHour } = hourTable(day);
-    const why = document.createElement('p');
-    why.style.margin = '0 0 var(--space-2)';
-    why.textContent = bindingHour
-      ? `Binding hour ${String(bindingHour.hour).padStart(2, '0')}:00 — `
-        + `${bindingHour.overLimit > 0
-            ? `${bindingHour.overLimit.toFixed(1)} degC above this worker's limit`
-            : 'within limit'}.`
-      : '';
-    parts.push(section('Why — hour by hour', why, table));
+    const { table, binding } = hourTable(day);
+    const why = binding
+      ? div('reason-lever',
+        `Binding hour ${String(binding.hour).padStart(2, '0')}:00 — `
+        + (binding.overLimit > 0
+          ? `${binding.overLimit.toFixed(1)} degC above this worker's limit.`
+          : 'within limit.'))
+      : null;
+    parts.push(section('Hour by hour', why, table));
   }
 
-  /* The adaptation state. Permitted HERE and nowhere else. */
-  const state = document.createElement('dl');
-  state.className = 'kv';
-  const rows = [
+  /* Rule 10: permitted HERE and nowhere else. The heading used to read
+     "State — detail only", which is a note to whoever maintains the rule, not
+     something a foreman needs to read. The rule is enforced in the roster
+     component and in tests; the label should just say what the numbers are. */
+  parts.push(section('Acclimatization state', keyValues([
     ['Adaptation state', day.adaptation.toFixed(3)],
-    ['Personal limit', `${day.limit.toFixed(2)} degC-WBGT`],
-    ['Day on job', `${day.dayOnJob}`],
-    ['Site', worker.site === 'hot_site' ? 'p95 (hotter)' : 'p5 (cooler)'],
-  ];
-  for (const [key, value] of rows) {
-    const dt = document.createElement('dt');
-    dt.textContent = key;
-    const dd = document.createElement('dd');
-    dd.className = 'num';
-    dd.textContent = value;
-    state.append(dt, dd);
-  }
-  parts.push(section('State — detail view only', state));
+    ['Personal limit', pretty(`${day.limit.toFixed(2)} degC`) + '-WBGT'],
+    ['Day on job', String(day.dayOnJob)],
+  ])));
 
   root.replaceChildren(...parts);
 }
