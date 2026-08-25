@@ -55,7 +55,7 @@ Metro AOI where noted:
 | File | Call | Proves |
 | --- | --- | --- |
 | `phoenix_threshold_sweep_summary.json` | Metro AOI, 2024-07-01→07, thresholds 34/36/38/40/42 °C | **Threshold selection.** 30 °C and 34 °C are saturated (92–99% of window); 42 °C is at the floor (2.9%). **40 °C is optimal** — mean 31% of window, best relative spread (0.50). Also captures the `min = -0.3176` at 42 °C that proves the field is interpolated, not counted. |
-| `phoenix_40c_exceedance_sites.json` | Metro AOI, 2026-07-26→08-08, threshold 40 °C | **The project's core evidence.** Mean 95.6 h of 336. Hottest cell 7.63 h/day above 40 °C, coolest 4.14 h/day — **a 1.84× difference in heat dose within one metro.** Also contains the top/bottom 5 cells, which are **boundary artifacts** (all within 460 m of the west edge / 80 m of the north edge) — the reason site selection must buffer the AOI and discard edges. |
+| `phoenix_40c_exceedance_sites.json` | Metro AOI, 2026-07-26→08-08, threshold 40 °C | **Core evidence, and the source of the project's most-corrected number.** Mean 95.6 h of 336. Raw hottest cell 7.63 h/day above 40 °C against coolest 4.14 — a ~~1.84×~~ ratio that is a **boundary artifact**: the top/bottom 5 cells all sit within 460 m of the west edge or 80 m of the north edge. After buffering and the 500 m edge discard the defensible figure is **1.28×** (see the site selection entry below). **Quote 1.28×, never 1.84×.** |
 | `phoenix_5day_daily_stats.json` | Parcel, 2026-08-05→09, `filter_type=3` × 5 | Day-to-day variation in daily mean: 36.65 → 37.09 → 37.40 → 37.69 → 38.85 (**2.2 °C over five days**). This is the temporal signal the stimulus term feeds on. **NOTE:** this file contains only `stats_data`, which is the SPATIAL axis — the temporal ranges are in the `filter3_properties_*` files above. |
 
 **Not captured:** the raw 38 569-cell exceedance grid (34 MB). Too large for the repo.
@@ -133,7 +133,7 @@ on the personal limit in °C-WBGT across all 84 τ pairs:
 
 | lever | psychrometric | ISO Annex D | gap |
 | --- | --- | --- | --- |
-| **shift assignment** 05–13 vs 10–18 | **84/84** | **84/84** | +1.07 °C |
+| **shift assignment** 05–13 vs 10–18 | **84/84** | **84/84** | +1.07 °C at day 4, +2.75 by day 14 |
 | **mild vs hot by worked dose** | **84/84** | **84/84** | +0.63 °C |
 | mild vs hot by peak temperature | 36/84 | 54/84 | +0.27 °C |
 | **site assignment** p5 vs p95 | **0/84** | **0/84** | +0.23 °C |
@@ -196,7 +196,7 @@ re-fetch on demand, the derived record is what the code needs.
 **The finding that corrects the project's headline number.** Raw min/max across the
 grid is 55.27 / 106.89 h → **1.93×**. After the mandated mitigation — 1 km buffer,
 500 m edge discard (4 201 cells, 9.0%), 5th/95th percentile ranking — it is
-79.61 / 102.21 h → **1.28×**. The 1.84× quoted in SPEC.md is a raw min/max figure,
+79.61 / 102.21 h → **1.28×**. The 1.84× once quoted in SPEC.md is a raw min/max figure,
 i.e. exactly the boundary-artifact statistic `FORTYGUARD_API_CONTRACT.md` §5 warns
 against. **Quote 1.28×.**
 

@@ -185,7 +185,8 @@ pair — same site, same trade, same day count, differing only in start time —
 adjacent and visually marked.
 
 That pair is the product. M3 measured shift timing as the strongest available lever
-(+1.07 °C of personal limit, 84/84 τ pairs, both wet-bulb methods) while site
+(+1.07 °C of personal limit at day 4, growing to +2.75 °C by day 14; 84/84 τ pairs,
+both wet-bulb methods) while site
 assignment did not reach materiality at all. A crew that varies trade, site, shift and
 day count all at once means nothing on screen is comparable and the finding is
 invisible.

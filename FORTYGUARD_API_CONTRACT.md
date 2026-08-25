@@ -219,6 +219,11 @@ n_cells 38569   min 57.93   max 106.86   mean 95.64   (336 h window)
 => hottest 7.63 h/day, coolest 4.14 h/day, ratio 1.84x
 ```
 
+**That 1.84× is a RAW MIN/MAX and must not be quoted as a result.** It is precisely the
+boundary-artifact statistic §5 of this document warns against: the extreme cells sit on
+the AOI edge. After a 1 km buffer, a 500 m edge discard and 5th/95th percentile ranking
+the defensible ratio is **1.28×**. See `fixtures/MANIFEST.md` and `WRITEUP.md`.
+
 ---
 
 ## 6. `/v1/env_params`
