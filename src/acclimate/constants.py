@@ -21,6 +21,63 @@ from dataclasses import dataclass
 from enum import Enum
 
 # ============================================================================
+# 0b. VERIFICATION TRIAGE  -  what was checked, what was not, and why
+# ============================================================================
+# Thirty-odd [CHECK] tags cannot all be closed against primary sources before
+# submission: ISO 8996 and the ACGIH TLV booklet are paywalled, and NIOSH
+# publishes its exposure limits as figures rather than tables. Rather than grind
+# through them in citation order, they were triaged by what they can actually
+# change, and the triage was MEASURED rather than asserted.
+#
+#   scripts/audit_constants.py   perturbs each constant and re-prescribes the
+#                                whole demo crew from raw tiles, reporting the
+#                                largest change in prescribed minutes
+#   scripts/audit_ladder.py      sensitivity-tests the work/rest ladder
+#   scripts/audit_resolution.py  measures what spatial structure the API carries
+#
+# RESOLVED, because they decide whether a worker is told to stop:
+#
+#   WBGT_LIMIT_ACCLIMATIZED / _UNACCLIMATIZED
+#       [VERIFIED] against NIOSH 2016-106 Figures 8-1 and 8-2 via the standard
+#       analytic forms. Every stored value sits below the curve. Section 2.
+#   WORK_REST_LADDER
+#       Not verifiable: no such published table exists. OUR CONSTRUCTION, and
+#       sensitivity-tested instead. The sign of the headline result holds in
+#       62 of 64 configurations including a continuous no-rung variant.
+#
+# LOAD-BEARING AND STILL OPEN -- these two move a real prescription:
+#
+#   GLOBE_SOLAR_ABSORPTIVITY   +/-0.05 -> 0.24 degC WBGT, 30 min (two rungs)
+#   AIR_CONDUCTIVITY_REF_W_M_K +2%     -> 0.04 degC WBGT, 15 min (one rung)
+#
+# MEASURED AS UNABLE TO MOVE THE DEMO'S OUTPUT AT ALL (0 minutes across the
+# whole crew, at the perturbations listed in audit_constants.py):
+#
+#   GROUND_EMISSIVITY, GROUND_ALBEDO, SOLAR_CONSTANT_W_M2, AIR_PRANDTL,
+#   AIR_GAS_CONSTANT_J_KG_K, AIR_CONDUCTIVITY_EXPONENT, AIR_SUTHERLAND_MU0_PA_S,
+#   ISA_SEA_LEVEL_PRESSURE_PA, SURFACE_ROUGHNESS_LENGTH_M, BODY_SURFACE_AREA_M2
+#
+#   Note GROUND_ALBEDO: m1_report.py separately reports 0.18 degC of WBGT per
+#   0.05 of albedo, but that never crosses a rung boundary for this crew on this
+#   day. Sensitive in the physics, inert in the prescription.
+#
+# UNREACHABLE FROM THIS DEMO, so measurement cannot close them:
+#
+#   CLOTHING_ADJUSTMENT_C   every demo worker wears `work_clothes`, whose
+#                           adjustment is 0.0 degC. The other five entries are
+#                           never read. Flagged, not verified -- and the large
+#                           one (vapor_barrier_limited, +11 degC) must not be
+#                           quoted anywhere until it is checked.
+#   OSHA_* trigger values   not used by the model at all; they exist for the
+#                           writeup's comparison against the proposed rule.
+#   NIOSH_RAMP_PCT_BY_DAY   likewise unused; CALENDAR_RAMP_PCT_BY_DAY is what
+#                           the product compares against.
+#
+# A ZERO IN THAT TABLE MEANS "CANNOT AFFECT THIS DEMO", NOT "CORRECT". The tags
+# stay [CHECK] because unreachable is not the same as verified.
+# ============================================================================
+
+# ============================================================================
 # 1. METABOLIC WORKLOAD  —  ISO 8996
 # ============================================================================
 # [CHECK] ISO 8996:2004 "Ergonomics of the thermal environment — Determination of
@@ -488,11 +545,19 @@ WBGT_REFERENCE_TOLERANCE_C = 1.0
 GLOBE_DIAMETER_M = 0.15            # [VERIFIED] ISO 7243:2017 Annex B.2 a)
 GLOBE_EMISSIVITY = 0.95            # [VERIFIED] ISO 7243:2017 Annex B.2 b)
 
-# [CHECK] ISO 7243 specifies only the LONGWAVE emission coefficient. Shortwave
+# [CHECK - AND THE MOST LOAD-BEARING UNVERIFIED CONSTANT IN THE FILE]
+#         ISO 7243 specifies only the LONGWAVE emission coefficient. Shortwave
 #         absorptivity is a different optical property and the standard does not
 #         give it. We set it equal to the emissivity, which is what Liljegren's
 #         reference implementation does (its ALB_GLOBE is 0.05, i.e. absorptivity
 #         0.95). Defensible for matte black paint, but it is our step, not ISO's.
+#
+#         MEASURED SENSITIVITY (scripts/audit_constants.py): moving this to 0.90
+#         or 1.00 changes the peak effective WBGT by 0.24 degC and moves a demo
+#         worker's prescription by 30 MINUTES -- two rungs of the ladder. Of every
+#         [CHECK] constant that feeds the WBGT composition, this is the only one
+#         that moves a prescription that far. It is a genuine open caveat and the
+#         writeup names it as such.
 GLOBE_SOLAR_ABSORPTIVITY = 0.95
 
 # [CHECK] No primary source opened. Typical for built surfaces; the globe balance
@@ -541,7 +606,9 @@ AIR_SUTHERLAND_T0_K = 273.15
 AIR_SUTHERLAND_S_K = 110.4
 AIR_GAS_CONSTANT_J_KG_K = 287.05        # [CHECK] dry air
 AIR_PRANDTL = 0.71                      # [CHECK] weakly temperature-dependent
-AIR_CONDUCTIVITY_REF_W_M_K = 0.02624    # [CHECK] at 300 K
+# [CHECK] at 300 K. Second-most load-bearing: +2% moves a demo prescription by
+# 15 minutes (one rung), 0.04 degC of WBGT. scripts/audit_constants.py.
+AIR_CONDUCTIVITY_REF_W_M_K = 0.02624
 AIR_CONDUCTIVITY_REF_T_K = 300.0
 AIR_CONDUCTIVITY_EXPONENT = 0.8646      # [CHECK] k(T) = k_ref * (T/T_ref)^n
 
