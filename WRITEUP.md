@@ -118,8 +118,23 @@ through with the reason on the card. A metric that cannot be wrong is not a metr
 ### What the temperature field actually resolves
 
 At 14:00 on a day above 40 °C, the **entire Phoenix metro spans 1.02 °C**, and
-neighbouring 100 m tiles differ by 0.004 °C. Published land-surface temperature for this
-city at this hour separates an irrigated park from an asphalt lot by roughly 10 °C.
+neighbouring 100 m tiles differ by 0.004 °C.
+
+That number needs a yardstick, and we deliberately take it from the same API rather than
+from an outside figure we cannot reproduce. FortyGuard's own daily min/max product
+(`filter_type=3`) puts the **diurnal range at a single point between 5.8 °C and 11.4 °C**
+across the five cached days, mean 8.5 °C. So:
+
+> The temperature at one location changes roughly **eight times more over a single day**
+> than the entire 25 × 19 km metro varies at any one instant.
+
+Both figures come from fixtures in this repository and either can be recomputed:
+`scripts/audit_resolution.py` for the spatial spread, `fixtures/heatmap/filter3_*.json`
+for the diurnal range. An earlier draft of this paragraph compared the 1.02 °C against
+"roughly 10 °C" of published park-versus-asphalt land-surface contrast. That figure was
+plausible and uncited — our own recollection, not a measurement — and in a section whose
+entire subject is not over-claiming from data, it had no business being the comparison
+that carried the argument.
 
 These 101 m tiles do not resolve roads, parks, or the Salt River corridor. That is why
 the map's locator layer is drawn from OpenStreetMap rather than inferred from the data,

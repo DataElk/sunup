@@ -31,12 +31,14 @@
    smooth as the fortnight-long count built from it.
 
    In absolute terms, at 14:00 on a day above 40 degC the whole Phoenix metro
-   spans 1.02 degC and neighbouring 100 m tiles differ by 0.004 degC. Published
-   land-surface temperature for this city at this hour separates an irrigated
-   park from an asphalt lot by something on the order of 10 degC. Whatever these
-   tiles carry, it does not resolve roads, parks, or the river corridor — which
-   is why the basemap above is drawn from OpenStreetMap rather than inferred
-   from the data. See scripts/audit_resolution.py.
+   spans 1.02 degC and neighbouring 100 m tiles differ by 0.004 degC. For scale,
+   measured from the same API rather than from an outside figure: its daily
+   min/max product puts the diurnal range at a SINGLE POINT at 5.8-11.4 degC.
+   One location changes about eight times more over a day than the entire metro
+   varies at any instant. Whatever these tiles carry, it does not resolve roads,
+   parks, or the river corridor — which is why the basemap above is drawn from
+   OpenStreetMap rather than inferred from the data.
+   See scripts/audit_resolution.py.
 
    The 500 m edge-discard band is DRAWN, hatched, rather than hidden. The
    project's original 1.84x headline came from cells inside that band, and the

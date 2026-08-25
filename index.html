@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acclimate</title>
+
+<!-- The app lives at app/index.html. This is the site root, so it redirects.
+     The path is RELATIVE, which is what makes it work unchanged whether the
+     site is served from a user page at / or a project page at /acclimate/. -->
+<meta http-equiv="refresh" content="0; url=app/index.html">
+<link rel="canonical" href="app/index.html">
+
+<style>
+  /* Deliberately self-contained: no token file, because this page must render
+     correctly even if the redirect is the only thing that ever works. */
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: #FAF9F8;
+    color: #323130;
+    font-family: "Segoe UI Variable Text", "Segoe UI", Selawik, system-ui,
+                 "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  main { max-width: 46ch; padding: 24px; text-align: center; }
+  h1 { font-size: 28px; font-weight: 600; margin: 0 0 8px; }
+  p { margin: 0 0 16px; color: #605E5C; }
+  a {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #0078D4;
+    color: #FFFFFF;
+    text-decoration: none;
+    border-radius: 2px;
+    font-weight: 600;
+  }
+  a:hover { background: #106EBE; }
+  .sub { font-size: 12px; color: #A19F9D; margin-top: 24px; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #201F1E; color: #FFFFFF; }
+    p { color: #C8C6C4; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Acclimate</h1>
+  <p>Per-worker heat acclimatization state, built on FortyGuard temperature data.</p>
+  <a href="app/index.html">Open the demo</a>
+  <p class="sub">If you are not redirected automatically, use the link above.</p>
+</main>
+</body>
+</html>

@@ -273,10 +273,12 @@ def main():
   smooth. Neighbouring 100 m tiles differ by about 0.004 degC.
 
   What that means in absolute terms: at 14:00 on a day exceeding 40 degC, the
-  whole Phoenix metro spans 1.02 degC. Published land-surface temperature for
-  this city at this hour separates an irrigated park from an asphalt lot by
-  something on the order of 10 degC. Whatever these 100 m tiles are carrying,
-  it does not resolve roads, parks, or the Salt River corridor.
+  whole Phoenix metro spans 1.02 degC. The yardstick is taken from the same API
+  rather than from an outside figure -- its daily min/max product (filter_type=3,
+  the rows above) puts the diurnal range at a SINGLE POINT at 5.8-11.4 degC,
+  mean 8.5. One location changes about eight times more over a day than the
+  entire 25 x 19 km metro varies at any one instant. Whatever these 100 m tiles
+  are carrying, it does not resolve roads, parks, or the Salt River corridor.
 """)
 
 

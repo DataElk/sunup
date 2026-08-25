@@ -288,11 +288,13 @@ window spans 1.02 °C. Normalise by a window-dependent quantity and you measure 
 window. `scripts/audit_resolution.py` now prints the absolute column first for that
 reason.
 
-**Then say what it means.** At 14:00 on a day above 40 °C the entire Phoenix metro spans
-1.02 °C. Published land-surface temperature for this city at this hour separates an
-irrigated park from an asphalt lot by roughly 10 °C. That is why the locator basemap is
-drawn from OpenStreetMap rather than inferred from the data — the data does not contain
-the roads.
+**Then say what it means, with a yardstick you can reproduce.** At 14:00 on a day above
+40 °C the entire Phoenix metro spans 1.02 °C. The same API's daily min/max product puts
+the diurnal range at a *single point* at 5.8–11.4 °C. One location changes about eight
+times more over a day than the whole metro varies at any instant. That is why the locator
+basemap is drawn from OpenStreetMap rather than inferred from the data — the data does not
+contain the roads. Take the comparison from your own fixtures, never from a remembered
+figure.
 
 ---
 
