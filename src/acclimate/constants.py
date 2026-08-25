@@ -73,20 +73,43 @@ TRADE_TO_WORK_CLASS = {
 # ============================================================================
 # 2. EXPOSURE LIMITS  —  NIOSH REL / RAL
 # ============================================================================
-# [CHECK] NIOSH Criteria for a Recommended Standard: Occupational Exposure to Heat
-#         and Hot Environments, DHHS (NIOSH) Publication 2016-106.
-#         REL = Recommended Exposure Limit, acclimatized workers.
-#         RAL = Recommended Alert Limit, UNacclimatized workers.
+# [VERIFIED 2026-08-25] NIOSH Criteria for a Recommended Standard: Occupational
+#         Exposure to Heat and Hot Environments, DHHS (NIOSH) Publication
+#         2016-106. RAL curves are Figure 8-1 (unacclimatized), REL curves are
+#         Figure 8-2 (acclimatized).
 #
-# These are the two curves the whole product interpolates between. THEY MUST BE
-# RIGHT. Read them off the NIOSH ceiling/REL/RAL figure for continuous (60 min/h)
-# work at each metabolic rate, and record the figure number here when confirmed.
+# HOW THESE WERE VERIFIED. 2016-106 presents both limits GRAPHICALLY and states
+# no equation. The analytic forms below are the standard representations of
+# those curves, and the RAL form is attributed to NIOSH explicitly in the
+# peer-reviewed literature (Ioannou et al., "Critical Assessment of the
+# Recommended Alert Limit Curves for Occupational Heat Exposure", PMC12512090:
+# "RAL = 59.9 - 14.1 log10 TWA-M", M in watts):
 #
-# Cross-reference: ACGIH TLV for Heat Stress is a closely related but distinct
-# set of curves. Do not mix them. If you use ACGIH values, say ACGIH in the
-# writeup, not NIOSH.
+#     RAL = 59.9 - 14.1 * log10(M)      unacclimatized
+#     REL = 56.7 - 11.5 * log10(M)      acclimatized
 #
-# Values below are °C-WBGT for CONTINUOUS work. [CHECK ALL SIX]
+# with M the TOTAL metabolic heat production in watts -- section 1's W/m^2 value
+# multiplied by BODY_SURFACE_AREA_M2. Evaluated at our four classes:
+#
+#     class        M (W)   RAL eq   ours    REL eq   ours
+#     light          180    28.10   28.0     30.76   30.0
+#     moderate       297    25.03   25.0     28.26   28.0
+#     heavy          414    23.00   22.5     26.60   26.0
+#     very_heavy     522    21.58   21.5     25.45   25.0
+#
+# Every stored value sits BELOW the curve, by 0.03-0.76 degC. The rounding is
+# always toward more protection, never less, which is the only direction a
+# rounding error is acceptable in.
+#
+# ATTRIBUTION CAVEAT, and it is a real one. The same coefficient pair
+# (56.7/11.5, 59.9/14.1) is widely published as the ACGIH TLV and Action Limit.
+# NIOSH's REL/RAL and ACGIH's TLV/AL are separate documents that happen to share
+# these analytic forms. Our values are consistent with both. The writeup says
+# "NIOSH RAL/REL" because that is the framing and the figure numbers we checked
+# against; it should not be read as a claim that ACGIH would give a different
+# number here.
+#
+# Values below are degC-WBGT for CONTINUOUS work.
 
 WBGT_LIMIT_ACCLIMATIZED = {      # NIOSH REL
     WorkClass.LIGHT:    30.0,
@@ -103,9 +126,31 @@ WBGT_LIMIT_UNACCLIMATIZED = {    # NIOSH RAL
 }
 
 # Work/rest allocation as a function of how far the environment exceeds the
-# worker's personal limit. [CHECK] against the NIOSH work/rest schedule table —
-# NIOSH expresses this as work-rest regimens (75/25, 50/50, 25/75) at
-# progressively lower WBGT for a given metabolic rate.
+# worker's personal limit.
+#
+# [RESOLVED 2026-08-25 — AND THE ORIGINAL PREMISE WAS WRONG]
+#
+# This block used to say "[CHECK] against the NIOSH work/rest schedule table".
+# There is no such table. NIOSH 2016-106 was read for it: work/rest scheduling
+# appears only as a named administrative control, and the document's tables
+# cover acclimatization schedules (Table 4-1), not WBGT-versus-regimen
+# screening. The familiar 75/25 - 50/50 - 25/75 screening table is ACGIH's, from
+# the TLVs and BEIs booklet, and ACGIH's heat stress material is copyrighted and
+# not publicly reproducible (OSHA Technical Manual III:4 says so explicitly and
+# declines to reprint it).
+#
+# So this ladder is OUR CONSTRUCTION. It is not a standard, it is not NIOSH, and
+# it must never be presented as either. What it borrows from ACGIH is only the
+# STRUCTURE that everyone uses -- four rungs at 60/45/30/15 minutes of work per
+# hour -- applied to a different independent variable: degrees above THIS
+# worker's personal limit, rather than absolute WBGT against a fixed category.
+# That substitution is the whole product, and it means no published table could
+# have supplied these numbers.
+#
+# Load-bearing: this ladder alone decides whether a worker is told to stop.
+# Treat it as the model's largest unvalidated assumption and say so in the
+# writeup.
+#
 # Format: (max_excess_degC_above_personal_limit, work_min_per_hour)
 WORK_REST_LADDER = [
     (0.0, 60),   # at or below limit: continuous work
