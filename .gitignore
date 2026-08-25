@@ -3,10 +3,13 @@ venv/
 __pycache__/
 node_modules/
 *_grid.json
+# Tool-specific, not documentation. The blanket `*.md` that used to sit here
+# also swallowed SPEC.md, DESIGN_SYSTEM.md, FORTYGUARD_API_CONTRACT.md and
+# fixtures/MANIFEST.md -- the four documents CLAUDE.md itself tells a reader to
+# start with. They are the project's design record and belong in history.
 CLAUDE.md
 .claude/
-*.md
-!README.md
+.pytest_cache/
 
 # Derived: rebuild with `python scripts/seed_cache.py`
 data/cache/
