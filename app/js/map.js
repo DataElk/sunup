@@ -23,16 +23,20 @@
    implies a precision it does not have, so the effective resolution is printed
    on the map rather than left for a reader to discover by squinting.
 
-   SCOPED DELIBERATELY. This is a fact about the EXCEEDANCE LAYER, not about
-   FortyGuard's temperature product. Exceedance counts hours above a threshold
-   over 336 hours, and counting is a low-pass filter — a single-hour tile scores
-   6.5% on the same statistic, roughly fifteen times rougher, and loses ~16% of
-   its variance to a 300 m blur rather than ~1%. An earlier version of this
-   comment claimed the API had no street-scale structure at all; that was an
-   over-claim drawn from an aggregate, and scripts/audit_resolution.py exists to
-   keep it honest. Whether a metro-extent single-hour retrieval would resolve
-   the Salt River corridor is untested — the snapshot fixtures cover 0.8 x 1.1
-   km, which cannot contain it.
+   AND IT IS NOT THE AGGREGATION. The obvious objection is that exceedance
+   counts hours across 336 of them, so of course it is smooth. That was tested
+   rather than assumed: a metro-extent single-hour retrieval over the identical
+   250x186 lattice scores 0.42% against exceedance's 0.40%, and keeps 98.6% of
+   its variance through a 500 m blur against 98.9%. One instant is exactly as
+   smooth as the fortnight-long count built from it.
+
+   In absolute terms, at 14:00 on a day above 40 degC the whole Phoenix metro
+   spans 1.02 degC and neighbouring 100 m tiles differ by 0.004 degC. Published
+   land-surface temperature for this city at this hour separates an irrigated
+   park from an asphalt lot by something on the order of 10 degC. Whatever these
+   tiles carry, it does not resolve roads, parks, or the river corridor — which
+   is why the basemap above is drawn from OpenStreetMap rather than inferred
+   from the data. See scripts/audit_resolution.py.
 
    The 500 m edge-discard band is DRAWN, hatched, rather than hidden. The
    project's original 1.84x headline came from cells inside that band, and the
@@ -300,12 +304,12 @@ function legendFor(data, base) {
   const resolution = document.createElement('span');
   resolution.className = 'legend-note';
   resolution.textContent =
-    `${data.tileResolutionM} m tiles, but a 14-day hour count is smoothed by the `
-    + `counting: a 500 m blur keeps ${audit.blur500VarianceKeptPct}% of THIS `
-    + `layer's variance, so its effective resolution is about `
-    + `${(data.effectiveResolutionM / 1000).toFixed(0)} km. Single-hour tiles are `
-    + `~${Math.round(audit.snapshotLag1PctOfRange / audit.lag1PctOfRange)}x rougher — `
-    + `the smoothness is the aggregation, not the source. See ${audit.script}.`;
+    `${data.tileResolutionM} m tiles, but a 500 m blur keeps `
+    + `${audit.blur500VarianceKeptPct}% of this layer's variance, so its effective `
+    + `resolution is about ${(data.effectiveResolutionM / 1000).toFixed(0)} km. Not `
+    + `an artifact of the 14-day count: a single-hour retrieval over the same grid `
+    + `scores ${audit.snapshotLag1PctOfRange}% against ${audit.lag1PctOfRange}%, and `
+    + `spans just ${audit.snapshotSpanC} °C across the whole metro. See ${audit.script}.`;
 
   const band = document.createElement('span');
   band.className = 'legend-note';

@@ -5,34 +5,44 @@
 WHY THIS EXISTS
 ---------------
 The M4 map renders the 14-day exceedance layer, and that layer is extremely
-smooth: a 500 m box blur removes about 1% of its variance. The tempting
-conclusion -- "the API's temperature field has no street-scale structure" -- does
-not follow, because EXCEEDANCE IS A COUNT OVER 336 HOURS and counting is a
-low-pass filter by construction. A smooth aggregate is weak evidence about the
-instantaneous field underneath it.
+smooth: a 500 m box blur removes about 1% of its variance. Concluding from that
+alone that "the API's temperature field has no street-scale structure" does not
+follow, because EXCEEDANCE IS A COUNT OVER 336 HOURS and counting is a low-pass
+filter. A smooth aggregate is weak evidence about the instant underneath it.
 
-So this measures both, identically:
+So this measures every layer identically:
 
-  * filter_type=1 fixtures -- a single INSTANT (temporal min == avg == max)
-  * filter_type=3 fixtures -- a DAILY aggregate (carries a diurnal range)
-  * the 14-day exceedance grid, if the gitignored raw response is present
+  * filter_type=1 -- a single INSTANT (temporal min == avg == max)
+  * filter_type=3 -- a DAILY aggregate (carries a diurnal range)
+  * the 14-day exceedance count, at metro extent
+  * a metro-extent single instant, retrieved specifically to settle this
 
-Two statistics, both scale-free so layers with different units can be compared:
+Three statistics:
 
-  LAG-1 ROUGHNESS   mean |difference| between neighbouring tiles, as a
-                    percentage of the layer's own range. A smooth,
-                    differentiable field scores near zero; a field with edges
-                    scores high.
+  LAG-1 ABS         mean |difference| between neighbouring tiles, in the
+                    layer's own units. THE ONLY ONE COMPARABLE ACROSS WINDOWS
+                    OF DIFFERENT SIZE.
+  LAG-1 % OF RANGE  the same, normalised. Comparable only at MATCHED extent --
+                    see the warning below.
   BLUR RETENTION    fraction of variance surviving a box blur. If a 500 m blur
                     costs nothing, there was nothing below 500 m to lose.
 
-WHAT IT CANNOT ANSWER
----------------------
-The snapshot fixtures cover 0.8 x 1.1 km. That window cannot contain the Salt
-River corridor or a large park, so it cannot test whether a snapshot resolves
-them. It tests only whether structure exists at 100-400 m WITHIN a parcel-scale
-AOI. Do not extrapolate past that; the point of this script is to stop exactly
-that kind of extrapolation.
+THE TRAP THIS SCRIPT FELL INTO
+------------------------------
+Run first on parcel fixtures (0.8 x 1.1 km) and the metro exceedance grid
+(25 x 19 km), the "% of range" column said a single instant was ~15x rougher
+than the aggregate, and the conclusion drawn was that aggregation caused the
+smoothness. That was wrong. It compared two different crops of the same field:
+the absolute neighbour difference is ~0.004-0.006 degC in BOTH, and only the
+denominator moved, because a 0.8 km window spans 0.09 degC while a 25 km window
+spans 1.02 degC.
+
+Retrieving a metro-extent single instant settled it. Over the identical 250x186
+lattice, a single instant and a 14-day hour count are equally smooth: lag-1
+0.42% against 0.40%, blur retention 98.6% against 98.9%. Aggregation is not the
+cause. The instantaneous field is itself smooth.
+
+Normalise by a window-dependent quantity and you will measure your window.
 """
 
 from __future__ import annotations
@@ -50,6 +60,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..")
 FIXTURES = os.path.join(ROOT, "fixtures")
 EXCEEDANCE_RAW = os.path.join(ROOT, "data", "metro_exceedance_raw.json")
+SNAPSHOT_RAW = os.path.join(ROOT, "data", "metro_snapshot_raw.json")
 
 LAT = 33.45
 
@@ -153,8 +164,8 @@ def profile(label, units, grid, width, height, pitch, blur_m=500.0):
     radius = max(1, int(round((blur_m / pitch - 1) / 2)))
     blurred = box_blur(grid, width, height, radius)
     retained = 100 * variance(blurred) / variance(grid) if variance(grid) else float("nan")
-    print("  %-42s %5dx%-4d %4.0f m  %8.3f %-5s %7.2f%%   %6.1f%%"
-          % (label, width, height, pitch, span, units,
+    print("  %-38s %5dx%-4d %4.0f m %8.3f %-4s %9.4f %7.2f%% %7.1f%%"
+          % (label, width, height, pitch, span, units, lag1,
              100 * lag1 / span if span else 0, retained))
     return span, lag1, retained
 
@@ -172,10 +183,11 @@ def main():
 
     print(__doc__.split("WHY THIS EXISTS")[0].strip())
     print()
-    print("  %-42s %-11s %-6s %-14s %-9s %s"
-          % ("layer", "lattice", "pitch", "range", "lag-1", "var. kept"))
-    print("  %-42s %-11s %-6s %-14s %-9s %s"
-          % ("", "", "", "", "(% range)", "(500 m blur)"))
+    print("  %-38s %-11s %-6s %-13s %-9s %-8s %s"
+          % ("layer", "lattice", "pitch", "range", "lag-1 abs",
+             "lag-1", "var. kept"))
+    print("  %-38s %-11s %-6s %-13s %-9s %-8s %s"
+          % ("", "", "", "", "(units)", "(% range)", "(blur)"))
     print("  " + "-" * 96)
 
     groups = {1: [], 3: []}
@@ -204,6 +216,24 @@ def main():
             profile(os.path.basename(rel), "degC", grid, width, height, pitch,
                     blur_m=300.0)
 
+    if os.path.exists(SNAPSHOT_RAW):
+        from acclimate.sources.fortyguard import parse_temperature_grid  # noqa: E402
+        print()
+        print("  METRO-EXTENT SINGLE INSTANT (filter_type=1, 14:00)")
+        with open(SNAPSHOT_RAW, "r", encoding="utf-8") as fh:
+            temps = parse_temperature_grid(json.load(fh))
+        cells = [(c.centroid[0], c.centroid[1], c.mean_c,
+                  max(p[0] for p in c.ring) - min(p[0] for p in c.ring),
+                  max(p[1] for p in c.ring) - min(p[1] for p in c.ring))
+                 for c in temps.cells]
+        grid, width, height, pitch = lattice_from(cells)
+        profile("metro_snapshot 2026-08-08 14:00", "degC",
+                grid, width, height, pitch, blur_m=500.0)
+    else:
+        print()
+        print("  Metro single-hour snapshot not present (gitignored, 20 MB).")
+        print("  Fetch with `python scripts/m3_fetch.py --metro-snapshot`.")
+
     if os.path.exists(EXCEEDANCE_RAW):
         from acclimate.sources.fortyguard import parse_analysis_grid  # noqa: E402
         print("\n  14-DAY EXCEEDANCE COUNT (the layer the map renders)")
@@ -228,17 +258,25 @@ def main():
   with real edges scores high. Variance-kept is how much survives a box blur --
   if a blur costs nothing, there was nothing at that scale to lose.
 
-  A single instant is roughly an order of magnitude rougher, relatively, than
-  the 14-day exceedance count built from it. The exceedance layer's smoothness
-  is therefore substantially a property of the AGGREGATION, not proof that the
-  underlying temperature field is featureless.
+  COMPARE ONLY AT MATCHED EXTENT. The "% of range" column is not comparable
+  across windows of different size, and reading it that way is a trap this
+  script walked into once already. The parcel fixtures score 5.6-7.0% against
+  the metro snapshot's 0.42%, which looks like the small window being fifteen
+  times rougher. It is not. The ABSOLUTE lag-1 difference is ~0.004-0.006 degC
+  in both; only the denominator moved, because a 0.8 km window spans 0.09 degC
+  and a 25 km window spans 1.02 degC. Same field, different crop.
 
-  Absolute magnitudes stay small either way: across 0.8 x 1.1 km a single
-  instant spans hundredths to tenths of a degree, where a road-versus-park
-  contrast in real land-surface temperature is of order 1-10 degC. The fixture
-  AOI is far too small to contain the Salt River or a large park, so this says
-  nothing about whether those would appear at metro extent. That question is
-  open and needs a metro-extent single-hour retrieval to answer.
+  At matched extent the answer is unambiguous. Over the identical 250x186
+  lattice, a SINGLE INSTANT and a 14-DAY HOUR COUNT are equally smooth --
+  lag-1 0.42% against 0.40%, blur retention 98.6% against 98.9%. Aggregation is
+  therefore NOT the source of the smoothness; the instantaneous field is itself
+  smooth. Neighbouring 100 m tiles differ by about 0.004 degC.
+
+  What that means in absolute terms: at 14:00 on a day exceeding 40 degC, the
+  whole Phoenix metro spans 1.02 degC. Published land-surface temperature for
+  this city at this hour separates an irrigated park from an asphalt lot by
+  something on the order of 10 degC. Whatever these 100 m tiles are carrying,
+  it does not resolve roads, parks, or the Salt River corridor.
 """)
 
 

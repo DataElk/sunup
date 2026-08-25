@@ -4,6 +4,9 @@
                                               API is answering before a batch
     python scripts/m3_fetch.py --exceedance   the metro grid site selection needs
     python scripts/m3_fetch.py --backfill     14 days x 2 sites, filter_type=3
+    python scripts/m3_fetch.py --metro-snapshot
+                                              one filter_type=1 metro call for
+                                              scripts/audit_resolution.py
 
 Every call goes through the M0 client, so everything is cached on the way in and
 a re-run costs nothing. Nothing here runs without an explicit flag.
@@ -32,6 +35,7 @@ from acclimate.sources.cache import DiskCache  # noqa: E402
 from acclimate.sources.client import FortyGuardClient  # noqa: E402
 from acclimate.sources.fixtures import FixtureStore  # noqa: E402
 from acclimate.sources.fortyguard import parse_analysis_grid  # noqa: E402
+from acclimate.sources.fortyguard import parse_temperature_grid  # noqa: E402
 from acclimate.sources.transport import RequestsTransport  # noqa: E402
 
 # fixtures/MANIFEST.md, the metro AOI used for the 40 degC exceedance run.
@@ -49,6 +53,10 @@ METRO_AOI = {
 BACKFILL_START = dt.date.fromisoformat(C.DEMO_BACKFILL_START)
 BACKFILL_END = dt.date.fromisoformat(C.DEMO_BACKFILL_END)
 SELECTION_FILE = "site_selection/phoenix_40c_selection.json"
+
+# Mid-afternoon, matching the parcel snapshot fixtures in
+# fixtures/heatmap/ so the metro result is comparable to them.
+SNAPSHOT_HOUR = "14:00"
 
 
 def client(refresh: bool, poll_timeout_s: float = C.POLL_TIMEOUT_S) -> FortyGuardClient:
@@ -197,11 +205,62 @@ def backfill(args):
     return 0
 
 
+def metro_snapshot(args):
+    """ONE filter_type=1 call over the whole metro AOI at 100 m.
+
+    Closes the question scripts/audit_resolution.py has to leave open. The
+    snapshot fixtures cover 0.8 x 1.1 km, which cannot contain the Salt River
+    corridor or a large park, so they can show whether structure exists at
+    100-400 m WITHIN a parcel but say nothing about whether a single-hour
+    retrieval resolves street-scale features at metro extent. That is the exact
+    question the M5 methods section is about, and publishing "untested" about it
+    would be the weak version of the finding.
+
+    COST. Same cell count as --exceedance (~47 000 cells), so the same poll
+    budget. One call, deliberately: the answer does not get better with more.
+    14:00 on the demo's own last backfilled day, which is the day the roster
+    renders, so the snapshot and the exceedance layer describe the same place at
+    a moment inside the same window.
+    """
+    api = client(refresh=args.refresh, poll_timeout_s=3600.0)
+    aoi = ss.buffer_polygon(METRO_AOI, C.AOI_BUFFER_KM)
+    date = BACKFILL_END.isoformat()
+    print("metro snapshot, filter_type=1, %s %s, granularity 100 m"
+          % (date, SNAPSHOT_HOUR))
+    print("  (same AOI and cell count as --exceedance; one call)")
+
+    response = api.create_heatmap(
+        polygon_aoi=aoi,
+        start_date=date,
+        start_time=SNAPSHOT_HOUR,
+        filter_type=1,
+        granularity=100,
+    )
+
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                        "data", "metro_snapshot_raw.json")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(response, fh)
+    size = os.path.getsize(path)
+    print("  wrote %s (%.1f MB)" % (os.path.relpath(path), size / 1e6))
+
+    grid = parse_temperature_grid(response)
+    values = [c.mean_c for c in grid.cells]
+    print("  %d cells, %.2f .. %.2f degC, spread %.3f degC"
+          % (len(grid.cells), min(values), max(values), max(values) - min(values)))
+    print("\n  Now run: python scripts/audit_resolution.py")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--probe", action="store_true")
     parser.add_argument("--exceedance", action="store_true")
     parser.add_argument("--backfill", action="store_true")
+    parser.add_argument("--metro-snapshot", action="store_true",
+                        help="one filter_type=1 metro call, for the "
+                             "resolution audit")
     parser.add_argument("--refresh", action="store_true",
                         help="bypass the cache and re-fetch")
     args = parser.parse_args()
@@ -211,6 +270,8 @@ def main():
         return exceedance(args)
     if args.backfill:
         return backfill(args)
+    if args.metro_snapshot:
+        return metro_snapshot(args)
     parser.print_help()
     return 0
 

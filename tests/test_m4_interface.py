@@ -495,6 +495,22 @@ def test_the_map_declares_its_effective_resolution(mapdata):
     assert "effectiveResolution" in read("js", "map.js")
 
 
+def test_the_smoothness_is_not_blamed_on_the_aggregation(mapdata):
+    """The obvious objection to "this layer has no street-scale structure" is
+    that exceedance counts 336 hours. It was tested, not assumed: a metro-extent
+    single-hour retrieval over the identical lattice scores the same. An earlier
+    version of this claim said the opposite, because it compared a 0.8 km window
+    against a 25 km one and normalised each by its own range."""
+    audit = mapdata["resolutionAudit"]
+    assert audit["snapshotLag1PctOfRange"] < 1.0
+    assert abs(audit["snapshotLag1PctOfRange"] - audit["lag1PctOfRange"]) < 0.2
+    assert audit["snapshotBlur500VarianceKeptPct"] > 95
+    assert audit["snapshotSpanC"] < 2.0, "whole metro, one instant"
+    source = read("js", "map.js")
+    assert "snapshotSpanC" in source
+    assert "audit_resolution.py" in source
+
+
 def test_the_basemap_is_cached_not_fetched():
     """SPEC.md hard constraint 6. A build-time fetch cached to a script tag is
     a fixture; a tile server at render time is a live dependency on stage."""

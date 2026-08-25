@@ -272,18 +272,26 @@ choropleth and must never be mistaken for data. Attribution is rendered in the l
 Drawing that at tile resolution implies a precision it does not have, so the number is
 printed on the map rather than left for a reader to discover by squinting.
 
-The scoping matters as much as the number. **Exceedance counts hours above a threshold
-across 336 hours, and counting is a low-pass filter** — the smoothness is substantially
-manufactured by the aggregation, not inherited from the source. Measured on the same
-statistic, a single-hour tile scores 6.5% against exceedance's 0.40%, roughly fifteen
-times rougher, and loses ~16% of its variance to a 300 m blur rather than ~1%. An
-earlier draft of this page said the API had no street-scale structure at all. That was
-an over-claim drawn from an aggregate, and `scripts/audit_resolution.py` exists so the
-claim can be re-checked rather than repeated.
+The obvious objection is that exceedance counts hours across 336 of them, so of course
+it is smooth. That was tested rather than assumed. **A metro-extent single-hour
+retrieval over the identical 250 × 186 lattice scores 0.42% against exceedance's 0.40%,
+and keeps 98.6% of its variance through a 500 m blur against 98.9%.** One instant is
+exactly as smooth as the fortnight-long count built from it, so the smoothness is a
+property of the field, not of the aggregation.
 
-**Say what remains untested.** The snapshot fixtures cover 0.8 × 1.1 km, which cannot
-contain the Salt River corridor or a large park, so whether a metro-extent single-hour
-retrieval would resolve them is an open question, not a settled one.
+**Compare only at matched extent.** An earlier draft of this page reported the opposite,
+because it compared parcel fixtures (0.8 × 1.1 km) against the metro grid and read the
+"% of range" column across them. Absolute neighbour differences are ~0.004–0.006 °C in
+both; only the denominator moved, because a 0.8 km window spans 0.09 °C and a 25 km
+window spans 1.02 °C. Normalise by a window-dependent quantity and you measure your
+window. `scripts/audit_resolution.py` now prints the absolute column first for that
+reason.
+
+**Then say what it means.** At 14:00 on a day above 40 °C the entire Phoenix metro spans
+1.02 °C. Published land-surface temperature for this city at this hour separates an
+irrigated park from an asphalt lot by roughly 10 °C. That is why the locator basemap is
+drawn from OpenStreetMap rather than inferred from the data — the data does not contain
+the roads.
 
 ---
 

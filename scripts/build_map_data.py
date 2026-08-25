@@ -41,23 +41,26 @@ WINDOW_HOURS = 24.0 * 14
 # COUNT; the colours themselves stay in the stylesheet.
 HEAT_STOPS = ("--heat-0", "--heat-1", "--heat-2", "--heat-3", "--heat-4", "--heat-5")
 
-# Measured, not assumed -- all four by scripts/audit_resolution.py, which runs
-# the identical statistic on every layer so they can be compared.
+# Measured, not assumed -- by scripts/audit_resolution.py, which runs the
+# identical statistic on every layer over the identical lattice.
 #
-# The smoothness below belongs to THE EXCEEDANCE LAYER, not to FortyGuard's
-# temperature product. Exceedance counts hours above a threshold across 336
-# hours, and counting is a low-pass filter: a single-hour tile is about fifteen
-# times rougher relative to its own range. Reporting "the API has no
-# street-scale structure" would have been an over-claim drawn from an aggregate.
+# Settled by a metro-extent filter_type=1 retrieval. A single INSTANT and the
+# 14-day hour count are equally smooth over the same 250x186 grid, so the
+# smoothness is NOT an artifact of aggregating 336 hours -- the instantaneous
+# field is itself smooth. At 14:00 on a day above 40 degC the entire Phoenix
+# metro spans 1.02 degC.
 TILE_RESOLUTION_M = 101
 EFFECTIVE_RESOLUTION_M = 2000
 
-# Lag-1 roughness: mean |difference| between neighbouring tiles as a percentage
-# of the layer's own range.
-LAG1_PCT_OF_RANGE = 0.40           # this exceedance layer
-SNAPSHOT_LAG1_PCT_OF_RANGE = 6.5   # filter_type=1 single instant, median of 3
-BLUR_500M_VARIANCE_KEPT_PCT = 98.9     # exceedance, 500 m box blur
-SNAPSHOT_BLUR_300M_VARIANCE_KEPT_PCT = 84  # single instant, 300 m box blur
+# Lag-1 roughness: mean |difference| between neighbouring tiles, both as an
+# absolute value and as a percentage of the layer's own range. Compare the
+# percentage ONLY at matched extent; normalised by a window-dependent range it
+# measures the window rather than the field.
+LAG1_PCT_OF_RANGE = 0.40            # 14-day exceedance count, metro extent
+SNAPSHOT_LAG1_PCT_OF_RANGE = 0.42   # single instant, SAME metro lattice
+SNAPSHOT_SPAN_C = 1.02              # whole metro, one instant, degC
+BLUR_500M_VARIANCE_KEPT_PCT = 98.9      # exceedance
+SNAPSHOT_BLUR_500M_VARIANCE_KEPT_PCT = 98.6  # single instant
 
 
 def main():
@@ -124,10 +127,10 @@ def main():
     # Rendering it as if it resolved streets would be a lie told with pixels, so
     # the number travels with the data and is printed on the map.
     #
-    # SCOPE. This is NOT a statement about FortyGuard's temperature data. Most
-    # of the smoothing is the 336-hour count itself; single-hour tiles score
-    # 6.5% and lose ~16% of their variance to a 300 m blur. The legend says
-    # which layer the number describes.
+    # AND IT IS NOT THE AGGREGATION. A metro-extent single-hour retrieval scores
+    # 0.42% on the same lattice against exceedance's 0.40%, and keeps 98.6% of
+    # its variance through a 500 m blur against 98.9%. The instantaneous field
+    # is just as smooth as the 14-day count built from it.
     payload = {
         "bounds": {"west": west, "south": south, "east": east, "north": north},
         "width": BINS_X,
@@ -144,7 +147,8 @@ def main():
             "lag1PctOfRange": LAG1_PCT_OF_RANGE,
             "blur500VarianceKeptPct": BLUR_500M_VARIANCE_KEPT_PCT,
             "snapshotLag1PctOfRange": SNAPSHOT_LAG1_PCT_OF_RANGE,
-            "snapshotBlur300VarianceKeptPct": SNAPSHOT_BLUR_300M_VARIANCE_KEPT_PCT,
+            "snapshotBlur500VarianceKeptPct": SNAPSHOT_BLUR_500M_VARIANCE_KEPT_PCT,
+            "snapshotSpanC": SNAPSHOT_SPAN_C,
             "script": "scripts/audit_resolution.py",
         },
         "windowHours": WINDOW_HOURS,
