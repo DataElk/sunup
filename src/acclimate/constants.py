@@ -298,7 +298,7 @@ STIMULUS_FLOOR_DEG = 0.0
 #
 # CONSEQUENTLY: report the PERSONAL LIMIT in degC-WBGT as the primary divergence
 # metric. It is continuous and monotone in accumulated dose. The prescription in
-# minutes is quantised into 15-minute rungs of the NIOSH ladder, so whether a
+# minutes is quantised into 15-minute rungs of the work/rest ladder, so whether a
 # real separation shows up as a different instruction depends on where the
 # worker happens to fall relative to a rung boundary. Limits first, minutes
 # second, and never minutes alone.
@@ -371,7 +371,7 @@ MATERIAL_LIMIT_GAP_C = 0.25
 #
 # THE STRAIN CEILING IS THE PART TO GET RIGHT. "Fastest ramp" without a
 # constraint is just "work him in the hottest hours", which is how people die.
-# The ceiling must be the NIOSH work/rest ladder at the worker's CURRENT
+# The ceiling must be the work/rest ladder at the worker's CURRENT
 # personal limit, evaluated hour by hour — never a daily average, because a
 # daily average hides the 14:00 peak that does the damage.
 

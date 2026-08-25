@@ -116,7 +116,7 @@ def main():
     heading("Q1 + Q2  DIVERGENCE: PERSONAL LIMIT FIRST, MINUTES SECOND")
     print("Personal limit in degC-WBGT is the PRIMARY metric. It is continuous and")
     print("monotone in accumulated dose. The prescription in minutes is quantised")
-    print("into 15-minute rungs of the NIOSH ladder, so a real separation only shows")
+    print("into 15-minute rungs of the work/rest ladder, so a real separation only shows")
     print("up as a different instruction if it straddles a rung boundary.")
     default_tau = ac.Tau()
     for build in scenario_builders:

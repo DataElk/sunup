@@ -46,7 +46,7 @@ Peak temperature is very nearly **useless** as a predictor of adaptive dose. Two
 mechanisms cause this, and both are real rather than modelling artifacts:
 
 1. **The work/rest rule removes the exposure.** Hotter hours are exactly the hours
-   the NIOSH ladder prescribes at or near zero, so they contribute no adaptive
+   the work/rest ladder prescribes at or near zero, so they contribute no adaptive
    stimulus. Heat that stops you working does not adapt you.
 2. **Days differ in shape, not in level.** Real day-to-day variation is duration
    above the RAL, cloud, wind and timing — not a uniform temperature offset.
@@ -57,17 +57,34 @@ What drives adaptation is **hours actually worked above the RAL**, and the emplo
 controls that directly through the roster. Measured on the personal limit in
 °C-WBGT, across all 84 τ pairs, under **both** wet-bulb methods:
 
-| lever | survives | limit gap |
-| --- | --- | --- |
-| **shift timing** 05:00–13:00 vs 10:00–18:00 | **84/84 both methods** | **+1.07 °C** |
-| day selection, ranked by worked dose | 84/84 both methods | +0.63 °C |
-| day selection, ranked by peak temperature | 36/84 and 54/84 | +0.27 °C |
-| site assignment, p5 vs p95 | **0/84 both methods** | +0.23 °C |
+All gaps are quoted **at day 4 on the job**, on the 14-day backfill. The day matters:
+the shift-timing separation grows monotonically from +0.28 °C at day 2 to **+2.75 °C by
+day 14** (psychrometric; +2.08 °C ISO Annex D). A single number without its day makes a
+growing effect look like a fixed one.
+
+| lever | survives | limit gap (day 4) | at day 14 |
+| --- | --- | --- | --- |
+| **shift timing** 05:00–13:00 vs 10:00–18:00 | **84/84 both methods** | **+1.07 °C** | **+2.75 °C** |
+| day selection, ranked by worked dose | 84/84 both methods | +0.63 °C | — |
+| day selection, ranked by peak temperature | 36/84 and 54/84 | +0.27 °C | — |
+| site assignment, p5 vs p95 | **0/84 both methods** | +0.23 °C | — |
+
+**The shift-timing result is not an artifact of our work/rest ladder.** The ladder is
+our construction, not a standard (constants.py §2), so it was sensitivity-tested the
+way τ was: eight variants — boundaries moved ±0.5 °C, three rungs, five rungs, a crude
+two-rung, an aggressive three-rung, and a continuous no-rung response.
+`scripts/audit_ladder.py` reproduces it. **The sign holds in 62 of 64
+ladder × method × shift × day configurations, at 84/84 τ pairs each.** Materiality at
+the 0.5 °C threshold holds in 51 of 64; the failures are concentrated in a deliberately
+aggressive ladder that stops work 1.5 °C above the limit and so compresses every worker
+toward zero. What is robust is the **comparative** claim. The absolute prescription is
+only as good as the ladder, and the ladder is ours.
 
 **The demo in one screen:** two workers, same crew, same trade, both on day four,
 both given 80% by the calendar. One was rostered 05:00–13:00, the other 10:00–18:00.
 They differ by **1.07 °C of personal limit** — a different written instruction — and
-the calendar has no term that could ever tell them apart.
+the calendar has no term that could ever tell them apart. Left on those rosters the gap
+reaches 2.75 °C by day 14.
 
 ---
 
@@ -218,7 +235,7 @@ Environment  ->  WBGT  ->  daily stimulus s  ->  adaptation state A  ->  work/re
    **This is the intellectual core.** NIOSH already publishes two limits and treats
    acclimatization as a binary switch. We place each worker continuously between
    them. We are not inventing a threshold.
-5. **Work/rest** read off the NIOSH ladder at that limit.
+5. **Work/rest** read off the work/rest ladder at that limit.
 
 ### Where ML belongs — and where it does not
 

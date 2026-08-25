@@ -11,7 +11,7 @@ SPEC.md's model, implemented as written:
      builds adaptation.
   3. state update    A(t+1) = A + s*(1-A)/tau_gain - (1-s)*A/tau_decay
   4. personal limit  WBGT_limit(A) = RAL + A*(REL - RAL)
-  5. work/rest       read off the NIOSH ladder at that limit
+  5. work/rest       read off the work/rest ladder at that limit
 
 THE INTELLECTUAL CORE is step 4. NIOSH already publishes two curves and treats
 acclimatization as a binary switch; we place each worker continuously between
@@ -165,7 +165,7 @@ def effective_wbgt_c(wbgt_c: float, clothing: str) -> float:
 
 
 def work_minutes_per_hour(effective_wbgt: float, limit_c: float) -> int:
-    """SPEC step 5: read the NIOSH work/rest ladder at the personal limit."""
+    """SPEC step 5: read the work/rest ladder at the personal limit."""
     excess = effective_wbgt - limit_c
     for max_excess, minutes in C.WORK_REST_LADDER:
         if excess <= max_excess:
@@ -646,7 +646,7 @@ class Divergence:
 
         Continuous and monotone in accumulated dose, so unlike the prescription
         it does not depend on where a worker happens to fall relative to a
-        15-minute rung of the NIOSH ladder. This is the number that survives.
+        15-minute rung of the work/rest ladder. This is the number that survives.
         """
         return (self.more_adapted.at_day(self.day_on_job).personal_limit_c
                 - self.less_adapted.at_day(self.day_on_job).personal_limit_c)
@@ -689,7 +689,7 @@ class Divergence:
 
     @property
     def is_material(self) -> bool:
-        """One rung of the NIOSH ladder is 15 min/h — a different instruction."""
+        """One rung of the work/rest ladder is 15 min/h — a different instruction."""
         return abs(self.max_minutes_per_hour_gap) >= C.MATERIAL_DIVERGENCE_MIN_PER_HOUR
 
     @property

@@ -232,7 +232,7 @@ def levers(cache, worker, site, other_site, today, adaptation, minutes_now,
     ]
     gain, short, detail = max(candidates, key=lambda c: c[0])
 
-    # A lever has to be worth at least one rung of the NIOSH ladder to be named.
+    # A lever has to be worth at least one rung of the work/rest ladder to be named.
     # Below that it is not a different instruction.
     if gain < rung:
         short = "no lever worth %d min" % rung

@@ -317,7 +317,7 @@ THE CONSEQUENCE FOR THE PRODUCT. constants.py section 3b: controlled
 acclimatization is an OPTIMIZATION.
 
     maximise   dA/dt
-    subject to strain <= the NIOSH ladder at the worker's current limit
+    subject to strain <= the work/rest ladder at the worker's current limit
     choosing   shift start, shift length, site assignment, work/rest
 
 Section 4 shows the optimum is interior -- both extremes give zero adaptation --
