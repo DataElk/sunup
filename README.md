@@ -1,5 +1,8 @@
 # Acclimate
 
+*Repository `sunup`; the product is **Acclimate**. Only the repository name differs —
+everything in the code, documents and interface says Acclimate.*
+
 Per-worker heat acclimatization state for construction crews, built on FortyGuard's
 temperature API. FortyGuard Hackathon '26.
 
