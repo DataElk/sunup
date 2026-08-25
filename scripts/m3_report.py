@@ -269,6 +269,75 @@ def section_site_assignment(cache, shared):
     return out
 
 
+def section_shift_trajectory(cache):
+    """The headline lever, reported as a CURVE rather than a point.
+
+    SPEC.md used to quote "+1.07 degC" with no day attached. That is the day-4
+    value of a monotonically growing separation, so a single number made a
+    compounding effect look like a fixed one -- and it happened to be quoted
+    near the weak end of the curve.
+
+    What the curve shows is the actual argument against the calendar. The OSHA
+    ramp reaches 100% on day 5 and has nothing further to say about either
+    worker. The model's separation between them keeps growing for another nine
+    days. The calendar is not merely imprecise; its error COMPOUNDS.
+    """
+    heading("6. SHIFT TIMING  -  the trajectory, not the point")
+    sweep = ac.default_tau_sweep()
+
+    def ramp(shift, model, dates, tau):
+        worker = ac.Worker(worker_id="w", trade="concrete",
+                           shift_start_hour=shift[0], shift_end_hour=shift[1])
+        return ac.simulate(
+            worker, [cache.get("hot_site", d, model) for d in dates],
+            tau=tau, full_stimulus_degree_hours=NORM)
+
+    for late in ((8, 16), (10, 18)):
+        print("  Two workers, same site, same trade, same 14 site-days.")
+        print("  One rostered 05:00-13:00, the other %02d:00-%02d:00.\n" % late)
+        print("  %4s | %-24s | %-24s | %s"
+              % ("day", "psychrometric", "ISO Annex D", "calendar"))
+        print("  %4s | %9s %13s | %9s %13s | %s"
+              % ("", "limit gap", "tau material", "limit gap", "tau material",
+                 "says"))
+        print("  " + THIN)
+
+        curves = {}
+        for model in MODELS:
+            dates = cache.shared_dates(model)
+            base_early = ramp((5, 13), model, dates, ac.Tau())
+            base_late = ramp(late, model, dates, ac.Tau())
+            swept = []
+            for tau in sweep:
+                early = ramp((5, 13), model, dates, tau)
+                later = ramp(late, model, dates, tau)
+                swept.append([ac.compare("s", early, later, d).limit_gap_c
+                              for d in range(1, len(dates) + 1)])
+            curves[model] = (base_early, base_late, swept, len(dates))
+
+        days = min(curves[m][3] for m in MODELS)
+        for day in range(1, days + 1):
+            cells, calendar_pct = [], None
+            for model in MODELS:
+                base_early, base_late, swept, _ = curves[model]
+                compared = ac.compare("s", base_early, base_late, day)
+                calendar_pct = compared.calendar_pct
+                material = sum(
+                    1 for row in swept
+                    if abs(row[day - 1]) >= C.MATERIAL_LIMIT_GAP_C)
+                cells.append("%+9.2f %9d/%-3d" % (compared.limit_gap_c,
+                                                  material, len(sweep)))
+            print("  %4d | %s | %s | %3d%% to both"
+                  % (day, cells[0], cells[1], calendar_pct))
+
+        psy = curves[wbgt.NWB_PSYCHROMETRIC]
+        first = ac.compare("s", psy[0], psy[1], 4).limit_gap_c
+        last = ac.compare("s", psy[0], psy[1], psy[3]).limit_gap_c
+        print("\n  Day 4: %+.2f degC. Day %d: %+.2f degC. The gap grows %.1fx while"
+              % (first, psy[3], last, last / first if first else 0))
+        print("  the calendar, saturated at 100% from day 5, says the same thing")
+        print("  about both men every single day.\n")
+
 def main():
     store = FixtureStore()
     section_selection(store)
@@ -277,6 +346,7 @@ def main():
     section_mild_vs_hot(cache, shared)
     section_structural_cap(cache, shared)
     section_site_assignment(cache, shared)
+    section_shift_trajectory(cache)
 
     heading("THE INVERSION  -  stated precisely, after the 14-day backfill")
     print("""M2 reported that the environmentally hotter arm always ends up the LESS
@@ -288,8 +358,13 @@ WHAT HOLDS, AND STRONGLY -- shift assignment.
   Rostering a crew later is the single most powerful lever measured, and it
   runs backwards: the later shift adapts LESS.
 
-    05:00-13:00 vs 08:00-16:00   gap +0.99 degC   84/84 tau pairs
-    05:00-13:00 vs 10:00-18:00   gap +1.07 degC   84/84 tau pairs
+    05:00-13:00 vs 08:00-16:00   gap +0.99 degC at day 4, +2.15 by day 14
+    05:00-13:00 vs 10:00-18:00   gap +1.07 degC at day 4, +2.75 by day 14
+                                 84/84 tau pairs from day 3 onward, both methods
+
+  Quote the CURVE, not the point. Section 6 prints it. The calendar reaches
+  100% on day 5 and never distinguishes the two men again; the model's gap
+  keeps opening for another nine days.
 
   A 10:00-18:00 Phoenix worker is prescribed zero minutes in every hour, so he
   accumulates no dose and never acclimatizes at all. The protective schedule

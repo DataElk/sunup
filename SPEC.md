@@ -57,28 +57,53 @@ What drives adaptation is **hours actually worked above the RAL**, and the emplo
 controls that directly through the roster. Measured on the personal limit in
 °C-WBGT, across all 84 τ pairs, under **both** wet-bulb methods:
 
-All gaps are quoted **at day 4 on the job**, on the 14-day backfill. The day matters:
-the shift-timing separation grows monotonically from +0.28 °C at day 2 to **+2.75 °C by
-day 14** (psychrometric; +2.08 °C ISO Annex D). A single number without its day makes a
-growing effect look like a fixed one.
+All gaps are quoted **at day 4 on the job**, on the 14-day backfill — but the point is
+the curve, not the point. `scripts/m3_report.py` section 6 prints it in full:
+
+| day | limit gap, psychrometric | limit gap, ISO Annex D | τ material | the calendar says |
+| --- | --- | --- | --- | --- |
+| 2 | +0.28 °C | +0.14 °C | 36/84, 0/84 | 40% to both |
+| 3 | +0.60 °C | +0.37 °C | 84/84, 72/84 | 60% to both |
+| **4** | **+1.07 °C** | **+0.73 °C** | 84/84 both | 80% to both |
+| 5 | +1.33 °C | +0.96 °C | 84/84 both | **100% to both** |
+| 8 | +1.87 °C | +1.14 °C | 84/84 both | 100% to both |
+| 11 | +2.46 °C | +1.67 °C | 84/84 both | 100% to both |
+| **14** | **+2.75 °C** | **+2.08 °C** | 84/84 both | 100% to both |
+
+**The calendar's error compounds.** The OSHA ramp reaches 100% on day 5 and from then on
+has no term that could distinguish these two men — it issues the identical instruction on
+day 5 and on day 14. Over those same nine days the physiological gap between them more
+than doubles again, from +1.33 °C to +2.75 °C. A single day-4 number made a compounding
+effect look like a fixed one, and happened to quote it near the weak end of the curve.
 
 | lever | survives | limit gap (day 4) | at day 14 |
 | --- | --- | --- | --- |
 | **shift timing** 05:00–13:00 vs 10:00–18:00 | **84/84 both methods** | **+1.07 °C** | **+2.75 °C** |
+| shift timing 05:00–13:00 vs 08:00–16:00 | 84/84 both methods | +0.99 °C | +2.15 °C |
 | day selection, ranked by worked dose | 84/84 both methods | +0.63 °C | — |
 | day selection, ranked by peak temperature | 36/84 and 54/84 | +0.27 °C | — |
 | site assignment, p5 vs p95 | **0/84 both methods** | +0.23 °C | — |
 
 **The shift-timing result is not an artifact of our work/rest ladder.** The ladder is
-our construction, not a standard (constants.py §2), so it was sensitivity-tested the
-way τ was: eight variants — boundaries moved ±0.5 °C, three rungs, five rungs, a crude
-two-rung, an aggressive three-rung, and a continuous no-rung response.
-`scripts/audit_ladder.py` reproduces it. **The sign holds in 62 of 64
-ladder × method × shift × day configurations, at 84/84 τ pairs each.** Materiality at
-the 0.5 °C threshold holds in 51 of 64; the failures are concentrated in a deliberately
+our construction, not a standard (constants.py §2), so it was sensitivity-tested the way
+τ was. `scripts/audit_ladder.py` reproduces all of this.
+
+**Start with the cleanest case: remove the ladder entirely.** Replace the four rungs with
+a continuous response — 60 min/h at the limit falling linearly to zero 4 °C above it, no
+steps at all — and the result still holds: +1.19 °C at day 4, sign correct in 84/84 τ
+pairs under both wet-bulb methods. *The finding does not require there to be rungs.*
+That is the direct answer to "did you tune the ladder to get the answer you wanted": the
+answer survives having no ladder.
+
+Across all eight variants — boundaries moved ±0.5 °C, three rungs, five rungs, a crude
+two-rung, an aggressive three-rung, and the no-rung case — **the sign holds in 62 of 64
+ladder × method × shift × day configurations, at 84/84 τ pairs each.** Materiality at the
+0.5 °C threshold holds in **51 of 64**; the failures concentrate in a deliberately
 aggressive ladder that stops work 1.5 °C above the limit and so compresses every worker
-toward zero. What is robust is the **comparative** claim. The absolute prescription is
-only as good as the ladder, and the ladder is ours.
+toward zero, leaving nothing to differ by.
+
+The honest split: **the comparative claim is robust to the ladder. The absolute
+prescription is only as good as the ladder, and the ladder is ours.**
 
 **The demo in one screen:** two workers, same crew, same trade, both on day four,
 both given 80% by the calendar. One was rostered 05:00–13:00, the other 10:00–18:00.
