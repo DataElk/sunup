@@ -29,6 +29,14 @@
         <path d="M12.75 5.25 17.25 3.5v11.25L12.75 16.5z"/>
       </svg>
     </button>
+    <button class="rail-btn" data-view="overlay" aria-selected="false"
+            title="Forecast vs actual">
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none"
+           stroke="currentColor" stroke-width="1.5">
+        <polyline points="2.75,14 6.5,9.5 10,11.5 17.25,4.5"/>
+        <polyline points="2.75,16.5 6.5,13 10,14.5 17.25,9" stroke-dasharray="3 2"/>
+      </svg>
+    </button>
     <span class="rail-spacer"></span>
     <button class="rail-btn" id="cmd-copy" title="Copy compliance record">
       <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none"
@@ -89,6 +97,7 @@
 <script src="data/roster.js"></script>
 <script src="data/map.js"></script>
 <script src="data/basemap.js"></script>
+<script src="data/overlay.js"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -648,3 +648,113 @@
   .statusbar > span:nth-of-type(3),
   .statusbar > span:nth-of-type(4) { display: none; }
 }
+
+/* --- Forecast vs actual — M5 -----------------------------------------------
+   Projected keeps the treatment it has everywhere else in the product: dashed,
+   at --projected-alpha. A reader should not have to learn a second visual
+   language for the same idea. */
+
+.overlay-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  min-width: 0;
+}
+
+.overlay-intro { display: flex; flex-direction: column; gap: var(--space-1); }
+.overlay-asof { font-size: var(--text-body-lg); font-weight: var(--weight-semibold); }
+.overlay-method { font-size: var(--text-caption); color: var(--ink-secondary); }
+
+/* The caveat is not small print. A backtest on seven days at one site is weak
+   evidence and the page says so at the same size as everything else. */
+.overlay-caveat {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--accent-border);
+  background: var(--accent-subtle);
+  font-size: var(--text-caption);
+  color: var(--ink-primary);
+  max-width: 76ch;
+}
+
+.overlay-key {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-caption);
+  color: var(--ink-secondary);
+}
+.overlay-swatch { width: var(--space-4); height: 3px; display: inline-block; }
+.overlay-swatch-predicted { background: var(--projected-stroke); }
+.overlay-swatch-actual { background: var(--ink-primary); }
+.overlay-swatch-error { background: var(--mismatch-over); }
+
+.overlay-cards { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.overlay-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface-panel);
+  border: var(--border-width) solid var(--line-default);
+  border-radius: var(--radius-surface);
+}
+.overlay-card[data-pair] { background: var(--accent-subtle); }
+
+.overlay-head { display: flex; align-items: flex-start; gap: var(--space-3); }
+.overlay-figures { display: flex; flex-wrap: wrap; gap: var(--space-6); }
+.overlay-metric { display: flex; flex-direction: column; }
+.overlay-value {
+  font-size: var(--text-subtitle);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-primary);
+}
+/* A score that cannot be wrong is greyed, not celebrated. */
+.overlay-value-void { color: var(--ink-tertiary); text-decoration: line-through; }
+/* Erring low prescribes less work than was allowed: costly, but safe.
+   Erring high sends a man out longer than the day warranted. */
+.overlay-value-safe { color: var(--mismatch-under); }
+.overlay-value-permissive { color: var(--mismatch-over); }
+.overlay-label { font-size: var(--text-caption); color: var(--ink-secondary); }
+
+.overlay-card { max-width: 1000px; }
+.overlay-chart { display: block; width: 100%; height: auto; }
+.overlay-baseline { stroke: var(--line-default); stroke-width: 1; }
+.overlay-error { stroke: var(--mismatch-over); stroke-width: 2; }
+
+.overlay-line { fill: none; stroke-width: 2; }
+.overlay-actual-line { stroke: var(--ink-primary); }
+.overlay-predicted-line {
+  stroke: var(--projected-stroke);
+  stroke-dasharray: 4 3;
+  opacity: var(--projected-alpha);
+}
+
+.overlay-dot { stroke: var(--surface-panel); stroke-width: 1.5; }
+.overlay-predicted { fill: var(--projected-stroke); opacity: var(--projected-alpha); }
+.overlay-actual { fill: var(--ink-primary); }
+.overlay-actual[data-status="cleared"]    { fill: var(--status-cleared); }
+.overlay-actual[data-status="reduced"]    { fill: var(--status-reduced); }
+.overlay-actual[data-status="restricted"] { fill: var(--status-restricted); }
+.overlay-actual[data-status="stop"]       { fill: var(--status-stop); }
+
+.overlay-tick {
+  font-family: var(--font-data);
+  font-size: var(--text-label);
+  fill: var(--ink-tertiary);
+}
+.overlay-errlabel {
+  font-family: var(--font-data);
+  font-size: var(--text-label);
+  fill: var(--mismatch-over);
+}
+
+.overlay-void {
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--ink-tertiary);
+  background: var(--surface-sunken);
+  font-size: var(--text-caption);
+  color: var(--ink-secondary);
+}

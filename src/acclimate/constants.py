@@ -68,8 +68,12 @@ from enum import Enum
 #                           never read. Flagged, not verified -- and the large
 #                           one (vapor_barrier_limited, +11 degC) must not be
 #                           quoted anywhere until it is checked.
-#   OSHA_* trigger values   not used by the model at all; they exist for the
-#                           writeup's comparison against the proposed rule.
+#   OSHA_INITIAL_HEAT_TRIGGER_HEAT_INDEX_F
+#   OSHA_HIGH_HEAT_TRIGGER_HEAT_INDEX_F
+#   OSHA_HIGH_HEAT_REST_MIN_PER_2H
+#                           not read by the model at all; they exist for the
+#                           writeup's comparison against the PROPOSED rule, and
+#                           the writeup must keep saying "proposed".
 #   NIOSH_RAMP_PCT_BY_DAY   likewise unused; CALENDAR_RAMP_PCT_BY_DAY is what
 #                           the product compares against.
 #

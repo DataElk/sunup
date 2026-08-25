@@ -8,10 +8,12 @@ import { renderRoster, crewSummary } from './roster.js';
 import { renderDetail } from './detail.js';
 import { renderCompliance, recordText } from './compliance.js';
 import { renderMap } from './map.js';
+import { renderOverlay } from './overlay.js';
 
 const data = window.ROSTER_DATA;
 const mapData = window.MAP_DATA;
 const baseData = window.BASEMAP;
+const overlayData = window.OVERLAY_DATA;
 
 const app = document.getElementById('app');
 const content = document.getElementById('content');
@@ -87,7 +89,21 @@ function renderMapView() {
   renderMap(content, mapData, data, baseData);
 }
 
-const VIEWS = { roster: renderRosterView, map: renderMapView };
+function renderOverlayView() {
+  barTitle.textContent = 'Forecast vs actual';
+  barSub.textContent =
+    `projected ${overlayData.asOf} · ${overlayData.horizon} days forward · `
+    + `backtest, not a live forecast`;
+  commands.replaceChildren();
+  closeDrawer();
+  renderOverlay(content, overlayData);
+}
+
+const VIEWS = {
+  roster: renderRosterView,
+  map: renderMapView,
+  overlay: renderOverlayView,
+};
 
 /* The view lives in the hash so a view is linkable and a reload keeps you
    where you were. Nothing else is routed: the drawer is a transient thing you
