@@ -758,3 +758,34 @@
   font-size: var(--text-caption);
   color: var(--ink-secondary);
 }
+
+/* The bias mechanism. Stated, because a systematic error without a named cause
+   is an invitation to ask what else is systematically wrong. */
+.overlay-mechanism {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  max-width: 1000px;
+  background: var(--surface-sunken);
+  border: var(--border-width) solid var(--line-default);
+  border-radius: var(--radius-surface);
+}
+.overlay-mechanism-head {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+.overlay-bands { display: flex; flex-direction: column; gap: var(--space-1); }
+.overlay-band { display: flex; align-items: baseline; gap: var(--space-3); }
+.overlay-band-label { min-width: 11ch; font-weight: var(--weight-semibold); }
+.overlay-band-delta { min-width: 8ch; font-weight: var(--weight-semibold); }
+.overlay-band-note { font-size: var(--text-caption); color: var(--ink-secondary); }
+.overlay-mechanism-note,
+.overlay-mechanism-fix {
+  font-size: var(--text-caption);
+  color: var(--ink-secondary);
+  line-height: var(--leading-normal);
+}
+.overlay-mechanism-fix { color: var(--ink-primary); }

@@ -164,16 +164,20 @@ function card(subject, data) {
     `${subject.trade} · ${subject.shiftFull} · ${subject.siteLabel}`));
   head.append(identity);
 
+  /* Band first. A supervisor does not experience "34 minutes of error" -- he
+     experiences being told Reduced when the day turned out Restricted. The
+     minute figures are the diagnosis behind that, not the headline. */
   const figures = div('overlay-figures');
   const bias = subject.meanSignedMinutesError;
   figures.append(
+    metric(`${subject.bandsMatched}/${subject.bandsTotal}`,
+           'prescription band correct',
+           subject.degenerate ? 'overlay-value-void' : ''),
     metric(`${bias > 0 ? '+' : ''}${bias}`,
            `bias, min — ${subject.biasDirection}`,
            bias > 0 ? 'overlay-value-permissive' : 'overlay-value-safe'),
     metric(`${subject.meanAbsMinutesError}`, 'mean error, min'),
     metric(`${subject.maxAbsMinutesError}`, 'worst day, min'),
-    metric(`${subject.bandsMatched}/${subject.bandsTotal}`, 'band correct',
-           subject.degenerate ? 'overlay-value-void' : ''),
     metric(`${subject.adaptationErrorAtHorizon > 0 ? '+' : ''}`
            + `${subject.adaptationErrorAtHorizon.toFixed(3)}`,
            'state error at day 7'));
@@ -198,6 +202,30 @@ export function renderOverlay(root, data) {
     div('overlay-method', `Method — ${data.method}.`),
     div('overlay-caveat', data.caveat));
   wrap.appendChild(intro);
+
+  /* The mechanism, not just the direction. "Systematically conservative" with
+     no cause invites "what else is systematically wrong?" */
+  const mech = data.biasMechanism;
+  const why = div('overlay-mechanism');
+  why.append(div('overlay-mechanism-head', 'Why every miss is low'));
+  const bands = div('overlay-bands');
+  for (const [label, delta, note] of [
+    ['peak hour', mech.peakDelta, 'decides nothing — already zero minutes'],
+    [`${String(mech.decisionHours[0]).padStart(2, '0')}:00–`
+     + `${String(mech.decisionHours[1]).padStart(2, '0')}:00`,
+     mech.decisionBandDelta, 'where the ladder is actually read'],
+  ]) {
+    const row = div('overlay-band');
+    row.append(
+      span('overlay-band-label', label),
+      span(`overlay-band-delta num ${delta > 0 ? 'overlay-value-permissive' : 'overlay-value-safe'}`,
+           `${delta > 0 ? '+' : ''}${delta.toFixed(2)} °C`),
+      span('overlay-band-note', note));
+    bands.appendChild(row);
+  }
+  why.append(bands, div('overlay-mechanism-note', mech.note),
+             div('overlay-mechanism-fix', `The fix — ${mech.fix}`));
+  wrap.appendChild(why);
 
   const legend = div('overlay-key');
   legend.append(

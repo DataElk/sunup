@@ -179,8 +179,64 @@ def main():
                 predicted[-1].adaptation_start - truth.days[-1].adaptation_start, 4),
         })
 
+    # ------------------------------------------------------------------
+    # WHY THE BIAS IS SYSTEMATIC. "Systematically conservative" without a
+    # mechanism invites "what else is systematically wrong?", so the mechanism
+    # is computed here rather than asserted.
+    #
+    # It is NOT a warming trend and NOT adaptation drift. On the first projected
+    # day both arms hold an identical adaptation state and an identical personal
+    # limit, and the projection is still 45 minutes low.
+    #
+    # The cause is that repeat_day freezes ONE day's hourly SHAPE, and the day
+    # it froze was unrepresentative in exactly the band that decides a
+    # prescription. Its peak was 0.39 degC COOLER than the held-out mean -- but
+    # its 09:00 was 0.58 degC HOTTER. The peak hours are already prescribed zero
+    # for everybody and contribute nothing; the mid-morning hours are where the
+    # work/rest ladder is actually read. Being half a degree hot in one decisive
+    # hour costs a whole 15-minute rung.
+    # ------------------------------------------------------------------
+    copied = cache.get(SUBJECTS[0][3], as_of, MODEL)
+    held = [cache.get(SUBJECTS[0][3], d, MODEL) for d in future_dates]
+
+    def mean(values):
+        return sum(values) / len(values)
+
+    decision_hours = [8, 9]
+    mechanism = {
+        "copiedDate": as_of.isoformat(),
+        "peakCopied": round(copied.peak.wbgt_c, 2),
+        "peakHeldOutMean": round(mean([d.peak.wbgt_c for d in held]), 2),
+        "decisionHours": decision_hours,
+        "decisionBandCopied": round(
+            mean([copied.at(h).wbgt_c for h in decision_hours]), 2),
+        "decisionBandHeldOutMean": round(
+            mean([mean([d.at(h).wbgt_c for h in decision_hours]) for d in held]), 2),
+        "note": (
+            "The projection is not biased by a warming or cooling trend: on the "
+            "first projected day both arms carry an identical adaptation state "
+            "and an identical personal limit, and it is still 45 minutes low. "
+            "repeat_day freezes one day's hourly shape, and the frozen day was "
+            "COOLER than average at its peak while being HOTTER than average at "
+            "08:00-09:00. The peak hours are prescribed zero for everyone and "
+            "decide nothing; the mid-morning hours are where the ladder is read. "
+            "Because the ladder quantises in 15-minute steps, half a degree in "
+            "one decisive hour costs a full rung."),
+        "fix": (
+            "Carry a real forecast rather than a repeated day. Open-Meteo's "
+            "regional hourly forecast is the honest source past FortyGuard's "
+            "coverage, which acclimatization.project() already says in its "
+            "docstring; repeat_day exists because M4 needed a projection before "
+            "that was wired, not because it is the right answer."),
+    }
+    mechanism["peakDelta"] = round(
+        mechanism["peakCopied"] - mechanism["peakHeldOutMean"], 2)
+    mechanism["decisionBandDelta"] = round(
+        mechanism["decisionBandCopied"] - mechanism["decisionBandHeldOutMean"], 2)
+
     payload = {
         "generated": dt.datetime.now().isoformat(timespec="seconds"),
+        "biasMechanism": mechanism,
         "asOf": as_of.isoformat(),
         "horizon": HORIZON,
         "firstProjected": future_dates[0].isoformat(),
