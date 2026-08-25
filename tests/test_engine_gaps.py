@@ -162,6 +162,22 @@ def test_projection_preserves_the_workers_configuration(worker, days):
     assert full.initial_adaptation == observed.initial_adaptation
 
 
+def test_repeat_day_advances_the_date_and_records_the_substitution(days):
+    """A projection has to sit somewhere in time. `[day] * count` handed back
+    the same frozen record `count` times, so every projected day shared the
+    source date -- which reached M4's ramp strip as a "today" marker drawn on
+    all six future cells."""
+    source = days[4]
+    copies = ac.repeat_day(source, 3)
+    assert [d.date for d in copies] == [
+        source.date + dt.timedelta(days=n) for n in (1, 2, 3)
+    ]
+    assert source.date.isoformat() not in [d.date.isoformat() for d in copies]
+    for copy in copies:
+        assert any("repeated from" in note for note in copy.notes)
+        assert copy.series_c == source.series_c
+
+
 def test_repeat_day_rejects_a_negative_count(days):
     with pytest.raises(ValueError):
         ac.repeat_day(days[0], -1)

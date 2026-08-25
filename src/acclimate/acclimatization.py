@@ -33,7 +33,7 @@ outright. See scripts/m2_report.py for what that does on real Phoenix data.
 from __future__ import annotations
 
 import datetime as dt
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Iterable, Mapping, Optional, Sequence, Tuple
 
 from acclimate import constants as C
@@ -592,10 +592,25 @@ def repeat_day(day: WBGTDay, count: int) -> List[WBGTDay]:
     shown. It exists because "where is this crew on Friday if this week
     continues" is the question a supervisor actually asks, and answering it with
     a real retrieved day is more honest than inventing a synthetic one.
+
+    The copies carry CONSECUTIVE DATES following the source day, not the source
+    day's own date. Returning `[day] * count` was wrong in a way that reached
+    the screen: every projected record shared today's date, so M4's ramp strip
+    drew its "today" marker on all seven future cells and every projected
+    tooltip claimed to be today. A projection has to sit somewhere in time.
+    Each copy keeps a note naming the day it was copied from, so the
+    substitution stays visible in provenance rather than being laundered by the
+    new date.
     """
     if count < 0:
         raise ValueError("count must not be negative")
-    return [day] * count
+    note = "projected: weather repeated from %s" % day.date.isoformat()
+    return [
+        replace(day,
+                date=day.date + dt.timedelta(days=offset),
+                notes=day.notes + (note,))
+        for offset in range(1, count + 1)
+    ]
 
 
 # ---------------------------------------------------------------------------
