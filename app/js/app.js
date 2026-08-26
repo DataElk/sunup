@@ -331,7 +331,10 @@ window.addEventListener('hashchange', () => { dismissPanel(); render(); });
 
 (async function boot() {
   await store.initStore();
-  store.subscribe(() => compute.invalidate());
+  store.subscribe(() => {
+    compute.invalidate();
+    if (!document.querySelector('.panel')) render();
+  });
 
   for (const site of store.sites()) expanded.add(site.id);
 

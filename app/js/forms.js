@@ -88,8 +88,12 @@ export function editSite(siteId, after, initialPoint = null) {
       polygon: polygon || pointFeature(chosen),
     };
     if (!existing || changedLocation) {
+      if (existing && existing.seriesKey) store.removeWeatherSeries(existing.seriesKey);
       changes.seriesKey = null;
       changes.weatherSource = 'none';
+      changes.weatherStatus = null;
+      changes.weatherProgress = null;
+      changes.liveActivityId = null;
       delete changes.derivedNote;
     }
     const saved = existing ? store.updateSite(existing.id, changes) : store.addSite(changes);
@@ -257,8 +261,7 @@ export function estimateWeather(siteId, after) {
   function save() {
     const factor = Math.max(0.5, Math.min(1.5, Number(ratio.value) || 1));
     const key = `derived_${site.id}`;
-    window.ACCLIMATE_WEATHER.series[key] =
-      compute.estimateSeriesFrom(source.value, factor);
+    store.saveWeatherSeries(key, compute.estimateSeriesFrom(source.value, factor));
     store.updateSite(site.id, {
       seriesKey: key,
       weatherSource: 'derived',

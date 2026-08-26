@@ -10,6 +10,8 @@ import { CONSTANTS } from './engine.js';
 import * as store from './store.js';
 import * as compute from './compute.js';
 import * as forms from './forms.js';
+import { hasConfiguredKey } from './liveweather.js';
+import { startSiteBackfill } from './siteweather.js';
 import {
   el, icon, chip, tag, detailsList, breadcrumb, commandBar, panel,
   dismissPanel, toast, confirmDialog,
@@ -249,6 +251,8 @@ export function siteView(ctx, siteId) {
 
   if (site.weatherSource === 'none') {
     root.appendChild(noWeatherBanner(ctx, site));
+  } else if (site.weatherStatus === 'error' || site.weatherStatus === 'partial') {
+    root.appendChild(weatherFailureBanner(ctx, site));
   } else if (site.weatherStatus === 'backfill') {
     root.appendChild(backfillBanner(site));
   } else if (site.weatherSource === 'derived') {
@@ -313,7 +317,9 @@ export function crewView(ctx, siteId, crewId) {
   ]));
 
   if (site.weatherSource === 'none') root.appendChild(noWeatherBanner(ctx, site));
-  else if (site.weatherStatus === 'backfill') root.appendChild(backfillBanner(site));
+  else if (site.weatherStatus === 'error' || site.weatherStatus === 'partial') {
+    root.appendChild(weatherFailureBanner(ctx, site));
+  } else if (site.weatherStatus === 'backfill') root.appendChild(backfillBanner(site));
   else if (site.weatherSource === 'derived') root.appendChild(derivedBanner(site));
 
   const rows = store.workers(crewId).map((w) => compute.forWorker(w.id)).filter(Boolean);
@@ -564,21 +570,49 @@ function noWeatherBanner(ctx, site) {
     return banner('info', 'Retrieving live weather',
       `${progress.completed} of ${progress.total} days ready. Prescriptions appear after the first five days.`);
   }
+  if (site.weatherStatus === 'error') return weatherFailureBanner(ctx, site);
   const node = banner('danger', 'No weather history, prescriptions unavailable',
     'This site has no hourly WBGT series, so nothing can be prescribed for the '
     + 'crews under it.');
   const actions = el('div', 'callout-actions');
 
-  const fetchBtn = el('button', 'btn', 'Fetch live');
-  fetchBtn.type = 'button';
-  fetchBtn.disabled = true;
-  fetchBtn.title = 'Requires a FortyGuard API key. Disabled in the published '
-    + 'build, which makes no network calls.';
+  const fetchBtn = liveFetchButton(ctx, site, 'Fetch live');
   const est = el('button', 'btn btn-primary', 'Estimate from nearest measured site');
   est.type = 'button';
   est.addEventListener('click', () => forms.estimateWeather(site.id, ctx.refresh));
 
   actions.append(fetchBtn, est);
+  node.appendChild(actions);
+  return node;
+}
+
+function liveFetchButton(ctx, site, label) {
+  const button = el('button', 'btn', hasConfiguredKey() ? label : 'Add API key');
+  button.type = 'button';
+  if (!hasConfiguredKey()) {
+    button.addEventListener('click', () => ctx.go('#/settings'));
+    return button;
+  }
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    const task = startSiteBackfill(site.id);
+    ctx.refresh();
+    const started = await task;
+    if (!started) toast('Live weather fetch failed. Check the key and try again.');
+    ctx.refresh();
+  });
+  return button;
+}
+
+function weatherFailureBanner(ctx, site) {
+  const partial = site.weatherStatus === 'partial';
+  const node = banner(partial ? 'warn' : 'danger',
+    partial ? 'Live weather history is incomplete' : 'Live weather fetch failed',
+    partial
+      ? 'Some days are available. Retry to complete this site’s history.'
+      : 'No live days are available. Check the API key, then retry.');
+  const actions = el('div', 'callout-actions');
+  actions.appendChild(liveFetchButton(ctx, site, 'Retry live fetch'));
   node.appendChild(actions);
   return node;
 }

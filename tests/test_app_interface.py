@@ -190,6 +190,28 @@ def test_deletes_cascade_so_nothing_is_orphaned():
     assert "dayLogs" in remove_site
 
 
+def test_dynamic_weather_series_persist_and_hydrate():
+    store = strip_comments(read("js", "store.js"))
+    assert "weatherSeries" in store
+    assert "function hydrateWeatherSeries" in store
+    assert "export function saveWeatherSeries" in store
+    assert "dropWeatherSeries(removed.seriesKey)" in store
+    site_weather = strip_comments(read("js", "siteweather.js"))
+    assert "store.saveWeatherSeries(key, series)" in site_weather
+    forms = strip_comments(read("js", "forms.js"))
+    assert "store.saveWeatherSeries(key" in forms
+
+
+def test_failed_live_weather_has_a_retry_path():
+    views = strip_comments(read("js", "views.js"))
+    assert "function weatherFailureBanner" in views
+    assert "function liveFetchButton" in views
+    assert "Retry live fetch" in views
+    assert "ctx.go('#/settings')" in views
+    app = strip_comments(read("js", "app.js"))
+    assert "if (!document.querySelector('.panel')) render()" in app
+
+
 def test_the_seed_is_data_and_is_resettable_and_deletable():
     seed = generated("seed.js")
     assert seed["sites"] and seed["crews"] and seed["workers"]

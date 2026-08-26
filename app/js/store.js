@@ -72,7 +72,9 @@ function writeRaw(key, value) {
   }
 }
 
-const EMPTY = { sites: [], crews: [], workers: [], dayLogs: {}, seeded: null };
+const EMPTY = {
+  sites: [], crews: [], workers: [], dayLogs: {}, weatherSeries: {}, seeded: null,
+};
 
 let state = null;
 
@@ -80,7 +82,14 @@ let state = null;
 
 export async function initStore() {
   state = readRaw(STORE_KEY, null);
-  if (state && Array.isArray(state.sites)) return state;
+  if (state && Array.isArray(state.sites)) {
+    if (!state.weatherSeries || typeof state.weatherSeries !== 'object') {
+      state.weatherSeries = {};
+      writeRaw(STORE_KEY, state);
+    }
+    hydrateWeatherSeries();
+    return state;
+  }
 
   const seed = window.ACCLIMATE_SEED;
   if (!seed) {
@@ -98,6 +107,7 @@ function applySeed(seed) {
     crews: seed.crews.map((c) => reject({ ...c, seeded: true }, 'seed crew')),
     workers: seed.workers.map((w) => reject({ ...w, seeded: true }, 'seed worker')),
     dayLogs: JSON.parse(JSON.stringify(seed.dayLogs || {})),
+    weatherSeries: {},
     seeded: seed.version,
   };
   writeRaw(STORE_KEY, next);
@@ -109,6 +119,9 @@ function applySeed(seed) {
 export function resetToSeed() {
   const seed = window.ACCLIMATE_SEED;
   if (!seed) throw new Error('seed data not loaded');
+  for (const key of Object.keys(state.weatherSeries || {})) {
+    delete window.ACCLIMATE_WEATHER.series[key];
+  }
   state = applySeed(seed);
   emit();
   return state;
@@ -151,6 +164,35 @@ export function workersAtSite(siteId) {
 
 export function logsFor(workerId) {
   return state.dayLogs[workerId] || {};
+}
+
+function hydrateWeatherSeries() {
+  const registry = window.ACCLIMATE_WEATHER && window.ACCLIMATE_WEATHER.series;
+  if (!registry) return;
+  for (const [key, series] of Object.entries(state.weatherSeries || {})) {
+    registry[key] = series;
+  }
+}
+
+function dropWeatherSeries(key) {
+  if (!key || !state.weatherSeries || !state.weatherSeries[key]) return;
+  delete state.weatherSeries[key];
+  if (window.ACCLIMATE_WEATHER && window.ACCLIMATE_WEATHER.series) {
+    delete window.ACCLIMATE_WEATHER.series[key];
+  }
+}
+
+export function saveWeatherSeries(key, series) {
+  const saved = JSON.parse(JSON.stringify(series || {}));
+  state.weatherSeries[key] = saved;
+  window.ACCLIMATE_WEATHER.series[key] = saved;
+  emit();
+  return saved;
+}
+
+export function removeWeatherSeries(key) {
+  dropWeatherSeries(key);
+  emit();
 }
 
 /* --- Writes ------------------------------------------------------------------ */
@@ -217,6 +259,7 @@ export function updateWorker(id, changes) { return patch(state.workers, id, chan
    would otherwise sit in the store unreachable and still be counted. */
 
 export function removeSite(id) {
+  const removed = site(id);
   const doomed = new Set(crews(id).map((c) => c.id));
   state.workers = state.workers.filter((w) => {
     if (!doomed.has(w.crewId)) return true;
@@ -225,6 +268,7 @@ export function removeSite(id) {
   });
   state.crews = state.crews.filter((c) => c.siteId !== id);
   state.sites = state.sites.filter((s) => s.id !== id);
+  if (removed) dropWeatherSeries(removed.seriesKey);
   emit();
 }
 

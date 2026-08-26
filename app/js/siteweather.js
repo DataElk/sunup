@@ -73,7 +73,7 @@ async function fetchDates(siteId, dates, completed, total) {
       liveActivityId: activityId,
     }));
     series[date] = daily;
-    weather().series[key] = series;
+    store.saveWeatherSeries(key, series);
     completed += 1;
     updateProgress(siteId, {
       seriesKey: key,

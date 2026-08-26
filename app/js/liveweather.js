@@ -95,9 +95,14 @@ export async function testKey(date) {
     date_time: { start_date: date, start_time: '14:00', filter_type: 1 },
     granularity: 100,
   };
-  const response = await request('/v1/heatmap', {
-    method: 'POST', body: JSON.stringify(payload),
-  });
+  let response;
+  try {
+    response = await request('/v1/heatmap', {
+      method: 'POST', body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error('Key authentication failed. Check the key and connection.');
+  }
   if (!response || !response.data || !response.data.activity_id) {
     throw new Error('The live weather service did not accept the key.');
   }
