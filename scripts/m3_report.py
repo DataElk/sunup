@@ -1,4 +1,4 @@
-"""M3 evidence report — site selection, the 14-day backfill, and the two
+"""M3 evidence report: site selection, the 14-day backfill, and the two
 diagnostics that explain M2's mild-vs-hot failure.
 
     python scripts/m3_report.py
@@ -66,7 +66,7 @@ def section_selection(store):
           % (sel["raw_min"], sel["raw_max"], raw_ratio))
     print("    p5 / p95         %.2f / %.2f h  ->  ratio %.3fx   <- defensible"
           % (sel["value_at_p5"], sel["value_at_p95"], mitigated))
-    print("    The project's headline 1.84x is a RAW min/max figure — exactly the")
+    print("    The project's headline 1.84x is a RAW min/max figure, exactly the")
     print("    boundary-artifact statistic FORTYGUARD_API_CONTRACT.md section 5")
     print("    warns against. After the mitigation it is %.2fx. Quote %.2fx."
           % (mitigated, mitigated))
@@ -138,7 +138,7 @@ def section_mild_vs_hot(cache, shared):
     print("\n  mild history %s" % ", ".join(str(d) for d in mild))
     print("  hot  history %s" % ", ".join(str(d) for d in hot))
     print("  compared on  %s  (shared, so the gap is purely history)" % comparison)
-    print("  DISJOINT: yes — this is what M2 could not do with 4 cached days.\n")
+    print("  DISJOINT: yes. This is what M2 could not do with 4 cached days.\n")
 
     sweep = ac.default_tau_sweep()
     print("  %-14s %10s %10s %12s %10s"
@@ -205,7 +205,7 @@ def section_structural_cap(cache, shared):
     print("\n  This is a MODEL PROPERTY, not a fixture shortage. More backfill days")
     print("  cannot lift mild-vs-hot past this ceiling. And because real Phoenix")
     print("  August days sit on the DESCENDING limb, hotter genuinely means less")
-    print("  adapted — which is the inversion, explained.")
+    print("  adapted, which is the inversion, explained.")
     return sweep
 
 
@@ -274,7 +274,7 @@ def section_shift_trajectory(cache):
 
     SPEC.md used to quote "+1.07 degC" with no day attached. That is the day-4
     value of a monotonically growing separation, so a single number made a
-    compounding effect look like a fixed one -- and it happened to be quoted
+    compounding effect look like a fixed one, and it happened to be quoted
     near the weak end of the curve.
 
     What the curve shows is the actual argument against the calendar. The OSHA
@@ -354,7 +354,7 @@ adapted worker. With four cached site-days that was what the data showed. With
 the full 14-day backfill it needs splitting in two, because only half of it
 survives.
 
-WHAT HOLDS, AND STRONGLY -- shift assignment.
+WHAT HOLDS, AND STRONGLY: shift assignment.
   Rostering a crew later is the single most powerful lever measured, and it
   runs backwards: the later shift adapts LESS.
 
@@ -370,7 +370,7 @@ WHAT HOLDS, AND STRONGLY -- shift assignment.
   accumulates no dose and never acclimatizes at all. The protective schedule
   removes the exposure that would have adapted him.
 
-WHAT DOES NOT HOLD -- day selection.
+WHAT DOES NOT HOLD: day selection.
   On the real 14-day series the higher-dose history produces the MORE adapted
   worker, in every configuration. The M2 inversion on this axis was an artifact
   of four overlapping days, not a property of the model.
@@ -378,7 +378,7 @@ WHAT DOES NOT HOLD -- day selection.
 WHY BOTH ARE TRUE AT ONCE. The synthetic sweep (section 4) shifts every hour of
 a day by the same amount, and under that perturbation adaptation is genuinely
 non-monotone, peaking about 4 degC below a real Phoenix August day. But real
-days do not differ by a uniform offset -- they differ in shape, in how long they
+days do not differ by a uniform offset, they differ in shape, in how long they
 sit above the RAL, in wind and cloud. Measured across the 14 backfilled days:
 
     correlation(shift peak WBGT, worked dose) = +0.13
@@ -395,7 +395,7 @@ acclimatization is an OPTIMIZATION.
     subject to strain <= the work/rest ladder at the worker's current limit
     choosing   shift start, shift length, site assignment, work/rest
 
-Section 4 shows the optimum is interior -- both extremes give zero adaptation --
+Section 4 shows the optimum is interior, both extremes give zero adaptation --
 and the measurements above show which lever actually moves it. Shift timing is
 worth up to 1.07 degC of personal limit; site assignment, on these two sites,
 is worth 0.23 degC and does not clear materiality. A calendar has no term for

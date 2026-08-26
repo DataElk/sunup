@@ -14,7 +14,7 @@ It is also the single thing that decides whether a worker is told to stop. An
 unvalidated assumption in that position has to be sensitivity-tested rather than
 merely disclosed, exactly as TAU_GAIN and TAU_DECAY were.
 
-The question is not whether the ladder is "right" -- there is no reference to be
+The question is not whether the ladder is "right". There is no reference to be
 right against. It is whether the PRODUCT'S CLAIM depends on it. Shift timing is
 the headline: two workers, same site, same trade, same day count, differing only
 in start time. If the separation survives every plausible ladder, the claim
@@ -23,7 +23,7 @@ rests on the physics and the schedule, not on four numbers we chose.
 WHICH DATA
 ----------
 The 14-day backfill (M3), not the four tile-anchored fixture days (M2). The
-headline is an M3 claim and the two bases give very different magnitudes -- see
+headline is an M3 claim and the two bases give very different magnitudes, see
 the note printed at the end. Both arms take the SAME 14 site-days at the SAME
 site; the only difference between the two workers is the assigned shift.
 
@@ -34,8 +34,8 @@ VARIANTS TESTED
   looser       every boundary moved UP 0.5 degC    (stops work later)
   three-rung   60/30/15 at 0.0 / 1.5 / 3.0
   five-rung    60/48/36/24/12 at 0.0 / 0.75 / 1.5 / 2.25 / 3.0
-  coarse-two   60/30 at 0.0 / 2.0            -- deliberately crude
-  steep        60/30/10 at 0.0 / 0.5 / 1.5   -- deliberately aggressive
+  coarse-two   60/30 at 0.0 / 2.0, deliberately crude
+  steep        60/30/10 at 0.0 / 0.5 / 1.5, deliberately aggressive
   linear       no rungs at all: minutes fall continuously with excess
 """
 
@@ -150,14 +150,14 @@ def main():
   WHAT THIS ESTABLISHES
 
   The DIRECTION of the shift-timing result is completely insensitive to the
-  ladder. Across every variant -- two rungs, five rungs, boundaries moved half a
-  degree either way, and a continuous no-rung response -- the early-start worker
+  ladder. Across every variant, two rungs, five rungs, boundaries moved half a
+  degree either way, and a continuous no-rung response, the early-start worker
   ends up better adapted in every one of the tau pairs. The finding is not an
   artifact of the four numbers we chose.
 
   MATERIALITY is not fully insensitive, and that is the honest caveat. The
   variants that fall below the 0.5 degC threshold in some tau pairs are the
-  deliberately aggressive "steep" ladder -- work stops 1.5 degC above the limit,
+  deliberately aggressive "steep" ladder, work stops 1.5 degC above the limit,
   which compresses every worker toward zero and leaves little room to differ --
   and, at the weaker 08:00 comparison and early days only, "looser" and
   "linear".
@@ -165,7 +165,7 @@ def main():
   WHAT IT DOES NOT ESTABLISH
 
   It does not validate the ladder as a safety instrument. PRESCRIBED MINUTES
-  move a great deal between these variants -- that is what changing them does --
+  move a great deal between these variants. That is what changing them does --
   and nothing here says which variant a regulator would accept. What survives is
   the COMPARATIVE claim: this worker is better adapted than that one, and shift
   timing is why. The absolute prescription is only as good as the ladder, and

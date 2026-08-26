@@ -1,8 +1,8 @@
-"""M2 exit test — the acclimatization engine and the two-worker divergence.
+"""M2 exit test: the acclimatization engine and the two-worker divergence.
 
 SPEC.md, milestone M2:
 
-    Exit: the two-worker divergence reproduces from real retrieved data — same
+    Exit: the two-worker divergence reproduces from real retrieved data, same
     trade, same day-on-job, mild vs hot first three days, materially different
     prescriptions. Sensitivity report across tau_gain in [3,6] and tau_decay in
     [10,21] showing the divergence survives the whole range.
@@ -14,7 +14,7 @@ measured above the FIXED RAL rather than the worker's moving personal limit, and
 only hours actually worked count, weighted by the prescribed duty cycle.
 
 Under that definition the exit test PASSES on the shift-assignment scenario and
-does not reach materiality on mild-vs-hot days — a data-coverage problem M3
+does not reach materiality on mild-vs-hot days, a data-coverage problem M3
 fixes. The primary metric is the PERSONAL LIMIT in degC-WBGT, because it is
 continuous and monotone; minutes are quantised into 15-minute rungs of the NIOSH
 ladder and are reported second.
@@ -53,7 +53,7 @@ def diverge(cache, scenario, model, tau=None):
 
 
 def test_personal_limit_interpolates_between_the_two_niosh_curves():
-    """SPEC step 4 — the intellectual core. A=0 is RAL, A=1 is REL."""
+    """SPEC step 4: the intellectual core. A=0 is RAL, A=1 is REL."""
     moderate = C.WorkClass.MODERATE
     assert ac.personal_limit_c(0.0, moderate) == C.WBGT_LIMIT_UNACCLIMATIZED[moderate]
     assert ac.personal_limit_c(1.0, moderate) == C.WBGT_LIMIT_ACCLIMATIZED[moderate]
@@ -116,7 +116,7 @@ def test_calendar_ramp_is_the_osha_rule_of_20_percent():
 
 
 # ---------------------------------------------------------------------------
-# Forbidden inputs — a legal constraint, not a preference
+# Forbidden inputs: a legal constraint, not a preference
 # ---------------------------------------------------------------------------
 
 
@@ -138,7 +138,7 @@ def test_worker_accepts_only_job_assigned_fields():
 
 
 # ---------------------------------------------------------------------------
-# The corrected stimulus definition — constants.py section 3a
+# The corrected stimulus definition: constants.py section 3a
 # ---------------------------------------------------------------------------
 
 
@@ -301,7 +301,7 @@ def test_the_comparison_day_is_shared_so_the_gap_is_purely_history(cache):
 def test_more_worked_exposure_produces_more_adaptation(cache):
     """Monotonicity in what actually drives the model: WORKED dose.
 
-    Shift start time is the cleanest lever — a later start means fewer
+    Shift start time is the cleanest lever, a later start means fewer
     prescribed hours, less dose, lower final adaptation and a lower limit.
     """
     days = [cache.get(d, wbgt.NWB_PSYCHROMETRIC)

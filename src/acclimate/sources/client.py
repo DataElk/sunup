@@ -1,4 +1,4 @@
-"""M0 — typed client over the endpoints in FORTYGUARD_API_CONTRACT.md.
+"""M0, typed client over the endpoints in FORTYGUARD_API_CONTRACT.md.
 
 Every method goes through the disk cache first. `refresh` defaults to False and
 the transport defaults to OfflineTransport, so the network is opt-in twice over:
@@ -8,20 +8,20 @@ Contract behaviours implemented here rather than left to callers:
   - async submit/poll (section 1), status matched case-insensitively, `Failed`
     terminal, 3 s interval
   - the two response envelopes (section 1) unwrapped defensively
-  - `analysis` CAP TOLERANCE on /v1/env_params (section 6) — see below
+  - `analysis` CAP TOLERANCE on /v1/env_params (section 6), see below
   - clamping of exceedance/persistence values happens at ingest, in
     `fortyguard.parse_analysis_grid`, not here; this client returns raw payloads
     so the cache holds exactly what the API said
 
 CAP TOLERANCE, and why it is built this way. Section 2 says Basic/Startup tiers
 cap `analysis` at three parameters. Two live probes on 2026-08-24 tried to settle
-whether `analysis` is honoured at all and never completed — the question is open
+whether `analysis` is honoured at all and never completed. The question is open
 (section 6). So this client does not depend on the answer: it splits any
 `analysis` list into chunks of ENV_PARAMS_MAX_ANALYSIS and merges the responses.
 
   - If the cap binds, each chunk is legal and the merge reassembles the whole set.
   - If `analysis` is ignored, every chunk returns everything and the merge is a
-    no-op union — same answer, and only one chunk is ever needed.
+    no-op union, same answer, and only one chunk is ever needed.
   - If the list is short enough to fit in one chunk, there is exactly one call
     and chunking costs nothing at all.
 
@@ -116,7 +116,7 @@ class FortyGuardClient:
         self._sleep = sleep
         self.records: List[CallRecord] = []
 
-    # -- plumbing ------------------------------------------------------------
+    #, plumbing ------------------------------------------------------------
 
     @property
     def _headers(self) -> Dict[str, str]:
@@ -159,7 +159,7 @@ class FortyGuardClient:
             record.polls += 1
             # [MEASURED 2026-08-24] A 46 931-cell exceedance grid is a 15 MB
             # response, and the gateway intermittently 504s while serialising
-            # it. The activity is fine — the very next poll returned 200 and a
+            # it. The activity is fine, the very next poll returned 200 and a
             # completed result. Propagating that error would throw away an
             # activity that has already been paid for, so transient failures are
             # absorbed and only a sustained run of them gives up.
@@ -174,7 +174,7 @@ class FortyGuardClient:
                 if consecutive_errors > C.POLL_MAX_CONSECUTIVE_ERRORS:
                     raise PollTimeout(
                         "activity %s: %d consecutive polling failures on %s, last "
-                        "was %s: %s. The activity may still be running — retrieve "
+                        "was %s: %s. The activity may still be running, retrieve "
                         "it by id rather than resubmitting."
                         % (activity_id, consecutive_errors, endpoint,
                            type(error).__name__, str(error)[:200])
@@ -199,7 +199,7 @@ class FortyGuardClient:
                     % (activity_id, status or "unknown", self.poll_timeout_s, endpoint)
                 )
 
-    # -- endpoints -----------------------------------------------------------
+    #, endpoints -----------------------------------------------------------
 
     def create_heatmap(self, **kwargs) -> Any:
         """POST /v1/heatmap. See contract sections 4 and 5."""
@@ -288,7 +288,7 @@ class FortyGuardClient:
         filter_type: int = 1,
         granularity: int = 100,
     ) -> Any:
-        """POST /v1/satellite. The most expensive endpoint measured — 14 400
+        """POST /v1/satellite. The most expensive endpoint measured, 14 400
         credits for a single call (contract section 8). Cache hard."""
         payload = {
             "sat": {"latitude": latitude, "longitude": longitude},
@@ -304,7 +304,7 @@ class FortyGuardClient:
     def fetch_api_key_custom_usage(self) -> Any:
         return self._cached_or_live(USAGE, {})
 
-    # -- audit ---------------------------------------------------------------
+    #, audit ---------------------------------------------------------------
 
     @property
     def live_calls(self) -> int:

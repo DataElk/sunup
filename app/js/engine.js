@@ -110,14 +110,14 @@ export function prescribeHours(hourly, worker, adaptation) {
    per-hour duty. Bridging the two is a modelling decision, so it is named here
    rather than buried.
 
-   RULE A -- PROPORTIONAL. Scale every prescribed hour by actual/prescribed. It
+   RULE A: PROPORTIONAL. Scale every prescribed hour by actual/prescribed. It
    preserves the shape of the day: the hottest hours were prescribed least and
    still contribute least.
 
-   RULE C -- UNIFORM, the fallback. When the prescription totalled zero and the
+   RULE C: UNIFORM, the fallback. When the prescription totalled zero and the
    worker worked anyway, rule A divides by zero. There is no shape to preserve
    because the schedule said "no work at all", so the minutes are spread evenly
-   across the shift and the day is flagged `unprescribedWork` -- a supervisor
+   across the shift and the day is flagged `unprescribedWork`, a supervisor
    who logged work on a stop-work day must see that, not have it averaged away.
    -------------------------------------------------------------------------- */
 

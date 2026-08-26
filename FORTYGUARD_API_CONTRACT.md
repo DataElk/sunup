@@ -1,8 +1,8 @@
-# FortyGuard API — Verified Contract
+# FortyGuard API: Verified Contract
 
 **Every statement here was confirmed against live responses on 2026-08-23.**
 Where something is unverified it says so explicitly. Do not "improve" values in this
-file from memory or inference — if a field is not documented here, make a live call
+file from memory or inference. If a field is not documented here, make a live call
 and add it, with the raw payload committed to `fixtures/`.
 
 ---
@@ -50,11 +50,11 @@ result = resp.get("result") or resp.get("data", {}).get("result", {})
 | `/v1/env_params` | `environmental_parameters` | Both (3-param cap on Basic/Startup) |
 | `/v1/satellite` | `satellite_segmentation` | Premium |
 | `/v1/streetview` | `street_view_segmentation` | Premium |
-| `/v1/heat_intelligence` | `heat_intelligence` | Premium — **returns a PDF, not JSON** |
+| `/v1/heat_intelligence` | `heat_intelligence` | Premium; **returns a PDF, not JSON** |
 | `/v1/system/fetch-api-key-custom-usage` | `fetch_api_key_custom_usage` | Both |
 | `/v1/status/{id}` | `get_status` / `wait_for` | Both |
 
-**Hackathon plan behaves as Premium** — satellite segmentation succeeded on our key.
+**Hackathon plan behaves as Premium**: satellite segmentation succeeded on our key.
 
 ---
 
@@ -73,7 +73,7 @@ result = resp.get("result") or resp.get("data", {}).get("result", {})
 
 ---
 
-## 4. `/v1/heatmap` — `analytic_type="tcm"` (default)
+## 4. `/v1/heatmap`: `analytic_type="tcm"` (default)
 
 **Request**
 ```python
@@ -86,7 +86,7 @@ client.create_heatmap(
 )
 ```
 
-**Response — verified**
+**Response, verified**
 ```jsonc
 {
   "activity_id": "83d4372b-...",
@@ -114,12 +114,12 @@ client.create_heatmap(
 }
 ```
 
-### CRITICAL — two different axes, easily confused
+### CRITICAL: two different axes, easily confused
 
 | Where | What it is |
 | --- | --- |
-| `stats_data.temperature_stats.{min,max}` | **SPATIAL** — across cells in the AOI |
-| `features[i].properties.{min,max}_temperature` | **TEMPORAL** — within the day, for that cell |
+| `stats_data.temperature_stats.{min,max}` | **SPATIAL**: across cells in the AOI |
+| `features[i].properties.{min,max}_temperature` | **TEMPORAL**: within the day, for that cell |
 
 With `filter_type=1` (single hour) the temporal min == avg == max, because there is one
 timestep. With `filter_type=3` they differ and carry the diurnal range.
@@ -134,18 +134,18 @@ features[0].properties: min 29.599  avg  36.148  max 40.469   (temporal, range 1
 > DO carry per-cell temporal min/max. Measured diurnal ranges: 8.22 °C (2026-08-09),
 > 5.81 °C (2026-08-05), 6.66 °C (2026-07-26), against an 11.38 °C control on
 > 2024-07-15. See `fixtures/temporal_range_verdict.json`. Recent dates are smoother
-> than the archive — range ~40% narrower — which under-estimates peak WBGT. The
+> than the archive (range ~40% narrower), which under-estimates peak WBGT. The
 > one-call-per-site-day reconstruction is confirmed.
 
 ### `filter_type=3` returns ONE grid, not 24
 
-A single day request returns one FeatureCollection with min/avg/max per cell — **not**
+A single day request returns one FeatureCollection with min/avg/max per cell, **not**
 24 hourly grids. Hourly spatial grids would require 24 × `filter_type=1` calls per day.
 Do not do this; see the reconstruction strategy in `CLAUDE.md`.
 
 ---
 
-## 5. `/v1/heatmap` — analysis types
+## 5. `/v1/heatmap`: analysis types
 
 `analytic_type` ∈ `tcm` | `time_of_measure` | `exceedance` | `persistence`
 
@@ -171,11 +171,11 @@ Analysis types require a multi-hour or multi-day window (`filter_type` 2 or 4).
 Code reading `properties.average_temperature` finds **nothing** on an analysis heatmap.
 Read `properties.value` and interpret via `stats_data.units`.
 
-### CRITICAL — the exceedance field is interpolated, not counted
+### CRITICAL: the exceedance field is interpolated, not counted
 
 Verified pathologies:
-- `min = -0.3176` at threshold 42 °C — a negative duration
-- `max = 168.62` on a 168-hour window — 0.62 h past the theoretical ceiling
+- `min = -0.3176` at threshold 42 °C, a negative duration
+- `max = 168.62` on a 168-hour window, 0.62 h past the theoretical ceiling
 
 **Always clamp on ingest:**
 ```python
@@ -183,7 +183,7 @@ value = max(0.0, min(value, window_hours))
 ```
 Never claim integer-hour precision. Never plot an unclamped value.
 
-### CRITICAL — boundary artifacts
+### CRITICAL: boundary artifacts
 
 Extremes cluster on the AOI edge. Verified on the 14-day 40 °C Phoenix run:
 all 5 highest cells sat within 460 m of the west edge; all 5 lowest within 80 m of the
@@ -193,7 +193,7 @@ north edge; each set was a contiguous scanline at a single latitude.
 1. Request an AOI at least 1 km larger than the region of interest.
 2. Discard cells within 500 m of the AOI boundary before ranking.
 3. Rank by 5th/95th percentile, not absolute min/max.
-4. Cross-check any selected cell against satellite segmentation — a genuine hot cell
+4. Cross-check any selected cell against satellite segmentation. A genuine hot cell
    has high impervious share. If land cover does not explain it, it is an artifact.
 
 ### Threshold selection
@@ -203,12 +203,12 @@ length. Verified sweep, Phoenix, 2024-07-01→07 (168 h window, 38 569 cells):
 
 | threshold | mean (h) | spread (h) | spread/mean | % of window |
 | --- | --- | --- | --- | --- |
-| 30 °C | 167.8 | 4.5 | 0.03 | 99.9 — saturated, useless |
-| 34 °C | 155.2 | 36.4 | 0.23 | 92.4 — still saturated |
+| 30 °C | 167.8 | 4.5 | 0.03 | 99.9, saturated and useless |
+| 34 °C | 155.2 | 36.4 | 0.23 | 92.4, still saturated |
 | 36 °C | 119.6 | 24.5 | 0.21 | 71.2 |
 | 38 °C | 90.7 | 29.6 | 0.33 | 54.0 |
-| **40 °C** | **52.3** | **25.9** | **0.50** | **31.1 — best** |
-| 42 °C | 4.9 | 7.8 | 1.60 | 2.9 — at the floor |
+| **40 °C** | **52.3** | **25.9** | **0.50** | **31.1, best** |
+| 42 °C | 4.9 | 7.8 | 1.60 | 2.9, at the floor |
 
 **Use 40 °C for Phoenix summer.** Re-sweep for any other city or season; do not assume
 this transfers.
@@ -250,7 +250,7 @@ Omitting `analysis` returns all.
   `methane_ppb`, `co2_ppm`
 - Solar: `solar_irradiance`
 
-**Response — verified**
+**Response, verified**
 ```jsonc
 {
   "data": { "result": {
@@ -282,7 +282,7 @@ Omitting `analysis` returns all.
 Every other parameter is hourly; this one is a single clear-sky daily mean. Hourly solar
 must come from elsewhere (Open-Meteo `shortwave_radiation`).
 
-**2. `heat_index_celsius` is an artifact — do not use it.**
+**2. `heat_index_celsius` is an artifact. Do not use it.**
 The endpoint applies your single `temperature` anchor across all 24 hours and varies only
 humidity. Since humidity peaks overnight, the curve **peaks around 2 a.m.** Verified
 2024-07-15 Phoenix: 52.9 °C at 06:00, 38.6 °C at 16:00, while real air temperature at
@@ -291,7 +291,7 @@ Use `apparent_temperature_celsius` for the real diurnal cycle.
 
 **3. Spatially coarse.** Two points 1.36 km apart return byte-identical arrays. Treat
 `env_params` as characterising the **district**, never as discriminating between sites.
-One call per metro per day is sufficient — do not call it per site.
+One call per metro per day is sufficient. Do not call it per site.
 
 **4. `cloud_cover_octas` returns PERCENT, not octas.**
 The field name says octas (0–8). The captured payload runs 0–100, with a maximum of
@@ -303,19 +303,19 @@ below 8 and the two scales would be indistinguishable from the data alone. Read 
 field as percent unconditionally, and flag days where `max <= 8` rather than
 switching on them. `EnvParamsDay.cloud_scale_ambiguous` does this.
 
-### CRITICAL — `/v1/env_params` IS NOT INDEPENDENT OF OPEN-METEO
+### CRITICAL: `/v1/env_params` IS NOT INDEPENDENT OF OPEN-METEO
 
-**[VERIFIED 2026-08-24, full audit — `scripts/audit_env_params_provenance.py`]**
+**[VERIFIED 2026-08-24, full audit: `scripts/audit_env_params_provenance.py`]**
 
 All 15 hourly parameters were compared against the closest Open-Meteo field for the
 same point and day. **Fourteen of fifteen match to within rounding.** The one that
 does not is the `heat_index_celsius` artifact, which FortyGuard computes itself from
-the temperature anchor you supply — and which trap 2 already says not to use.
+the temperature anchor you supply, and which trap 2 already says not to use.
 
 | FortyGuard parameter | Open-Meteo field | Verdict |
 | --- | --- | --- |
-| `cloud_cover_octas` | `cloud_cover` | **IDENTICAL** — all 24 values |
-| `precipitation_mm` | `precipitation` | **IDENTICAL** — all 24 values |
+| `cloud_cover_octas` | `cloud_cover` | **IDENTICAL**: all 24 values |
+| `precipitation_mm` | `precipitation` | **IDENTICAL**: all 24 values |
 | `relative_humidity_percent` | `relative_humidity_2m` | same to rounding (±0.5) |
 | `air_quality:idx` | `us_aqi` | same to rounding (±0.5) |
 | `air_quality_pm2p5:idx` | `us_aqi_pm2_5` | same to rounding (±0.5) |
@@ -329,7 +329,7 @@ the temperature anchor you supply — and which trap 2 already says not to use.
 | `heat_index_celsius` | — | genuinely different (and an artifact) |
 | `methane_ppb`, `co2_ppm` | — | all-null both sides |
 
-It is **not a verbatim re-serve** — FortyGuard reports 0.1 precision where Open-Meteo's
+It is **not a verbatim re-serve**: FortyGuard reports 0.1 precision where Open-Meteo's
 ERA5 archive reports integers on several fields, so FortyGuard is not simply copying
 Open-Meteo's output. The likeliest reading is that both derive from the same underlying
 reanalysis (ERA5 for weather, CAMS for air quality). For every practical purpose the
@@ -347,7 +347,7 @@ Three consequences that change what the project may claim and how it should be b
    max of them, exactly as the US AQI is defined. If credits ever get tight, this
    endpoint is the first thing to replace.
 
-**What IS genuinely FortyGuard:** `/v1/heatmap` — the 60–100 m tiles, the per-cell
+**What IS genuinely FortyGuard:** `/v1/heatmap`, with its 60–100 m tiles, the per-cell
 temporal min/mean/max, the exceedance and persistence fields. Those have no Open-Meteo
 equivalent at any price, and the entire product rests on them. This audit strengthens
 rather than weakens the case for the architecture in `CLAUDE.md`: it is right to take
@@ -368,7 +368,7 @@ served from the same reanalysis backend Open-Meteo uses (ERA5 or similar) rather
 from FortyGuard's own tile model. Two consequences:
 
 1. **`env_params` is not an independent check on Open-Meteo.** Do not present
-   agreement between them as corroboration — for cloud it is a tautology.
+   agreement between them as corroboration. For cloud it is a tautology.
 2. It reinforces trap 3: `env_params` characterises the district, not the site. The
    per-cell tile data from `/v1/heatmap` is the part that is genuinely FortyGuard's.
 
@@ -385,7 +385,7 @@ irradiance by ~1.7x, and the globe-temperature term with it.
 
 **`methane_ppb` and `co2_ppm` returned all-null** on our verified call. Handle nulls.
 
-### `analysis` may not be applied — UNRESOLVED
+### `analysis` may not be applied: UNRESOLVED
 
 `fixtures/MANIFEST.md` records the captured call as
 `analysis=[wet_bulb_temperature_celsius, solar_irradiance, relative_humidity_percent]`,
@@ -398,17 +398,17 @@ This is not academic. The WBGT pipeline additionally needs
 attenuation). If `analysis` IS applied and the tier cap is three, the M3 backfill
 would silently lose both.
 
-**[ATTEMPTED 2026-08-24 — INCONCLUSIVE.]** Two live probes were submitted requesting a
+**[ATTEMPTED 2026-08-24, INCONCLUSIVE.]** Two live probes were submitted requesting a
 single parameter (`analysis: ["wet_bulb_temperature_celsius"]`), via
 `scripts/probe_env_params_analysis.py`. Both were accepted and returned an
-`activity_id`, and both then sat at status `Processing` indefinitely — the first for
+`activity_id`, and both then sat at status `Processing` indefinitely, the first for
 3 minutes before the runner gave up, the second for a full **30 minutes / 600 polls**
 (activity `70dcdf72-7520-4f82-ad17-4cf246b255f7`) without ever reaching `Completed`.
 No result was returned, so the question stands open.
 
 Note for whoever retries: the original 3-parameter call in `exploration/` completed
 normally, so a request that never finishes may itself be a signal about how `analysis`
-is handled. Do not read that as established — it is one observation, twice.
+is handled. Do not read that as established; it is one observation, twice.
 
 **Because it is unresolved, the M0 client is built CAP-TOLERANT and does not depend on
 the answer:** it chunks any `analysis` list into groups of `ENV_PARAMS_MAX_ANALYSIS`
@@ -419,7 +419,7 @@ single call.
 
 ---
 
-## 7. `/v1/satellite` — segmentation
+## 7. `/v1/satellite`: segmentation
 
 **Request**
 ```python
@@ -443,13 +443,13 @@ missing class; tolerate implausible ones. Derive impervious share by summing the
 you recognise (`building`, `skyscraper`, `road, route`, `sidewalk, pavement`) rather than
 subtracting from 100.
 
-Note `sky` appears as a class — the model segments a rendered view, so sky share is not
+Note `sky` appears as a class. The model segments a rendered view, so sky share is not
 a land-cover fact.
 
 **Most expensive endpoint measured: 14 400 credits for a single call.** Cache hard.
 
 **[VERIFIED 2026-08-24] Two further calls, for the M3 site cross-check.** Both
-completed in 1-2 polls — far faster than a heatmap call of comparable value.
+completed in 1-2 polls, far faster than a heatmap call of comparable value.
 
 ```jsonc
 // p95 site, -112.16039 / 33.46193  ->  51.8% impervious
@@ -459,7 +459,7 @@ completed in 1-2 polls — far faster than a heatmap call of comparable value.
  "mountain, mount": 0.99, "others": 0.49}
 ```
 
-`mountain, mount` is a class not seen before — the label set is open-ended, exactly
+`mountain, mount` is a class not seen before. The label set is open-ended, exactly
 as warned above. Both payloads are committed under `fixtures/satellite/`.
 
 **The cross-check is DIRECTIONAL.** §5 states the rule for hot cells ("a genuine hot
@@ -470,7 +470,7 @@ test to a cool site reports a correct selection as a failure, so
 
 ---
 
-## 8. Credits — measured
+## 8. Credits: measured
 
 Hackathon plan, 2 000 000 credits, cycle 2026-08-23 → 2026-09-27.
 
@@ -480,7 +480,7 @@ Hackathon plan, 2 000 000 credits, cycle 2026-08-23 → 2026-09-27.
 | Tile Satellite Segmentation | 14 400 | 1 | 14 400 |
 | Environment Parameter Analysis | 2 900 | 1 | 2 900 |
 
-Heatmap cost scales with cell count — an 81-cell parcel call is far cheaper than a
+Heatmap cost scales with cell count: an 81-cell parcel call is far cheaper than a
 38 569-cell metro call. Budget the metro exceedance calls carefully; parcel calls are cheap.
 
 **Estimated full build: 200–300k credits with caching.** Roughly 6× headroom. There is no
@@ -488,14 +488,14 @@ need to work around the quota.
 
 ---
 
-## 8a. Gateway behaviour on large responses — [VERIFIED 2026-08-24]
+## 8a. Gateway behaviour on large responses: [VERIFIED 2026-08-24]
 
 **Large responses intermittently return HTTP 504 while being serialised.** A
 `filter_type=4` exceedance run over the metro AOI buffered by 1 km returned
 **46 931 cells / 15.3 MB**. The first status poll returned `504 Gateway Timeout`;
 the very next poll, twenty seconds later, returned `200` with a `Completed` result.
 
-**The activity was never in trouble — the gateway was.** Treating that 504 as fatal
+**The activity was never in trouble; the gateway was.** Treating that 504 as fatal
 throws away an activity that has already been paid for and cannot be recovered
 without the id.
 
@@ -527,7 +527,7 @@ Extract site polygons server-side and send only what renders.
 
 ---
 
-## 10. Caching — required, not optional
+## 10. Caching: required, not optional
 
 The demo must run with zero live calls. Follow the pattern in the quickstart's parcel
 notebooks: commit raw responses under `fixtures/`, key the cache on a hash of the full

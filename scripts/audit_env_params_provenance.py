@@ -166,7 +166,7 @@ def classify(fg, om):
     Returns (verdict, detail). The verdicts that matter:
 
       IDENTICAL        every value equal, bit for bit
-      SAME TO ROUNDING every value within half the coarser quantum -- i.e. the
+      SAME TO ROUNDING every value within half the coarser quantum, i.e. the
                        two are the same number reported at different precision
       CORRELATED       tracks closely but beyond rounding
       DIFFERENT        genuinely different numbers

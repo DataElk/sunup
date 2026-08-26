@@ -1,7 +1,7 @@
 """Hourly dry-bulb reconstruction from a daily min/mean/max plus a shape.
 
 CLAUDE.md's data strategy in one function: one `filter_type=3` call per site-day
-gives that cell's own min, mean and max (the TEMPORAL axis — see
+gives that cell's own min, mean and max (the TEMPORAL axis, see
 FORTYGUARD_API_CONTRACT.md section 4, which warns these are easily confused with
 the spatial stats). A separate, spatially coarse source supplies the diurnal
 shape. FortyGuard sets amplitude and offset; the shape provider sets shape.
@@ -95,7 +95,7 @@ def solve_warp_gamma(
 
     mean(n**gamma) is strictly decreasing in gamma on [0, 1]-valued shapes, so
     bisection is safe. If the target lies outside what the warp can reach, gamma
-    is clamped to the bound and ``converged`` is False — never silently faked.
+    is clamped to the bound and ``converged`` is False, never silently faked.
     """
     lo, hi = C.DIURNAL_WARP_GAMMA_BOUNDS
     if _warped_mean(normalised, lo) < target_fraction:
@@ -169,8 +169,8 @@ def night_limb_reversals(
     Returns (number of hours that WARM overnight, total warming in degC).
 
     Real dry bulb falls monotonically from the evening peak to just after
-    sunrise. A shape source that carries humidity — FortyGuard's apparent
-    temperature does — puts a spurious bump on that limb, because relative
+    sunrise. A shape source that carries humidity, FortyGuard's apparent
+    temperature does, puts a spurious bump on that limb, because relative
     humidity peaks in the small hours. This function is how much that costs, in
     degrees, instead of a hand-wave.
 
@@ -203,7 +203,7 @@ def compare_amplitude(
     """Record the amplitude discrepancy CLAUDE.md requires M1 to report.
 
     A comparison against FortyGuard's own apparent temperature is NOT
-    independent — same provider, same grid — so ``is_independent`` is carried
+    independent, same provider, same grid, so ``is_independent`` is carried
     through to the report rather than being inferred from whether a number
     happens to exist.
     """

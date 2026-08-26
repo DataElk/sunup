@@ -1,12 +1,12 @@
 """
-Acclimate — physical, physiological and regulatory constants.
+Acclimate, physical, physiological and regulatory constants.
 
 RULES FOR THIS FILE (read before editing):
 
   1. Every value carries a source. No exceptions.
   2. Confidence is marked on every block:
        [VERIFIED]  checked against a primary source or a live API response
-       [CHECK]     from a standard we have not opened directly — must be confirmed
+       [CHECK]     from a standard we have not opened directly, must be confirmed
                    against the cited document before submission
        [TUNED]     a modelling choice, not a measured constant; it is defensible only
                    because its behaviour is stated and testable
@@ -45,7 +45,7 @@ from enum import Enum
 #       sensitivity-tested instead. The sign of the headline result holds in
 #       62 of 64 configurations including a continuous no-rung variant.
 #
-# LOAD-BEARING AND STILL OPEN -- these two move a real prescription:
+# LOAD-BEARING AND STILL OPEN: these two move a real prescription:
 #
 #   GLOBE_SOLAR_ABSORPTIVITY   +/-0.05 -> 0.24 degC WBGT, 30 min (two rungs)
 #   AIR_CONDUCTIVITY_REF_W_M_K +2%     -> 0.04 degC WBGT, 15 min (one rung)
@@ -65,7 +65,7 @@ from enum import Enum
 #
 #   CLOTHING_ADJUSTMENT_C   every demo worker wears `work_clothes`, whose
 #                           adjustment is 0.0 degC. The other five entries are
-#                           never read. Flagged, not verified -- and the large
+#                           never read. Flagged, not verified, and the large
 #                           one (vapor_barrier_limited, +11 degC) must not be
 #                           quoted anywhere until it is checked.
 #   OSHA_INITIAL_HEAT_TRIGGER_HEAT_INDEX_F
@@ -82,9 +82,9 @@ from enum import Enum
 # ============================================================================
 
 # ============================================================================
-# 1. METABOLIC WORKLOAD  —  ISO 8996
+# 1. METABOLIC WORKLOAD: ISO 8996
 # ============================================================================
-# [CHECK] ISO 8996:2004 "Ergonomics of the thermal environment — Determination of
+# [CHECK] ISO 8996:2004 "Ergonomics of the thermal environment - Determination of
 #         metabolic rate", Table 1 (metabolic rate classes).
 #         Values are W/m^2 of body surface area. Standard reference body surface
 #         area is 1.8 m^2, so W/m^2 * 1.8 = watts total.
@@ -132,7 +132,7 @@ TRADE_TO_WORK_CLASS = {
 
 
 # ============================================================================
-# 2. EXPOSURE LIMITS  —  NIOSH REL / RAL
+# 2. EXPOSURE LIMITS: NIOSH REL / RAL
 # ============================================================================
 # [VERIFIED 2026-08-25] NIOSH Criteria for a Recommended Standard: Occupational
 #         Exposure to Heat and Hot Environments, DHHS (NIOSH) Publication
@@ -149,7 +149,7 @@ TRADE_TO_WORK_CLASS = {
 #     RAL = 59.9 - 14.1 * log10(M)      unacclimatized
 #     REL = 56.7 - 11.5 * log10(M)      acclimatized
 #
-# with M the TOTAL metabolic heat production in watts -- section 1's W/m^2 value
+# with M the TOTAL metabolic heat production in watts, section 1's W/m^2 value
 # multiplied by BODY_SURFACE_AREA_M2. Evaluated at our four classes:
 #
 #     class        M (W)   RAL eq   ours    REL eq   ours
@@ -189,7 +189,7 @@ WBGT_LIMIT_UNACCLIMATIZED = {    # NIOSH RAL
 # Work/rest allocation as a function of how far the environment exceeds the
 # worker's personal limit.
 #
-# [RESOLVED 2026-08-25 — AND THE ORIGINAL PREMISE WAS WRONG]
+# [RESOLVED 2026-08-25: AND THE ORIGINAL PREMISE WAS WRONG]
 #
 # This block used to say "[CHECK] against the NIOSH work/rest schedule table".
 # There is no such table. NIOSH 2016-106 was read for it: work/rest scheduling
@@ -202,8 +202,8 @@ WBGT_LIMIT_UNACCLIMATIZED = {    # NIOSH RAL
 #
 # So this ladder is OUR CONSTRUCTION. It is not a standard, it is not NIOSH, and
 # it must never be presented as either. What it borrows from ACGIH is only the
-# STRUCTURE that everyone uses -- four rungs at 60/45/30/15 minutes of work per
-# hour -- applied to a different independent variable: degrees above THIS
+# STRUCTURE that everyone uses: four rungs at 60/45/30/15 minutes of work per
+# hour, applied to a different independent variable: degrees above THIS
 # worker's personal limit, rather than absolute WBGT against a fixed category.
 # That substitution is the whole product, and it means no published table could
 # have supplied these numbers.
@@ -241,7 +241,7 @@ WORK_REST_STOP = 0  # beyond the ladder: no work at this intensity
 #   TAU_DECAY = 13.0 days
 #       Gives A ~ 0.34 retained after 14 days of zero stimulus, consistent with
 #       OSHA and NIOSH treating an absence of 14 days as requiring full
-#       re-acclimatization. [CHECK the OSHA absence threshold — the proposed rule
+#       re-acclimatization. [CHECK the OSHA absence threshold, the proposed rule
 #       and the existing NIOSH guidance may state different numbers of days.]
 #
 # The 3x asymmetry (gain faster than decay) is the physiologically important
@@ -265,7 +265,7 @@ A_MIN, A_MAX = 0.0, 1.0
 DEGREE_HOURS_FULL_STIMULUS = 6.0   # °C-WBGT * hours above personal limit
 
 # ############################################################################
-# [RESOLVED 2026-08-24 — M2] THE CONSTANT WAS NEVER THE PROBLEM.
+# [RESOLVED 2026-08-24: M2] THE CONSTANT WAS NEVER THE PROBLEM.
 # ############################################################################
 # The first M2 run found s pinned at 1.000 on every real Phoenix shift. Measured
 # degree-hours over the 05:00-13:00 demo shift, moderate work, on the four
@@ -280,7 +280,7 @@ DEGREE_HOURS_FULL_STIMULUS = 6.0   # °C-WBGT * hours above personal limit
 #
 #     A(t+1) = A + (1 - A)/TAU_GAIN
 #
-# a function of DAYS ELAPSED and nothing else — precisely the calendar the
+# a function of DAYS ELAPSED and nothing else, precisely the calendar the
 # product exists to replace. Two workers with a 1.9x difference in measured heat
 # dose received identical schedules.
 #
@@ -301,14 +301,14 @@ STIMULUS_FLOOR_DEG = 0.0
 
 
 # ----------------------------------------------------------------------------
-# 3a. WHAT THE STIMULUS INTEGRATES  —  corrected 2026-08-24
+# 3a. WHAT THE STIMULUS INTEGRATES: corrected 2026-08-24
 # ----------------------------------------------------------------------------
 # DEGREE_HOURS_FULL_STIMULUS stays at 6.0. What changed is the integrand, and
 # the reason is that the first definition was wrong twice over.
 #
 #     dose = SUM over shift hours of  max(WBGTeff - RAL, 0) * (minutes worked / 60)
 #
-# CHANGE 1 — the threshold is the FIXED RAL for the workload class, not the
+# CHANGE 1: the threshold is the FIXED RAL for the workload class, not the
 # worker's moving personal limit.
 #
 #   Integrating above the moving limit is circular. As a worker adapts his limit
@@ -317,10 +317,10 @@ STIMULUS_FLOOR_DEG = 0.0
 #   is backwards: the environment does not know how adapted anyone is. Heat dose
 #   is a property of the weather and the exposure, not of the person.
 #
-#   The personal limit still does real work — it sets the SCHEDULE. It just no
+#   The personal limit still does real work, it sets the SCHEDULE. It just no
 #   longer sets the threshold for measuring dose.
 #
-# CHANGE 2 — only hours ACTUALLY WORKED count, weighted by the prescribed duty
+# CHANGE 2: only hours ACTUALLY WORKED count, weighted by the prescribed duty
 # cycle.
 #
 #   An hour spent resting in shade produces no adaptive stimulus. An hour
@@ -340,7 +340,7 @@ STIMULUS_FLOOR_DEG = 0.0
 #   and s = 1 simply holds it there.
 #
 # A FEEDBACK LOOP THIS INTRODUCES, DELIBERATELY. The schedule depends on
-# adaptation, so dose now depends on adaptation — but in the physically correct
+# adaptation, so dose now depends on adaptation, but in the physically correct
 # direction: a more adapted worker is cleared for more minutes, so he
 # accumulates MORE dose. Gain, not loss. It is also self-limiting, because the
 # hottest hours are exactly the ones prescribed at zero.
@@ -376,7 +376,7 @@ MATERIAL_DIVERGENCE_MIN_PER_HOUR = 15
 # The PRIMARY divergence metric is the personal limit in degC-WBGT, because it
 # is continuous and monotone in accumulated dose while the prescription is
 # quantised into 15-minute rungs. [TUNED] 0.25 degC is a quarter of the 3.0 degC
-# span between RAL and REL for moderate work — a separation that would move a
+# span between RAL and REL for moderate work, a separation that would move a
 # worker an eighth of the way along the NIOSH scale is not noise.
 MATERIAL_LIMIT_GAP_C = 0.25
 
@@ -403,7 +403,7 @@ MATERIAL_LIMIT_GAP_C = 0.25
 # and he is still unadapted on day 14. Work him only in the cool of the morning
 # and he never crosses the RAL: also zero adaptation. The fastest safe ramp sits
 # between them, and [MEASURED 2026-08-24, scripts/m3_report.py] it is a genuine
-# interior maximum — for moderate work on the 05:00-13:00 shift the peak sits
+# interior maximum, for moderate work on the 05:00-13:00 shift the peak sits
 # around 3 degC BELOW the measured Phoenix August day, and adaptation falls away
 # on both sides.
 #
@@ -418,7 +418,7 @@ MATERIAL_LIMIT_GAP_C = 0.25
 # tell you this man is not as adapted as the calendar thinks". It is:
 #
 #     "Here is the schedule that gets him adapted fastest without exceeding the
-#      strain ceiling — and here is how many days it saves."
+#      strain ceiling, and here is how many days it saves."
 #
 # That is a scheduling recommendation an employer can act on, not just a warning
 # they have to absorb. It also reframes the inversion finding from an awkward
@@ -433,29 +433,29 @@ MATERIAL_LIMIT_GAP_C = 0.25
 # THE STRAIN CEILING IS THE PART TO GET RIGHT. "Fastest ramp" without a
 # constraint is just "work him in the hottest hours", which is how people die.
 # The ceiling must be the work/rest ladder at the worker's CURRENT
-# personal limit, evaluated hour by hour — never a daily average, because a
+# personal limit, evaluated hour by hour, never a daily average, because a
 # daily average hides the 14:00 peak that does the damage.
 
 
 # ============================================================================
-# 4. CLOTHING ADJUSTMENT  —  ACGIH CAV
+# 4. CLOTHING ADJUSTMENT: ACGIH CAV
 # ============================================================================
 # [CHECK] ACGIH TLVs and BEIs booklet, Heat Stress and Strain, clothing
 #         adjustment factor table. Values are ADDED to measured WBGT (i.e. they
 #         effectively lower the allowable environment).
-#         THE TABLE HAS BEEN REVISED ACROSS EDITIONS — cite the edition you used.
+#         THE TABLE HAS BEEN REVISED ACROSS EDITIONS: cite the edition you used.
 #
 # Most construction is baseline work clothes (0.0), so this is a crew setting
 # that stays invisible by default. The extreme values matter enormously: a
 # vapour-barrier coverall adjustment can dominate every other term in the model.
 
 CLOTHING_ADJUSTMENT_C = {
-    "work_clothes":            0.0,   # long-sleeve shirt and trousers — baseline
+    "work_clothes":            0.0,   # long-sleeve shirt and trousers, baseline
     "coveralls":               0.0,   # [CHECK] some editions list +0
     "double_layer_woven":      3.0,   # [CHECK]
     "sms_polypropylene":       0.5,   # [CHECK]
     "polyolefin_coveralls":    1.0,   # [CHECK]
-    "vapor_barrier_limited":  11.0,   # [CHECK] — large; verify before quoting
+    "vapor_barrier_limited":  11.0,   # [CHECK], large; verify before quoting
 }
 
 
@@ -485,7 +485,7 @@ CLOTHING_ADJUSTMENT_C = {
 #   without solar load:  WBGT = 0,7 t_nw + 0,3 t_g          Formula (1)
 #   with solar load:     WBGT = 0,7 t_nw + 0,2 t_g + 0,1 t_a Formula (2)
 # Independently corroborated: ISO Table D.1's WBGT column only reproduces with
-# Formula (1) — the outdoor form is out by up to 3,4 degC on those rows. See
+# Formula (1), the outdoor form is out by up to 3,4 degC on those rows. See
 # tests/test_natural_wet_bulb.py.
 WBGT_OUTDOOR_WEIGHTS = (0.7, 0.2, 0.1)   # (nwb, globe, dry)
 WBGT_INDOOR_WEIGHTS = (0.7, 0.3, 0.0)
@@ -508,7 +508,7 @@ WBGT_REFERENCE_TOLERANCE_C = 1.0
 
 
 # ----------------------------------------------------------------------------
-# 5a. BLACK GLOBE TEMPERATURE  —  T_globe is measured by neither API
+# 5a. BLACK GLOBE TEMPERATURE: T_globe is measured by neither API
 # ----------------------------------------------------------------------------
 # Section 5 requires either Liljegren et al. (2008) or an explicitly stated
 # simpler substitution. WE SUBSTITUTED. What we solve is the steady-state energy
@@ -523,8 +523,8 @@ WBGT_REFERENCE_TOLERANCE_C = 1.0
 #   F = 0.5 * (eps_sky + eps_grd + (1 - eps_grd) * eps_sky)
 #
 # Under overcast (eps_sky = 1) this is exactly 1, so with no sun the globe sits
-# exactly at air temperature. Dropping the reflected term — easy to do, and we
-# did at first — costs about 0.5 degC of globe temperature on an overcast night.
+# exactly at air temperature. Dropping the reflected term, easy to do, and we
+# did at first, costs about 0.5 degC of globe temperature on an overcast night.
 #
 # where S_sphere is shortwave irradiance averaged over the whole sphere surface.
 # That average follows from geometry alone, not from a fitted constant:
@@ -537,7 +537,7 @@ WBGT_REFERENCE_TOLERANCE_C = 1.0
 #   1. Ground surface temperature is taken as air temperature. Liljegren does
 #      the same; real asphalt at 14:00 is far hotter, so this UNDER-estimates
 #      the globe, hence WBGT. Conservative direction, but a bias.
-#   2. Liljegren also models the natural wet bulb thermometer. We do not — we
+#   2. Liljegren also models the natural wet bulb thermometer. We do not, we
 #      take FortyGuard psychrometric wet bulb directly (see 5b).
 #   3. No correction for globe thermal mass / non-steady state.
 #
@@ -545,7 +545,7 @@ WBGT_REFERENCE_TOLERANCE_C = 1.0
 #  globe normatively:
 #     a) diameter: 150 mm.
 #     b) mean emission coefficient: 0,95 (matte black globe);
-#  A secondary source claimed 0,97 — it is wrong. The standard says 0,95.]
+#  A secondary source claimed 0,97. It is wrong. The standard says 0,95.]
 GLOBE_DIAMETER_M = 0.15            # [VERIFIED] ISO 7243:2017 Annex B.2 a)
 GLOBE_EMISSIVITY = 0.95            # [VERIFIED] ISO 7243:2017 Annex B.2 b)
 
@@ -558,7 +558,7 @@ GLOBE_EMISSIVITY = 0.95            # [VERIFIED] ISO 7243:2017 Annex B.2 b)
 #
 #         MEASURED SENSITIVITY (scripts/audit_constants.py): moving this to 0.90
 #         or 1.00 changes the peak effective WBGT by 0.24 degC and moves a demo
-#         worker's prescription by 30 MINUTES -- two rungs of the ladder. Of every
+#         worker's prescription by 30 MINUTES: two rungs of the ladder. Of every
 #         [CHECK] constant that feeds the WBGT composition, this is the only one
 #         that moves a prescription that far. It is a genuine open caveat and the
 #         writeup names it as such.
@@ -600,7 +600,7 @@ RANZ_MARSHALL_B = 0.6     # [VERIFIED]
 #         only binds on calm nights, where the solar load is zero anyway.
 MIN_AIR_SPEED_M_S = 0.5
 
-# Air properties. Dynamic viscosity via Sutherland's law. [CHECK] — no primary
+# Air properties. Dynamic viscosity via Sutherland's law. [CHECK], no primary
 # source opened for these five. They enter only through the convective
 # coefficient h = Nu*k/D, and the measured wind sensitivity below shows the whole
 # h term is worth well under 1 degC across a 20x range of wind, so a few percent
@@ -623,7 +623,7 @@ ISA_LAPSE_EXPONENT = 5.25588
 
 
 # ----------------------------------------------------------------------------
-# 5b. NATURAL WET BULB  —  SETTLED 2026-08-24
+# 5b. NATURAL WET BULB: SETTLED 2026-08-24
 # ----------------------------------------------------------------------------
 # DECISION: the default is the PSYCHROMETRIC value FortyGuard returns, used
 # unmodified as if it were the natural wet bulb. Settled by the project owner.
@@ -652,7 +652,7 @@ ISA_LAPSE_EXPONENT = 5.25588
 # 4. The §5 reference cannot arbitrate, because it shares our assumption. The
 #    ≈31 °C was hand-computed using the psychrometric value in the 0.7 term. So
 #    "psychrometric reproduces the reference and Annex D does not" is NOT
-#    evidence that psychrometric is right — it is evidence they agree. SPEC.md's
+#    evidence that psychrometric is right. It is evidence they agree. SPEC.md's
 #    M1 exit criterion now states this explicitly.
 #
 # WHAT THIS COSTS, stated plainly because it is the one bias that runs the wrong
@@ -675,7 +675,7 @@ ISA_LAPSE_EXPONENT = 5.25588
 
 
 # ----------------------------------------------------------------------------
-# 5c. HOURLY SOLAR — reconstructed, because no API gives it offline
+# 5c. HOURLY SOLAR: reconstructed, because no API gives it offline
 # ----------------------------------------------------------------------------
 # FortyGuard /v1/env_params returns ONE daily clear-sky mean (ghi/dni/dhi), not
 # 24 values (FORTYGUARD_API_CONTRACT.md section 6, trap 1). Open-Meteo has the
@@ -718,7 +718,7 @@ HAURWITZ_B = 0.059
 
 # Meinel & Meinel (1976) clear-sky direct normal model:
 #   DNI = SOLAR_CONSTANT * 0.7 ^ (AM ^ 0.678),  AM = 1 / cos(z)
-# [VERIFIED 2026-08-24 — but against SECONDARY sources only (PVEducation and the
+# [VERIFIED 2026-08-24: but against SECONDARY sources only (PVEducation and the
 #  clear-sky model literature, which reproduce it as DNI = I0 * 0.7^(AM^0.678)
 #  and attribute it to Meinel, A.B. & Meinel, M.P., "Applied Solar Energy: An
 #  Introduction", Addison-Wesley, 1976). The 1976 book itself was not opened.
@@ -736,7 +736,7 @@ MIN_SOLAR_ELEVATION_DEG = 0.0
 #  radiation dependent on the amount and type of cloud", Solar Energy 24(2):
 #  177-189, 1980. Derived from 10 years of hourly data at Hamburg.]
 # We pass cloud as a FRACTION (N/8 already applied), so the code reads
-# 1 - 0.75 * c^3.4 with c in [0,1] — algebraically the same expression.
+# 1 - 0.75 * c^3.4 with c in [0,1], algebraically the same expression.
 KASTEN_CZEPLAK_A = 0.75
 KASTEN_CZEPLAK_EXPONENT = 3.4
 
@@ -749,11 +749,11 @@ BEAM_SURVIVES_LINEARLY_IN_CLEAR_FRACTION = True
 
 
 # ----------------------------------------------------------------------------
-# 5d. WIND — available from NEITHER API. The pipeline weakest input.
+# 5d. WIND: available from NEITHER API. The pipeline weakest input.
 # ----------------------------------------------------------------------------
 # Section 5 already records it: "wind: NOT AVAILABLE from FortyGuard at all.
 # Open-Meteo only." No Open-Meteo fixture is cached, so offline runs use an
-# assumed constant. THIS IS TAGGED IN THE PROVENANCE OF EVERY RESULT — a run on
+# assumed constant. THIS IS TAGGED IN THE PROVENANCE OF EVERY RESULT: a run on
 # assumed wind can never be mistaken for a run on retrieved wind.
 #
 # [RESOLVED 2026-08-24] An Open-Meteo fixture now exists for the reference
@@ -766,7 +766,7 @@ BEAM_SURVIVES_LINEARLY_IN_CLEAR_FRACTION = True
 #     min 0.53   mean 2.81   max 4.68 m/s      (06:00 1.42, 14:00 3.28)
 # against the 3.0 m/s that was assumed. Swapping the assumption for the measured
 # series moves WBGT at 14:00 by 0.07 degC, so the earlier offline result was not
-# luck — pinned by test_measured_wind_did_not_rescue_a_broken_model.
+# luck, pinned by test_measured_wind_did_not_rescue_a_broken_model.
 DEFAULT_WIND_SPEED_M_S = 3.0
 
 # The band of plausible daytime 2 m wind speeds the writeup reports over.
@@ -786,7 +786,7 @@ WIND_SENSITIVITY_BAND_M_S = (1.0, 8.0)
 # So on a near-calm afternoon the pipeline over-reads WBGT by up to 1.7 degC.
 # That errs toward restricting work rather than permitting it, which is the safe
 # direction, but it is an error. It disappears the moment a real wind series is
-# cached — see the Open-Meteo call in sources/openmeteo.py.
+# cached, see the Open-Meteo call in sources/openmeteo.py.
 WIND_BAND_REPRODUCING_REFERENCE_M_S = (1.5, 10.0)
 
 # Wind is reported at 10 m; the globe sits at roughly 2 m. Logarithmic wind
@@ -810,7 +810,7 @@ SURFACE_ROUGHNESS_LENGTH_M = 0.1   # [CHECK] suburban / built-up
 # 0.575 * e^0.143, attributed in-source to Oke. Ours is Brutsaert and is cited
 # as Brutsaert. Do not describe the radiation scheme as "Liljegren's".
 #
-# Cloud raises emissivity toward unity in proportion to cover — our step, and
+# Cloud raises emissivity toward unity in proportion to cover, our step, and
 # exact at both endpoints (clear -> Brutsaert, overcast -> 1).
 BRUTSAERT_A = 1.24
 BRUTSAERT_EXPONENT = 1.0 / 7.0
@@ -832,7 +832,7 @@ MAGNUS_C = 237.3
 # 5f. HOURLY DRY BULB RECONSTRUCTION
 # ----------------------------------------------------------------------------
 # FortyGuard filter_type=3 gives THREE numbers per cell for the whole day: min,
-# mean and max (FORTYGUARD_API_CONTRACT.md section 4 — these are the TEMPORAL
+# mean and max (FORTYGUARD_API_CONTRACT.md section 4. These are the TEMPORAL
 # axis, not the spatial one). A separate source supplies the diurnal SHAPE.
 # FortyGuard sets amplitude and offset; the shape provider sets shape.
 #
@@ -853,10 +853,10 @@ DIURNAL_WARP_GAMMA_PLAUSIBLE = (0.4, 2.5)
 
 
 # ----------------------------------------------------------------------------
-# 5g. NATURAL WET BULB BY CALCULATION  —  ISO 7243:2017 Annex D
+# 5g. NATURAL WET BULB BY CALCULATION: ISO 7243:2017 Annex D
 # ----------------------------------------------------------------------------
 # [VERIFIED 2026-08-24 against ISO 7243:2017(E) Annex D, Formulae (D.1) and
-#  (D.2), and validated against all 22 rows of the standard's own Table D.1 —
+#  (D.2), and validated against all 22 rows of the standard's own Table D.1, 
 #  see tests/test_natural_wet_bulb.py, worst error 0.16 degC.]
 #
 # Formula (D.1), solved iteratively for t_nw:
@@ -884,7 +884,7 @@ ISO_MRT_DIAMETER_EXPONENT = 0.4
 
 # The domain ISO actually tabulates. Outside it the standard offers no worked
 # example, and Annex D's own preamble says the method "is not recommended".
-# Phoenix afternoons run about 3 m/s — over 3x the tabulated ceiling.
+# Phoenix afternoons run about 3 m/s: over 3x the tabulated ceiling.
 ISO_TABLE_D1_TNW_RANGE_C = (15.0, 30.0)   # [VERIFIED] Table D.1 caption
 ISO_TABLE_D1_MAX_SPEED_M_S = 0.9          # [VERIFIED] Table D.1 largest v_a
 
@@ -894,9 +894,9 @@ PSYCHROMETRIC_CONSTANT_COEFF = 0.665e-3
 
 
 # ============================================================================
-# 6. REGULATORY CONTEXT  —  for copy, not for computation
+# 6. REGULATORY CONTEXT: for copy, not for computation
 # ============================================================================
-# [VERIFIED 2026-08-23 via web sources — re-confirm before submission]
+# [VERIFIED 2026-08-23 via web sources, re-confirm before submission]
 #
 # STATUS: The federal OSHA heat standard is PROPOSED, NOT LAW. The NPRM "Heat
 # Injury and Illness Prevention in Outdoor and Indoor Work Settings" published
@@ -914,7 +914,7 @@ OSHA_INITIAL_HEAT_TRIGGER_HEAT_INDEX_F = 80.0   # [CHECK] proposed rule text
 OSHA_HIGH_HEAT_TRIGGER_HEAT_INDEX_F = 90.0      # [CHECK] proposed rule text
 OSHA_HIGH_HEAT_REST_MIN_PER_2H = 15             # [CHECK] proposed rule text
 
-# OSHA "Rule of 20 Percent" — the calendar ramp the model is measured against.
+# OSHA "Rule of 20 Percent", the calendar ramp the model is measured against.
 # Day 1 = 20% of a normal shift, +20% per day.
 CALENDAR_RAMP_PCT_BY_DAY = {1: 20, 2: 40, 3: 60, 4: 80, 5: 100}
 
@@ -927,7 +927,7 @@ NIOSH_RAMP_PCT_BY_DAY = {1: 50, 2: 60, 3: 80, 4: 100}
 #   Cal/OSHA: almost half on the first day; ~80% within the first four days.
 #   BLS: 48 US workers died of environmental heat exposure in 2024.
 #   A review of 79 heat fatalities found 5% occurred below any heat-index warning
-#     level and a further 20% on days rated only "Caution" — i.e. one in four
+#     level and a further 20% on days rated only "Caution", i.e. one in four
 #     deaths on days the warning system called safe or nearly safe. THIS IS THE
 #     STRONGEST SINGLE STATISTIC FOR THE PITCH.
 # Undercount estimates (Public Citizen, ~2,000/yr) are ADVOCACY figures, not
@@ -945,7 +945,7 @@ NIOSH_RAMP_PCT_BY_DAY = {1: 50, 2: 60, 3: 80, 4: 100}
 # discrimination; on the basis of a medical condition, ADA exposure. Residence
 # is excluded because nocturnal heat correlates with poverty and race, so scoring
 # individuals on it would systematically cut hours for workers from the hottest,
-# poorest neighbourhoods — penalising them for the exposure that endangers them.
+# poorest neighbourhoods, penalising them for the exposure that endangers them.
 #
 # Every input is either environmental or job-assigned. The model restricts a
 # worker for what he has been EXPOSED TO, never for who he is.
@@ -984,7 +984,7 @@ BACKFILL_DAYS = 14
 FORWARD_DAYS = 7
 
 # [VERIFIED via threshold sweep 2026-08-23] Phoenix summer only. Re-sweep for any
-# other city or season — do not assume this transfers.
+# other city or season, do not assume this transfers.
 EXCEEDANCE_THRESHOLD_C = 40.0
 
 # Phoenix construction runs an early summer shift. Using a 9-5 shift makes every
@@ -1006,7 +1006,7 @@ class SiteProfile:
 
 
 # ============================================================================
-# 9. API ACCESS  —  M0 client and cache
+# 9. API ACCESS: M0 client and cache
 # ============================================================================
 # [VERIFIED 2026-08-23/24 against FORTYGUARD_API_CONTRACT.md sections 1-8.]
 # Transport-level facts only. Nothing here is physical or regulatory.
@@ -1041,19 +1041,19 @@ ANALYTIC_TYPES = frozenset({"tcm", "time_of_measure", "exceedance", "persistence
 
 # Contract section 2: Basic/Startup tiers are capped at 3 analysis parameters per
 # /v1/env_params request. Whether the cap actually binds on the hackathon key is
-# UNRESOLVED — see contract section 6, "analysis may not be applied". The client
+# UNRESOLVED: see contract section 6, "analysis may not be applied". The client
 # chunks to this size regardless, which is correct either way and free when the
 # whole request fits in one chunk.
 ENV_PARAMS_MAX_ANALYSIS = 3
 
 
 # ----------------------------------------------------------------------------
-# 9a. EXCEEDANCE CLAMPING  —  mandatory on ingest
+# 9a. EXCEEDANCE CLAMPING: mandatory on ingest
 # ----------------------------------------------------------------------------
 # [VERIFIED 2026-08-23] Contract section 5: the exceedance field is INTERPOLATED,
 # not counted. Measured pathologies on real responses:
-#     min = -0.3176 h at threshold 42 degC   -- a negative duration
-#     max = 168.62 h on a 168-hour window    -- 0.62 h past the ceiling
+#     min = -0.3176 h at threshold 42 degC, a negative duration
+#     max = 168.62 h on a 168-hour window, 0.62 h past the ceiling
 #
 # Both are physically impossible. They are clamped at the parse boundary, in
 # fortyguard.parse_analysis_grid, so an impossible duration cannot reach the
@@ -1063,13 +1063,13 @@ ENV_PARAMS_MAX_ANALYSIS = 3
 # We never claim integer-hour precision from this field, and never plot it raw.
 EXCEEDANCE_CLAMP_MIN_H = 0.0
 
-# [TUNED] A cell landing further outside the window than this is a parse error —
-# wrong window length, wrong units — not interpolation noise. Raise, do not clamp.
+# [TUNED] A cell landing further outside the window than this is a parse error, 
+# wrong window length, wrong units, not interpolation noise. Raise, do not clamp.
 EXCEEDANCE_IMPLAUSIBLE_MARGIN_H = 24.0
 
 
 # ============================================================================
-# 10. SITE SELECTION  —  M3
+# 10. SITE SELECTION: M3
 # ============================================================================
 # [VERIFIED 2026-08-23] FORTYGUARD_API_CONTRACT.md section 5 records the reason
 # every value here exists: on the 14-day 40 degC Phoenix run, all 5 highest
@@ -1096,7 +1096,7 @@ RANK_PERCENTILE_HIGH = 95.0
 #    ranking, the cell is an artifact.
 #
 # [VERIFIED 2026-08-23] Contract section 7: class labels are ADE20K-style and
-# open-ended — a landlocked downtown Phoenix tile returned "ship": 2.74. Derive
+# open-ended, a landlocked downtown Phoenix tile returned "ship": 2.74. Derive
 # impervious share by SUMMING the classes we recognise, never by subtracting
 # from 100, because the unrecognised remainder is not necessarily pervious.
 IMPERVIOUS_CLASSES = frozenset({

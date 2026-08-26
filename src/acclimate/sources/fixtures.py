@@ -3,8 +3,8 @@
 FORTYGUARD_API_CONTRACT.md section 1: the response envelope differs by access
 path. ``client.create_heatmap`` returns ``{"activity_id", "result"}`` while a raw
 ``GET /v1/status/{id}`` returns ``{"error", "status_code", "message", "data":
-{"activity_id", "status", "result"}}``. The fixtures contain both shapes — one
-per file, depending on which script captured it — so unwrapping is defensive.
+{"activity_id", "status", "result"}}``. The fixtures contain both shapes, one
+per file, depending on which script captured it, so unwrapping is defensive.
 """
 
 from __future__ import annotations

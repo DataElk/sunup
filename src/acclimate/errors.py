@@ -23,7 +23,7 @@ class OfflineDataUnavailable(AcclimateError):
 
 
 class ImplausibleValue(AcclimateError):
-    """A computed value fell outside its physical sanity band — a bug, not weather."""
+    """A computed value fell outside its physical sanity band, a bug, not weather."""
 
 
 class ConvergenceError(AcclimateError):

@@ -108,7 +108,7 @@ function rampStrip(records) {
       });
       bar.setAttribute('data-status', record.status);
       const title = document.createElementNS(ns, 'title');
-      title.textContent = `${record.date} — ${record.prescribedMinutes} min prescribed`
+      title.textContent = `${record.date}, ${record.prescribedMinutes} min prescribed`
         + `${record.assumed ? ' (assumed)' : `, ${record.actualMinutes} logged`}`
         + `, peak ${peak.toFixed(1)} °C`;
       bar.appendChild(title);
@@ -165,9 +165,9 @@ function divergenceCell(record) {
   node.setAttribute('data-dir',
     record.divergence < 0 ? 'over' : (record.divergence > 0 ? 'under' : 'none'));
   node.title = record.divergence < 0
-    ? 'The calendar allows more than the model — under-protection'
+    ? 'The calendar allows more than the model, under-protection'
     : (record.divergence > 0
-      ? 'The calendar allows less than the model — hours it discards'
+      ? 'The calendar allows less than the model, hours it discards'
       : 'The calendar and the model agree');
   return node;
 }
@@ -403,7 +403,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
     fact('Trade', worker.trade),
     fact('Intensity', result.workClass
       + (worker.workClassOverride ? ' (override)' : '')),
-    fact('Shift', `${pad(worker.shiftStart)}:00–${pad(worker.shiftEnd)}:00`),
+    fact('Shift', `${pad(worker.shiftStart)}:00, ${pad(worker.shiftEnd)}:00`),
     fact('Clothing', worker.clothing.replace(/_/g, ' ')),
     fact('Day on job', String(current.dayOnJob)),
     fact('Calendar', `${current.calendarMinutes} min`));
@@ -502,7 +502,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
     }
     table.append(thead, tbody);
     const why = binding ? el('p', 'muted',
-      `Binding hour ${pad(binding.hour)}:00 — `
+      `Binding hour ${pad(binding.hour)}:00, `
       + (binding.overLimit > 0
         ? `${binding.overLimit.toFixed(1)} °C above this worker’s limit.`
         : 'within limit.')) : null;
@@ -520,7 +520,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
     el('dt', null, 'Overexposure'), el('dd', 'num',
       `${result.cumulativeOverexposure.toFixed(2)} °C·h`),
     el('dt', null, 'Weather'), el('dd', null,
-      `${site.weatherSource}${site.seriesKey ? ` — ${site.seriesKey}` : ''}`));
+      `${site.weatherSource}${site.seriesKey ? `, ${site.seriesKey}` : ''}`));
   root.appendChild(section('Acclimatization state', state));
 
   return root;
@@ -556,7 +556,7 @@ function derivedBanner(site) {
 }
 
 function noWeatherBanner(ctx, site) {
-  const node = banner('danger', 'No weather history — prescriptions unavailable',
+  const node = banner('danger', 'No weather history, prescriptions unavailable',
     'This site has no hourly WBGT series, so nothing can be prescribed for the '
     + 'crews under it.');
   const actions = el('div', 'callout-actions');

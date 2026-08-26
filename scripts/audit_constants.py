@@ -4,7 +4,7 @@
 
 WHY THIS EXISTS
 ---------------
-constants.py carries about thirty [CHECK] tags -- values taken from a standard
+constants.py carries about thirty [CHECK] tags, values taken from a standard
 we have not opened directly. Verifying all of them against primary sources is
 not possible before submission: ISO 8996 and the ACGIH TLV booklet are both
 paywalled, and NIOSH publishes its limits as figures rather than tables.
@@ -15,15 +15,15 @@ prescription". A constant that cannot change a single worker's minutes is not a
 risk to a safety product no matter how thinly it is sourced; a constant that
 moves the answer needs either a source or a stated caveat.
 
-So this MEASURES it. Each constant is perturbed by a plausible amount -- the
+So this MEASURES it. Each constant is perturbed by a plausible amount, the
 alternative value a different source would give, or a range wide enough to
-bracket the disagreement -- and the whole demo crew is re-prescribed from raw
+bracket the disagreement, and the whole demo crew is re-prescribed from raw
 tiles. What is reported is the largest change in prescribed minutes across the
 crew, which is the number a foreman would actually see.
 
 READ THE RESULT AS A TRIAGE, NOT A VALIDATION. A zero here means "cannot affect
 the demo", not "correct". Several constants are zero only because the demo never
-exercises them -- every worker wears `work_clothes`, so the other clothing
+exercises them, every worker wears `work_clothes`, so the other clothing
 adjustments are unreachable. That is worth knowing and worth saying, but it is
 not the same as having checked them.
 

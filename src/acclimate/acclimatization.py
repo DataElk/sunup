@@ -1,4 +1,4 @@
-"""M2 — the acclimatization engine.
+"""M2, the acclimatization engine.
 
     Environment  ->  WBGT  ->  daily stimulus s  ->  adaptation state A  ->  work/rest
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -6,7 +6,7 @@
 
 SPEC.md's model, implemented as written:
 
-  2. daily stimulus  s in [0,1] — degree-hours above the worker's personal limit,
+  2. daily stimulus  s in [0,1], degree-hours above the worker's personal limit,
      normalised by DEGREE_HOURS_FULL_STIMULUS. Only exposure above the limit
      builds adaptation.
   3. state update    A(t+1) = A + s*(1-A)/tau_gain - (1-s)*A/tau_decay
@@ -18,13 +18,13 @@ acclimatization as a binary switch; we place each worker continuously between
 them. No threshold is invented.
 
 WHAT THE MODEL IS NOT ALLOWED TO KNOW. Every input here is environmental or
-job-assigned. constants.py section 7 lists what is excluded and why — age, sex,
+job-assigned. constants.py section 7 lists what is excluded and why, age, sex,
 BMI, fitness, medical history, hydration, residence. `Worker` rejects them
 structurally rather than by convention, because the reason is legal, not
 stylistic: restricting a man's hours on the basis of age is age discrimination.
 
 A CAUTION THE ENGINE REPORTS ON ITSELF. If s saturates at 1 for every worker on
-every day, the update degenerates to A(t+1) = A + (1-A)/tau_gain — a function of
+every day, the update degenerates to A(t+1) = A + (1-A)/tau_gain, a function of
 DAYS ELAPSED alone, which is exactly the calendar the product exists to replace.
 Every result therefore carries `saturated_days`, and `Ramp.is_degenerate` says so
 outright. See scripts/m2_report.py for what that does on real Phoenix data.
@@ -42,7 +42,7 @@ from acclimate.wbgt import WBGTDay
 
 
 # ---------------------------------------------------------------------------
-# Worker — job-assigned attributes only
+# Worker: job-assigned attributes only
 # ---------------------------------------------------------------------------
 
 
@@ -57,7 +57,7 @@ def reject_forbidden_inputs(fields: Mapping[str, object]) -> None:
     if offending:
         raise ForbiddenInput(
             "these inputs are forbidden and must never be accepted, not even "
-            "optionally: %s. See constants.py section 7 — restricting a worker's "
+            "optionally: %s. See constants.py section 7, restricting a worker's "
             "hours on the basis of any of these is a legal exposure, not a "
             "modelling preference." % offending
         )
@@ -177,7 +177,7 @@ def work_minutes_per_hour(effective_wbgt: float, limit_c: float) -> int:
 class Stimulus:
     degree_hours: float
     value: float          # s in [0, 1]
-    saturated: bool       # s hit the ceiling — the day carries no information
+    saturated: bool       # s hit the ceiling. The day carries no information
     hours_above_ral: int
     worked_hours_equivalent: float   # sum of duty fractions over the shift
 
@@ -205,7 +205,7 @@ def daily_stimulus(
        prescribed at 15 min/h contributes a quarter of its degree-hours.
 
     The schedule still depends on adaptation, so dose still depends on
-    adaptation — but now in the physically correct direction: a more adapted
+    adaptation, but now in the physically correct direction: a more adapted
     worker is cleared for more minutes, so he accumulates MORE dose, not less.
     That is a stabilising feedback, and it is also what makes the hottest hours
     self-limiting: they are exactly the hours prescribed at zero.
@@ -249,7 +249,7 @@ def advance_adaptation(adaptation: float, stimulus: float, tau: Tau) -> float:
 
 
 def calendar_ramp_pct(day_on_job: int) -> int:
-    """OSHA's "Rule of 20 Percent" — the thing the model is measured against.
+    """OSHA's "Rule of 20 Percent", the thing the model is measured against.
 
     Day 1 is 20% of a normal shift, +20% per day, 100% from day 5. It is what a
     supervisor does today, and it is the counterfactual the UI must always show.
@@ -347,7 +347,7 @@ class DayRecord:
         NOT a useful discriminator on a Phoenix summer afternoon: the peak hour
         exceeds the ladder for everyone, adapted or not, so `binding_minutes_per_hour`
         is 0 for every worker and carries no information. What separates workers
-        is HOW MANY hours they can work and by how much — see
+        is HOW MANY hours they can work and by how much, see
         `Divergence.max_minutes_per_hour_gap` and `shift_work_minutes`.
         """
         return self.binding_minutes_per_hour == C.WORK_REST_STOP
@@ -466,7 +466,7 @@ def simulate(
     state decays at tau_decay rather than resetting or being skipped.
 
     The prescription for a day uses the adaptation the worker STARTED that day
-    with — you cannot credit a man for adaptation he has not earned yet, and a
+    with, you cannot credit a man for adaptation he has not earned yet, and a
     supervisor has to be able to write the schedule at 6 a.m.
 
     `day_on_job` counts WORKED days only. A man on leave does not advance his
@@ -638,7 +638,7 @@ class Divergence:
     less_adapted_arm: str    # which scenario arm each slot turned out to be
     more_adapted_arm: str
 
-    # -- the continuous metric, reported first because it is what survives ----
+    #, the continuous metric, reported first because it is what survives ----
 
     @property
     def limit_gap_c(self) -> float:
@@ -660,7 +660,7 @@ class Divergence:
     def limit_gap_is_material(self) -> bool:
         return abs(self.limit_gap_c) >= C.MATERIAL_LIMIT_GAP_C
 
-    # -- the quantised metric, reported second -------------------------------
+    #, the quantised metric, reported second -------------------------------
 
     @property
     def per_hour_gaps(self) -> Tuple[int, ...]:
@@ -689,7 +689,7 @@ class Divergence:
 
     @property
     def is_material(self) -> bool:
-        """One rung of the work/rest ladder is 15 min/h — a different instruction."""
+        """One rung of the work/rest ladder is 15 min/h, a different instruction."""
         return abs(self.max_minutes_per_hour_gap) >= C.MATERIAL_DIVERGENCE_MIN_PER_HOUR
 
     @property
@@ -701,7 +701,7 @@ def splice(head: Ramp, tail: Ramp) -> Ramp:
     """Join a history ramp to a continuation computed on a different shift.
 
     The two-worker comparison needs each worker's HISTORY to differ while the
-    comparison day itself is identical for both — same site, same weather, same
+    comparison day itself is identical for both, same site, same weather, same
     shift. Otherwise the difference in prescription mixes accumulated adaptation
     with that day's own exposure, and the model's actual claim is not what is
     being demonstrated.
@@ -731,7 +731,7 @@ def compare(
     """Compare two ramps. `mild` and `hot` name the ENVIRONMENTAL arms.
 
     Which of them is actually the more adapted worker is decided by the model,
-    not by the argument order — see Divergence.
+    not by the argument order, see Divergence.
     """
     if mild.worker.work_class != hot.worker.work_class:
         raise ValueError(

@@ -1,8 +1,8 @@
 """The browser engine must agree with the Python engine, and must be current.
 
-The per-worker maths now runs in two places. That is a deliberate trade -- an
+The per-worker maths now runs in two places. That is a deliberate trade, an
 editable roster cannot recompute anything if the model only exists in a build
-script -- but two implementations of the thing that decides whether a worker is
+script, but two implementations of the thing that decides whether a worker is
 told to stop will drift unless something stops them.
 
 Two gates here:
@@ -175,7 +175,7 @@ def test_rule_c_takes_over_when_nothing_was_prescribed():
 
 
 def test_a_zero_log_is_not_treated_as_no_log():
-    """Logging 0 is a measurement -- he was here and did not work. It must not
+    """Logging 0 is a measurement. He was here and did not work. It must not
     fall back to the prescription."""
     out = _node(
         "(()=>{const w=%s;"

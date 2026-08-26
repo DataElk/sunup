@@ -39,7 +39,7 @@ export function siteOf(worker) {
 
 /**
  * Full history for one worker: observed days from hire date to today, plus a
- * projection. Returns null when the site has no weather series -- a real state
+ * projection. Returns null when the site has no weather series, a real state
  * the interface must show rather than paper over.
  */
 export function forWorker(workerId) {

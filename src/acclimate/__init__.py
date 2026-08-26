@@ -1,1 +1,1 @@
-"""Acclimate — per-worker heat acclimatization state estimation."""
+"""Acclimate: per-worker heat acclimatization state estimation."""

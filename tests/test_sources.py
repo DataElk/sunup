@@ -223,12 +223,12 @@ def test_heat_index_is_the_artifact_the_contract_warns_about(store):
 
 
 # ---------------------------------------------------------------------------
-# Open-Meteo — not cached, and honest about it
+# Open-Meteo: not cached, and honest about it
 # ---------------------------------------------------------------------------
 
 
 def test_open_meteo_absence_raises_with_the_exact_call_needed(tmp_path):
-    """Tested against an EMPTY store — the real fixture now exists."""
+    """Tested against an EMPTY store: the real fixture now exists."""
     empty = FixtureStore(str(tmp_path))
     with pytest.raises(OfflineDataUnavailable) as excinfo:
         openmeteo.load_day(33.4484, -112.0740, dt.date(2024, 7, 15), empty)

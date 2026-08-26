@@ -112,7 +112,7 @@ def globe_temperature(
     # longwave (1 - eps_grd), and dropping the reflected part costs about half a
     # degree of globe temperature on an overcast night. With the reflection in,
     # an overcast sky (eps_sky = 1) gives a factor of exactly 1, so the globe
-    # sits exactly at air temperature when there is no sun — which is the
+    # sits exactly at air temperature when there is no sun, which is the
     # identity test_globe_sits_at_air_temperature_under_a_black_sky pins.
     environment_factor = 0.5 * (
         eps_sky + C.GROUND_EMISSIVITY + (1.0 - C.GROUND_EMISSIVITY) * eps_sky

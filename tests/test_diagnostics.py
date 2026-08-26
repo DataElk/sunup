@@ -27,7 +27,7 @@ def base_day(cache):
 
 
 # ---------------------------------------------------------------------------
-# offset_day — a controlled perturbation, not an invented day
+# offset_day, a controlled perturbation, not an invented day
 # ---------------------------------------------------------------------------
 
 

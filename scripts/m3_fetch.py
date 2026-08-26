@@ -98,7 +98,7 @@ def probe(args):
 
 
 def exceedance(args):
-    """The metro grid. One large call — 38 569 cells at 100 m.
+    """The metro grid. One large call, 38 569 cells at 100 m.
 
     A parcel call took 40 polls (~2 min). This one is roughly 475x the cells, so
     the poll budget is raised to an hour rather than the 15-minute default.

@@ -285,7 +285,7 @@ function statusFor(current) {
     'Everything lives in this browser. There is no backend and nothing is sent anywhere.');
   statusHost.appendChild(el('span', 'sb-spacer'));
   const seeded = el('span', 'sb sb-seed', state.seeded === null
-    ? 'unseeded' : 'seed data — editable and resettable');
+    ? 'unseeded' : 'seed data, editable and resettable');
   statusHost.appendChild(seeded);
 }
 

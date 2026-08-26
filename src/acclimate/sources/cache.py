@@ -59,7 +59,7 @@ class DiskCache:
         self.refresh = refresh
         self._index: Dict[str, str] = {}
 
-    # -- paths ---------------------------------------------------------------
+    #, paths ---------------------------------------------------------------
 
     def path_for(self, endpoint: str, payload: Any) -> str:
         return os.path.join(self.root, cache_key(endpoint, payload) + ".json")
@@ -67,7 +67,7 @@ class DiskCache:
     def has(self, endpoint: str, payload: Any) -> bool:
         return os.path.isfile(self.path_for(endpoint, payload))
 
-    # -- read / write --------------------------------------------------------
+    #, read / write --------------------------------------------------------
 
     def get(self, endpoint: str, payload: Any) -> Any:
         path = self.path_for(endpoint, payload)
@@ -88,7 +88,7 @@ class DiskCache:
         os.replace(tmp, path)  # atomic: a killed process cannot leave half a file
         return path
 
-    # -- seeding -------------------------------------------------------------
+    #, seeding -------------------------------------------------------------
 
     def seed(self, endpoint: str, payload: Any, response: Any) -> Tuple[str, bool]:
         """Write only if absent. Returns (path, written)."""

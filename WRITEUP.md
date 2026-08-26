@@ -9,7 +9,7 @@ those days, what hours the worker was rostered, or how hard the trade is. Two me
 same crew, same trade, same day of employment get the identical instruction whether one
 worked dawn-to-noon in 31 °C or the other worked noon-to-evening in 39 °C.
 
-Acclimate estimates each worker's **physiological adaptation state** from what they were
+Acclimate estimates each worker's physiological adaptation state from what they were
 actually exposed to, converts it into a personal exposure limit in °C-WBGT, and
 prescribes minutes per hour against that limit instead of against the calendar.
 
@@ -33,7 +33,7 @@ Psychrometric wet bulb; ISO 7243 Annex D runs +0.73 °C at day 4 to +2.08 °C at
 Material and correctly signed in **84 of 84 τ pairs from day 3 onward, under both
 wet-bulb methods**.
 
-**The calendar's error compounds.** From day 5 the OSHA ramp is saturated — it issues the
+**The calendar's error compounds.** From day 5 the OSHA ramp is saturated: it issues the
 identical instruction on day 5 and on day 14, because it has no term that could ever
 distinguish these two men. Over those same nine days the physiological gap between them
 more than doubles again.
@@ -57,7 +57,7 @@ work/rest rule already prescribes at or near zero. **correlation(peak WBGT, work
 = +0.13.** Temperature barely predicts adaptation. *Scheduling* does.
 
 This is the single most useful thing we learned, and it reframes what a temperature API
-is for here: not to find the hot place, but to price the hot *hours* against a specific
+is for here. It prices the hot *hours* against a specific
 roster.
 
 ---
@@ -82,13 +82,13 @@ part of the result.
 `constants.py` carried a note to verify our ladder against "the NIOSH work/rest schedule
 table". We went to check it. **There is no such table.** NIOSH 2016-106 names work/rest
 scheduling as an administrative control; its tables cover acclimatization. The familiar
-75/25 – 50/50 – 25/75 screening table is **ACGIH's**, it is copyrighted, and the OSHA
+75/25, 50/50, 25/75 screening table is **ACGIH's**, it is copyrighted, and the OSHA
 Technical Manual explicitly declines to reprint it.
 
-So the ladder is **our construction**, and it decides whether a worker is told to stop.
+So the ladder is our construction, and it decides whether a worker is told to stop.
 Correct attribution now reads: exposure limits from NIOSH 2016-106 Figures 8-1 and 8-2;
 rung structure the standard four-step convention, applied to a *personal* limit rather
-than a fixed category — which is the product, and is why no published table could have
+than a fixed category, which is the product and is why no published table could have
 supplied it.
 
 **3. Normalising by a window-dependent quantity measures your window.**
@@ -102,27 +102,27 @@ layer's own range*. Single instants scored ~15× rougher, and we concluded that 
 That was wrong. The absolute neighbour difference is ~0.004–0.006 °C in **both**; only
 the denominator moved, because a 0.8 km window spans 0.09 °C and a 25 km window spans
 1.02 °C. We retrieved a metro-extent single-hour grid to settle it. Over the identical
-250 × 186 lattice a single instant and the fortnight-long count are equally smooth —
+250 × 186 lattice a single instant and the fortnight-long count are equally smooth:
 lag-1 **0.42% vs 0.40%**, blur retention **98.6% vs 98.9%**. The script now prints the
 absolute column first and refuses the cross-extent comparison in its own docstring.
 
 **4. Our own validation metric was degenerate.** `scripts/build_overlay_data.py`
 
 The same instinct, applied to our own scoreboard. In the forecast backtest, B. Osei
-scores a **perfect 7/7** on prescription band. He also demonstrates nothing: he is
+scores a perfect **7/7** on prescription band. He also demonstrates nothing: he is
 prescribed zero minutes on every day of the horizon, projected and actual, so the band
 *cannot* be wrong. The builder detects the case and the interface strikes the number
-through with the reason on the card. A metric that cannot be wrong is not a metric — and
+through with the reason on the card. A metric that cannot be wrong is not a metric, and
 7/7 is exactly the number that would have looked best in this document.
 
 ### What the temperature field actually resolves
 
-At 14:00 on a day above 40 °C, the **entire Phoenix metro spans 1.02 °C**, and
+At 14:00 on a day above 40 °C, the entire Phoenix metro spans **1.02 °C**, and
 neighbouring 100 m tiles differ by 0.004 °C.
 
 That number needs a yardstick, and we deliberately take it from the same API rather than
 from an outside figure we cannot reproduce. FortyGuard's own daily min/max product
-(`filter_type=3`) puts the **diurnal range at a single point between 5.8 °C and 11.4 °C**
+(`filter_type=3`) puts the diurnal range at a single point between **5.8 °C and 11.4 °C**
 across the five cached days, mean 8.5 °C. So:
 
 > The temperature at one location changes roughly **eight times more over a single day**
@@ -132,7 +132,7 @@ Both figures come from fixtures in this repository and either can be recomputed:
 `scripts/audit_resolution.py` for the spatial spread, `fixtures/heatmap/filter3_*.json`
 for the diurnal range. An earlier draft of this paragraph compared the 1.02 °C against
 "roughly 10 °C" of published park-versus-asphalt land-surface contrast. That figure was
-plausible and uncited — our own recollection, not a measurement — and in a section whose
+plausible and uncited (our own recollection rather than a measurement) and in a section whose
 entire subject is not over-claiming from data, it had no business being the comparison
 that carried the argument.
 
@@ -149,22 +149,22 @@ projected 7 days forward; the days after are then read as ground truth. The mode
 see them when it projected.
 
 **The prescription band was correct on 4 of 7 days.** That is what a supervisor
-experiences — being told *Reduced* when the day turned out *Restricted*. Behind it: mean
+experiences: being told *Reduced* when the day turned out *Restricted*. Behind it, mean
 absolute error 34.3 minutes of a 480-minute shift, worst day 45, adaptation-state error
 −0.039 at the horizon.
 
-**Every miss was low, and we know why.** Not a warming trend — the held-out days average
-0.30 °C *cooler*, and two are hotter. Not adaptation drift — on the first projected day
+**Every miss was low, and we know why.** It is not a warming trend: the held-out days
+average 0.30 °C *cooler*, and two are hotter. It is not adaptation drift: on the first projected day
 both arms carry an identical state and an identical limit, and the projection is still 45
 minutes low.
 
-The cause is that `repeat_day` freezes **one day's hourly shape**, and the frozen day was
+The cause is that `repeat_day` freezes one day's hourly shape, and the frozen day was
 unrepresentative in exactly the band that decides a prescription:
 
 | | copied day vs held-out mean |
 | --- | --- |
-| peak hour | **−0.39 °C** (cooler) — and decides nothing, already zero minutes |
-| 08:00–09:00 | **+0.41 °C** (hotter) — where the ladder is actually read |
+| peak hour | **−0.39 °C** (cooler), and decides nothing, already zero minutes |
+| 08:00–09:00 | **+0.41 °C** (hotter), where the ladder is actually read |
 
 The peak is a red herring: those hours are prescribed zero for everyone. The prescription
 is decided mid-morning, and because the ladder quantises in 15-minute steps, half a degree
@@ -172,7 +172,7 @@ in one decisive hour costs a full rung. Two such hours cost 45 minutes.
 
 This is the same phenomenon as `correlation(peak WBGT, worked dose) = +0.13`, appearing
 again: **peak temperature is a poor summary statistic for this product.** The fix is to
-carry a real hourly forecast rather than a repeated day — Open-Meteo's regional forecast,
+carry a real hourly forecast rather than a repeated day. Open-Meteo's regional forecast,
 which `acclimatization.project()` already names in its docstring. `repeat_day` exists
 because M4 needed a projection before that was wired, not because it is right.
 
@@ -183,17 +183,17 @@ headline survives all 84 under both wet-bulb methods.
 
 **The work/rest ladder.** Our construction, so it is sensitivity-tested rather than merely
 disclosed. **Start with the cleanest case: remove the ladder entirely.** Replace the four
-rungs with a continuous response — 60 min/h at the limit falling linearly to zero 4 °C
-above it, no steps — and the result holds: **+1.19 °C at day 4, correct sign in 84/84 τ
+rungs with a continuous response (60 min/h at the limit falling linearly to zero 4 °C
+above it, no steps) and the result holds: **+1.19 °C at day 4, correct sign in 84/84 τ
 pairs, both wet-bulb methods.** *The finding does not require there to be rungs.*
 
-Across all eight variants — boundaries ±0.5 °C, three rungs, five rungs, a crude two-rung,
-an aggressive three-rung, and the no-rung case — the **sign holds in 62 of 64**
+Across all eight variants (boundaries ±0.5 °C, three rungs, five rungs, a crude two-rung,
+an aggressive three-rung, and the no-rung case) the **sign holds in 62 of 64**
 ladder × method × shift × day configurations, 84/84 τ pairs each. Materiality at the
 0.5 °C threshold holds in **51 of 64**; failures concentrate in a deliberately aggressive
 ladder that stops work 1.5 °C above the limit, compressing every worker toward zero.
 
-> **The comparative claim is robust to the ladder. The absolute prescription is only as
+> **The comparative claim does not depend on the ladder. The absolute prescription is only as
 > good as the ladder, and the ladder is ours.**
 
 **Constants.** `scripts/audit_constants.py` perturbs each `[CHECK]`-tagged constant and
@@ -209,7 +209,7 @@ specifies only the *longwave* emission coefficient for the black globe. Shortwav
 absorptivity is a different optical property and the standard does not give it. We set it
 equal to the emissivity, following Liljegren's reference implementation. Moving
 `GLOBE_SOLAR_ABSORPTIVITY` by ±0.05 shifts peak WBGT by 0.24 °C and moves a worker's
-prescription by **30 minutes — two full rungs**. Of every constant feeding the WBGT
+prescription by **30 minutes, two full rungs**. Of every constant feeding the WBGT
 composition, the one that matters most is the one that is our step rather than ISO's. That
 coincidence is uncomfortable and it is the first thing we would fix with more time.
 
@@ -254,6 +254,6 @@ python scripts/audit_resolution.py # what the API actually resolves
 python scripts/audit_constants.py  # which constants can move a prescription
 ```
 
-The interface is static: open `app/index.html`. **It makes zero network calls** — every
+The interface is static: open `app/index.html`. **It makes zero network calls.** Every
 input is a cached fixture emitted as a JavaScript module, including the OpenStreetMap
 locator layer. The demo cannot fail on stage because of an API.

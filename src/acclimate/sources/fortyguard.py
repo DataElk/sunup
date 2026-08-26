@@ -38,7 +38,7 @@ CLOUD_SCALE_OCTAS = "octas"
 
 @dataclass(frozen=True)
 class TemperatureCell:
-    """One tile. min/mean/max here are TEMPORAL — within the day, for this cell."""
+    """One tile. min/mean/max here are TEMPORAL: within the day, for this cell."""
 
     tile_id: int
     mean_c: float
@@ -78,7 +78,7 @@ class TemperatureGrid:
         """The cell containing the point, else the nearest cell centroid.
 
         Parcel-scale spatial spread is 0.04-0.36 degC (fixtures/MANIFEST.md), so
-        the choice barely moves WBGT — but picking deterministically keeps the
+        the choice barely moves WBGT: but picking deterministically keeps the
         regression reproducible.
         """
         for cell in self.cells:
@@ -118,7 +118,7 @@ def parse_temperature_grid(payload: Dict[str, Any]) -> TemperatureGrid:
             raise ValueError(
                 "properties has no average_temperature; keys=%s. An analysis "
                 "heatmap (exceedance/persistence) uses properties.value instead "
-                "— see FORTYGUARD_API_CONTRACT.md section 5." % sorted(props)
+                ", see FORTYGUARD_API_CONTRACT.md section 5." % sorted(props)
             )
         coords = feature.get("geometry", {}).get("coordinates", [[]])[0]
         cells.append(
@@ -181,7 +181,7 @@ class EnvParamsDay:
         missing = [i for i, v in enumerate(values) if v is None]
         if missing:
             raise ImplausibleValue(
-                "%s has nulls at hours %s — refusing to substitute zeros" % (name, missing)
+                "%s has nulls at hours %s, refusing to substitute zeros" % (name, missing)
             )
         return tuple(float(v) for v in values)
 
@@ -243,7 +243,7 @@ def parse_env_params(payload: Dict[str, Any], location_index: int = 0) -> EnvPar
 
 
 # ---------------------------------------------------------------------------
-# /v1/heatmap — analysis types (exceedance / persistence / time_of_measure)
+# /v1/heatmap, analysis types (exceedance / persistence / time_of_measure)
 # ---------------------------------------------------------------------------
 # FORTYGUARD_API_CONTRACT.md section 5. A DIFFERENT SCHEMA from `tcm`: cells
 # carry `properties.value`, not `average_temperature`, and the unit is announced
@@ -303,7 +303,7 @@ class AnalysisGrid:
         return tuple(c.value for c in self.cells)
 
     def percentile(self, q: float) -> float:
-        """Rank by percentile, never absolute min/max — contract section 5
+        """Rank by percentile: never absolute min/max, contract section 5
         mandates this because extremes cluster on the AOI boundary."""
         if not self.cells:
             raise ValueError("empty grid")
@@ -333,7 +333,7 @@ def parse_analysis_grid(
     """Parse an analysis heatmap, clamping every cell on the way in.
 
     `window_hours` is the length of the requested window and must be supplied by
-    the caller — the response does not carry it, and clamping to the wrong
+    the caller. The response does not carry it, and clamping to the wrong
     ceiling is worse than not clamping at all.
     """
     if window_hours <= 0:
@@ -351,7 +351,7 @@ def parse_analysis_grid(
         if "value" not in props:
             raise ValueError(
                 "properties has no `value`; keys=%s. A tcm heatmap uses "
-                "average/min/max_temperature instead — see "
+                "average/min/max_temperature instead, see "
                 "FORTYGUARD_API_CONTRACT.md section 5." % sorted(props)
             )
         raw = float(props["value"])
@@ -359,7 +359,7 @@ def parse_analysis_grid(
             raw > window_hours + C.EXCEEDANCE_IMPLAUSIBLE_MARGIN_H
         ):
             raise ImplausibleValue(
-                "cell %s value %.4f is %.1f h outside a %.1f h window — that is a "
+                "cell %s value %.4f is %.1f h outside a %.1f h window. That is a "
                 "wrong window length or wrong units, not interpolation noise."
                 % (props.get("tile_id"), raw,
                    max(-raw, raw - window_hours), window_hours)

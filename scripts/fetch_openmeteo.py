@@ -105,7 +105,7 @@ def main():
         unit_problem = unit_problem or not ok
         print("  %-22s %-8s %s" % (field, got, "ok" if ok else "EXPECTED %s" % expected))
     if unit_problem:
-        print("\nFAIL: unit mismatch. Not writing the fixture — fix the request first.")
+        print("\nFAIL: unit mismatch. Not writing the fixture, fix the request first.")
         return 1
 
     counts = {f: len(hourly[f]) for f in ARCHIVE_HOURLY_FIELDS}

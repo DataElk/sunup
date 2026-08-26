@@ -185,10 +185,10 @@ def main():
     print("\nVERDICT")
     if len(names) == 1 and names[0] == SINGLE_PARAMETER:
         print("  `analysis` IS honoured. The 3-parameter cap is therefore real and")
-        print("  binding. M1 needs 4 parameters -- split the request or confirm the")
+        print("  binding. M1 needs 4 parameters, split the request or confirm the")
         print("  key is Premium before the M3 backfill.")
     elif len(names) > 1:
-        print("  `analysis` is IGNORED -- the endpoint returned %d parameters for a"
+        print("  `analysis` is IGNORED: the endpoint returned %d parameters for a"
               % len(names))
         print("  1-parameter request. The documented 3-parameter cap does not bind")
         print("  on this key. M1's 4-parameter dependency is safe.")

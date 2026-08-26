@@ -1,12 +1,12 @@
 # Acclimate
 
-*Repository `sunup`; the product is **Acclimate**. Only the repository name differs —
+*Repository `sunup`; the product is **Acclimate**. Only the repository name differs;
 everything in the code, documents and interface says Acclimate.*
 
 Per-worker heat acclimatization state for construction crews, built on FortyGuard's
 temperature API. FortyGuard Hackathon '26.
 
-The OSHA heat rule ramps a new worker in on a calendar — 20% of a shift on day one, up to
+The OSHA heat rule ramps a new worker in on a calendar: 20% of a shift on day one, up to
 100% on day five. It does not know what the weather was on those days or what hours the
 worker was rostered. Acclimate estimates each worker's adaptation state from actual
 exposure, turns it into a personal limit in °C-WBGT, and prescribes minutes against that
@@ -18,7 +18,7 @@ limit instead.
 
 **This is a hackathon prototype. Do not use it to make real decisions about real workers.**
 
-- **The work/rest ladder — the thing that decides whether a worker is told to stop — is
+- **The work/rest ladder, the thing that decides whether a worker is told to stop, is
   our own construction, not a standard.** We went to verify it against "the NIOSH
   work/rest schedule table" and found that no such table exists. It is sensitivity-tested
   (`scripts/audit_ladder.py`) but it is not validated.
@@ -53,7 +53,7 @@ Two workers, same site, same trade, same day of employment, differing only in sh
 from day 5 it is saturated and says the same thing about both men forever, while the
 physiological gap between them more than doubles again.
 
-Site assignment, by contrast, does **not** survive — 0/84. A 1.284× exceedance ratio
+Site assignment, by contrast, does not survive: 0/84. A 1.284× exceedance ratio
 becomes 1.118× in worked dose, and `correlation(peak WBGT, worked dose) = +0.13`.
 Temperature barely predicts adaptation; scheduling does.
 
@@ -72,7 +72,7 @@ The interface is static and **makes zero network calls**:
 python -m http.server 8777
 ```
 
-Then open `http://localhost:8777/app/index.html`. Three views — crew roster, exposure map,
+Then open `http://localhost:8777/app/index.html`. Four workspaces: roster, exposure map,
 forecast vs actual. Every input is a cached fixture emitted as a JS module, so it also
 works from `file://` and cannot fail on stage because of an API.
 
@@ -88,7 +88,7 @@ node scripts/check-design.mjs      # design lint (blocks the build, not advisory
 
 ### Rebuilding the data (needs an API key)
 
-Not required — derived data is committed. `FORTYGUARD_API_KEY` goes in `.env`.
+Not required, because derived data is committed. `FORTYGUARD_API_KEY` goes in `.env`.
 
 ```bash
 python scripts/m3_fetch.py --probe           # one cheap call, check the API answers
@@ -106,15 +106,15 @@ python scripts/build_overlay_data.py
 ## How it works
 
 1. **WBGT** from FortyGuard tiles + Open-Meteo hourly. Black-globe temperature by
-   radiative–convective energy balance (ISO 7243:2017 Annex B globe spec); natural wet
+   radiative-convective energy balance (ISO 7243:2017 Annex B globe spec); natural wet
    bulb psychrometric, cross-checked against ISO 7243 Annex D.
 2. **Daily stimulus** = degree-hours above the *fixed* RAL for the trade's workload class,
    counting only hours actually worked, weighted by the prescribed duty cycle. Integrating
-   above the *moving* personal limit would be circular — an adapted worker would accrue
+   above the *moving* personal limit would be circular: an adapted worker would accrue
    less dose for identical weather.
 3. **Adaptation state** `A(t+1) = A + s·(1−A)/τ_gain − (1−s)·A/τ_decay`, A ∈ [0,1].
 4. **Personal limit** = `RAL + A·(REL − RAL)`, NIOSH 2016-106 Figures 8-1/8-2.
-5. **Work/rest** read off the ladder at that limit. *Our construction — see caveats.*
+5. **Work/rest** read off the ladder at that limit. *Our construction; see caveats.*
 
 ## Layout
 
@@ -122,7 +122,7 @@ python scripts/build_overlay_data.py
 src/acclimate/     engine: wbgt, globe, solar, psychrometrics, acclimatization
   constants.py     every constant, sourced and confidence-tagged; §0b is the triage
 scripts/           fetch, build, report, and the four audits
-app/               static interface — roster, map, forecast-vs-actual
+app/               static interface: roster, map, forecast, settings
 fixtures/          cached API responses; MANIFEST.md explains each
 tests/             336 tests, including a per-milestone exit test
 SPEC.md            the plan and the evidence
@@ -135,7 +135,7 @@ DESIGN_SYSTEM.md   the interface rules and why each exists
 FortyGuard supplies the tile temperature field and the exceedance analytics. Open-Meteo
 supplies hourly wind, radiation and the diurnal shape. The map's locator layer is
 OpenStreetMap data, © OpenStreetMap contributors, ODbL 1.0, fetched once at build time and
-cached — no tile server is contacted at render time.
+cached, so no tile server is contacted at render time.
 
-`env_params` is **not** independent of Open-Meteo (14 of 15 parameters match to rounding),
+`env_params` is not independent of Open-Meteo (14 of 15 parameters match to rounding),
 so agreement between them is never presented as corroboration.

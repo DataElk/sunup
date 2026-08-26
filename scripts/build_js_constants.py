@@ -4,7 +4,7 @@
 
 constants.py is the single source of truth. Now that the per-worker maths runs
 in the browser as well as in Python, the temptation is to keep a second copy of
-the numbers in JavaScript -- and a second copy of the NIOSH limits or the
+the numbers in JavaScript, and a second copy of the NIOSH limits or the
 work/rest ladder is exactly the kind of thing that drifts silently and then
 decides whether a worker is told to stop.
 
@@ -35,24 +35,24 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
 def payload() -> dict:
     """Exactly what the browser engine reads. Nothing else."""
     return {
-        # Section 2 -- the exposure limits. [VERIFIED] against NIOSH 2016-106
+        # Section 2: the exposure limits. [VERIFIED] against NIOSH 2016-106
         # Figures 8-1 and 8-2; see constants.py for the derivation table.
         "ralByClass": {k.value: v for k, v in C.WBGT_LIMIT_UNACCLIMATIZED.items()},
         "relByClass": {k.value: v for k, v in C.WBGT_LIMIT_ACCLIMATIZED.items()},
 
-        # Section 2 -- OUR CONSTRUCTION, not a standard. Sensitivity-tested in
+        # Section 2, OUR CONSTRUCTION, not a standard. Sensitivity-tested in
         # scripts/audit_ladder.py.
         "workRestLadder": [[float(x), int(m)] for x, m in C.WORK_REST_LADDER],
         "workRestStop": int(C.WORK_REST_STOP),
 
-        # Section 1 -- job assignment, not a personal attribute.
+        # Section 1: job assignment, not a personal attribute.
         "tradeToWorkClass": {k: v.value for k, v in C.TRADE_TO_WORK_CLASS.items()},
         "metabolicRateWm2": {k.value: v for k, v in C.METABOLIC_RATE_W_M2.items()},
 
         # ISO 7243 Clause 7 Formula (3).
         "clothingAdjustmentC": dict(C.CLOTHING_ADJUSTMENT_C),
 
-        # Section 3 -- the state model.
+        # Section 3: the state model.
         "tauGainDays": float(C.TAU_GAIN_DAYS),
         "tauDecayDays": float(C.TAU_DECAY_DAYS),
         "degreeHoursFullStimulus": float(C.DEGREE_HOURS_FULL_STIMULUS),
@@ -88,7 +88,7 @@ def main():
                  "   is exactly the thing that drifts and then decides whether a worker\n"
                  "   is told to stop.\n"
                  "\n"
-                 "   sourceHash is checked by tests/test_js_engine.py -- if constants.py\n"
+                 "   sourceHash is checked by tests/test_js_engine.py, if constants.py\n"
                  "   changed and this file was not regenerated, the suite fails. */\n")
         fh.write("window.ACCLIMATE_CONSTANTS = ")
         json.dump({"sourceHash": digest, **data}, fh, indent=1, sort_keys=True)

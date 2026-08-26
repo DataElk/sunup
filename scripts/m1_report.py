@@ -1,4 +1,4 @@
-"""M1 evidence report — run this to see why the pipeline should be believed.
+"""M1 evidence report: run this to see why the pipeline should be believed.
 
     python scripts/m1_report.py
 
@@ -179,7 +179,7 @@ def main():
           % (a.discrepancy_c, a.ratio))
     print("  independent: %s" % a.is_independent)
     print("\n  FortyGuard reads about 94% of Open-Meteo's diurnal amplitude on this")
-    print("  2024 archive day. That is mild — far milder than the ~40% narrowing")
+    print("  2024 archive day. That is mild, far milder than the ~40% narrowing")
     print("  fixtures/MANIFEST.md records for 2026 dates. A compressed amplitude")
     print("  under-estimates peak WBGT, hence stimulus, hence adaptation rate:")
     print("  conservative, but a bias, and it is WORSE on the demo window than here.")
@@ -252,7 +252,7 @@ def main():
                  "   <- offline default" if v == C.DEFAULT_WIND_SPEED_M_S else ""))
     print("    Offline reference reproduces over [%.1f, %.1f] m/s. Below that the"
           % (lo, hi))
-    print("    modelled globe over-heats. Errs toward restricting work — safe.")
+    print("    modelled globe over-heats. Errs toward restricting work, safe.")
 
     print("\n  GROUND ALBEDO  (constants.py 5a, still [CHECK])")
     for a_val in (0.10, 0.20, 0.30):

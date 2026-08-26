@@ -4,7 +4,7 @@
    is exactly the thing that drifts and then decides whether a worker
    is told to stop.
 
-   sourceHash is checked by tests/test_js_engine.py -- if constants.py
+   sourceHash is checked by tests/test_js_engine.py, if constants.py
    changed and this file was not regenerated, the suite fails. */
 window.ACCLIMATE_CONSTANTS = {
  "calendarRampPctByDay": {

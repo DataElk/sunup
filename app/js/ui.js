@@ -69,7 +69,7 @@ export function icon(name, size = 16) {
 
 /* --- CommandBar -------------------------------------------------------------
    Commands are declared with an `enabled` predicate rather than being added and
-   removed, so the bar does not reflow as a selection changes -- which is what
+   removed, so the bar does not reflow as a selection changes, which is what
    Office does and what makes the toolbar feel stable under the cursor. */
 
 export function commandBar(commands, context) {

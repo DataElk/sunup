@@ -1,8 +1,8 @@
-"""M3 part 2 — the 14-day two-site backfill and what it settled.
+"""M3 part 2: the 14-day two-site backfill and what it settled.
 
 These pin the measured answers to the two questions M2 left open:
 does mild-vs-hot survive once the histories are genuinely disjoint, and does
-site assignment — the scenario the exceedance ratio was supposed to support —
+site assignment, the scenario the exceedance ratio was supposed to support, 
 survive at all.
 
 The answers are not the ones the project expected, so they are pinned tightly.
@@ -152,7 +152,7 @@ def test_mild_vs_hot_by_peak_temperature_is_much_weaker(cache, shared, model, ex
 
 
 # ---------------------------------------------------------------------------
-# Site assignment — the scenario the exceedance ratio was meant to support
+# Site assignment: the scenario the exceedance ratio was meant to support
 # ---------------------------------------------------------------------------
 
 
@@ -191,7 +191,7 @@ def test_site_assignment_does_not_reach_materiality(cache, model):
 
 
 # ---------------------------------------------------------------------------
-# Shift assignment — the strongest lever, and the surviving half of the inversion
+# Shift assignment: the strongest lever, and the surviving half of the inversion
 # ---------------------------------------------------------------------------
 
 

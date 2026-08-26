@@ -12,8 +12,8 @@ filter. A smooth aggregate is weak evidence about the instant underneath it.
 
 So this measures every layer identically:
 
-  * filter_type=1 -- a single INSTANT (temporal min == avg == max)
-  * filter_type=3 -- a DAILY aggregate (carries a diurnal range)
+  * filter_type=1, a single INSTANT (temporal min == avg == max)
+  * filter_type=3, a DAILY aggregate (carries a diurnal range)
   * the 14-day exceedance count, at metro extent
   * a metro-extent single instant, retrieved specifically to settle this
 
@@ -73,8 +73,8 @@ LAT = 33.45
 def lattice_from(cells):
     """Rebuild a raster from (lon, lat, value, footprint_w, footprint_h).
 
-    The tiles are NOT aligned to a lat/lon lattice -- every centroid is distinct
-    at six decimals -- so the grid must come from each tile's own footprint.
+    The tiles are NOT aligned to a lat/lon lattice, every centroid is distinct
+    at six decimals, so the grid must come from each tile's own footprint.
     Indexing on rounded centroids yields a degenerate NxN lattice of pitch ~1 m
     and silently produces meaningless statistics.
     """
@@ -274,7 +274,7 @@ def main():
 
   What that means in absolute terms: at 14:00 on a day exceeding 40 degC, the
   whole Phoenix metro spans 1.02 degC. The yardstick is taken from the same API
-  rather than from an outside figure -- its daily min/max product (filter_type=3,
+  rather than from an outside figure, its daily min/max product (filter_type=3,
   the rows above) puts the diurnal range at a SINGLE POINT at 5.8-11.4 degC,
   mean 8.5. One location changes about eight times more over a day than the
   entire 25 x 19 km metro varies at any one instant. Whatever these 100 m tiles

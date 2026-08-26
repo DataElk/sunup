@@ -1,4 +1,4 @@
-"""M3 — site selection, with the boundary-artifact mitigation that makes it valid.
+"""M3, site selection, with the boundary-artifact mitigation that makes it valid.
 
 FORTYGUARD_API_CONTRACT.md section 5 is blunt about why this module exists. On
 the 14-day 40 degC Phoenix run, all five highest cells sat within 460 m of the
@@ -14,7 +14,7 @@ The four-part mitigation, all enforced here:
   2. DISCARD  drop every cell within EDGE_DISCARD_M of the AOI boundary before
               ranking anything
   3. PERCENTILE  rank by 5th/95th percentile, never absolute min/max
-  4. CROSS-CHECK  confirm a selected hot cell against satellite segmentation —
+  4. CROSS-CHECK  confirm a selected hot cell against satellite segmentation, 
               a genuine hot cell has high impervious share. If land cover does
               not explain the ranking, it is an artifact.
 
@@ -84,7 +84,7 @@ def buffer_polygon(polygon_geojson: Mapping, km: float = C.AOI_BUFFER_KM) -> Dic
     """Expand an AOI outward by ``km``, as a GeoJSON FeatureCollection.
 
     Mitigation step 1. The buffer is what pushes the artifact ring outside the
-    region you actually intend to select from — you request the larger polygon,
+    region you actually intend to select from, you request the larger polygon,
     then discard its edge (step 2), and what survives is the region you wanted.
     """
     if km < 0:
@@ -128,7 +128,7 @@ def distance_to_boundary_m(point: LonLat, ring: Sequence[LonLat]) -> float:
     """Shortest distance from a point to the polygon's boundary, in metres.
 
     Unsigned: a point just inside and a point just outside both read small.
-    That is what we want — a cell straddling the edge is suspect either way.
+    That is what we want, a cell straddling the edge is suspect either way.
     """
     lon_m, lat_m = metres_per_degree(centroid_of(ring)[1])
     return min(
@@ -229,7 +229,7 @@ def select_sites(
     """Pick a cool and a hot site from an exceedance grid, defensibly.
 
     The returned sites are the cells whose values sit CLOSEST to the 5th and
-    95th percentiles of the edge-discarded population — not the extremes, and
+    95th percentiles of the edge-discarded population, not the extremes, and
     not synthetic points at the percentile value.
     """
     ring = ring_of(aoi)
@@ -252,7 +252,7 @@ def select_sites(
     hot_cell, hot_distance = nearest(high_value)
     if cool_cell.tile_id == hot_cell.tile_id:
         raise ImplausibleValue(
-            "the 5th and 95th percentile resolve to the same cell — the grid has "
+            "the 5th and 95th percentile resolve to the same cell. The grid has "
             "no usable spatial spread after edge discard"
         )
 
@@ -279,7 +279,7 @@ def select_sites(
 
 
 # ---------------------------------------------------------------------------
-# Mitigation step 4 — satellite segmentation cross-check
+# Mitigation step 4: satellite segmentation cross-check
 # ---------------------------------------------------------------------------
 
 
@@ -295,7 +295,7 @@ class SegmentationCheck:
 def impervious_share(segments: Mapping[str, float]) -> Tuple[float, float, Tuple[str, ...]]:
     """(impervious share, recognised share, unrecognised class names).
 
-    Contract section 7: class labels are ADE20K-style and open-ended — a
+    Contract section 7: class labels are ADE20K-style and open-ended, a
     landlocked downtown Phoenix tile returned "ship": 2.74. We SUM the classes
     we recognise rather than subtracting from 100, because the unrecognised
     remainder is not necessarily pervious and may not even be land cover
@@ -327,8 +327,8 @@ def cross_check_site(
     """Does land cover explain why this cell ranks where it does?
 
     Mitigation step 4, and it is DIRECTIONAL. Contract section 5 states it for
-    hot cells — "a genuine hot cell has high impervious share; if land cover
-    does not explain it, it is an artifact" — and the same logic run backwards
+    hot cells, "a genuine hot cell has high impervious share; if land cover
+    does not explain it, it is an artifact", and the same logic run backwards
     validates a cool cell: a genuinely cool cell in a desert city should be
     vegetated or bare, not paved.
 
@@ -344,7 +344,7 @@ def cross_check_site(
         note = (
             "land cover explains the hot ranking: %.1f%% impervious" % (100 * share)
             if passes else
-            "impervious share %.1f%% is below the %.0f%% floor — the HOT ranking is "
+            "impervious share %.1f%% is below the %.0f%% floor, the HOT ranking is "
             "not explained by land cover and may be a boundary or interpolation "
             "artifact. Do not use this site without review."
             % (100 * share, 100 * minimum)
@@ -356,7 +356,7 @@ def cross_check_site(
             % (100 * share)
             if passes else
             "impervious share %.1f%% is at or above the %.0f%% floor, yet this cell "
-            "ranked COOL. Land cover does not corroborate the ranking — treat it "
+            "ranked COOL. Land cover does not corroborate the ranking, treat it "
             "as suspect." % (100 * share, 100 * minimum)
         )
     return SegmentationCheck(

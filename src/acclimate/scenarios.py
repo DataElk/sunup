@@ -13,7 +13,7 @@ keep hedging:
   SCENARIO  which worker is assigned to which days and which shift. That is a
             roster decision, and rostering is exactly what the product advises.
 
-THE DATA CEILING. Only four site-days have cached FortyGuard tiles —
+THE DATA CEILING. Only four site-days have cached FortyGuard tiles, 
 2024-07-15, 2026-07-26, 2026-08-05 and 2026-08-09. A full 14-day backfill is
 M3's job and needs FortyGuard credits. Four days is enough to drive a day-4
 comparison, which is what the exit test asks for, but it is NOT enough to build
@@ -51,7 +51,7 @@ LATE_SHIFT = (8, 16)
 # 08:00-16:00, not 10:00-18:00. Under the corrected stimulus definition a
 # 10:00-18:00 worker in Phoenix is prescribed ZERO minutes in every hour, so he
 # accumulates no dose and never adapts at all. That is a real and important
-# result — the protective schedule blocks acclimatization — but it makes a
+# result, the protective schedule blocks acclimatization, but it makes a
 # degenerate comparison, because one of the two men simply is not working.
 # 08:00-16:00 keeps both arms working while still differing 3.5x in dose.
 
@@ -141,7 +141,7 @@ class Scenario:
 
 
 def shift_assignment_scenario(cache: SiteDayCache, model: str) -> Scenario:
-    """Same crew, same site, same days — different assigned shift.
+    """Same crew: same site, same days, different assigned shift.
 
     This is the strongest version available from cached data, because nothing is
     cherry-picked: both workers get the SAME three site-days, and the only
@@ -169,7 +169,7 @@ def mild_vs_hot_days_scenario(cache: SiteDayCache, model: str) -> Scenario:
     """SPEC.md's literal scenario: mild vs brutal first three days.
 
     Only four tile-anchored site-days are cached, so the two histories cannot be
-    disjoint — they share whichever days sit in the middle of the ranking. The
+    disjoint, they share whichever days sit in the middle of the ranking. The
     caveat is carried on the Scenario and printed by the report.
     """
     ranked = cache.ranked_by_dose(model)
@@ -208,7 +208,7 @@ def build_ramps(
 
     Both workers face the SAME site, SAME weather and SAME shift on the day they
     are compared. Every difference in their prescription therefore comes from
-    what they accumulated beforehand — which is the model's entire claim, and the
+    what they accumulated beforehand, which is the model's entire claim, and the
     only way to demonstrate it without contaminating the result.
     """
     from acclimate import acclimatization as ac
@@ -254,7 +254,7 @@ def histories_differ(scenario: Scenario) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# M3 — site assignment, the scenario the exceedance ratio actually supports
+# M3, site assignment, the scenario the exceedance ratio actually supports
 # ---------------------------------------------------------------------------
 
 
@@ -267,7 +267,7 @@ class SiteScenario:
     is an employer decision, and constants.py section 7 permits scoring a worker
     on where he was SENT but never on who he is.
 
-    Both workers are compared on the SAME site on the comparison day — crews get
+    Both workers are compared on the SAME site on the comparison day, crews get
     moved, and it is the only way to isolate accumulated history from that day's
     own exposure.
     """

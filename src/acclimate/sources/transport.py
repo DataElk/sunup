@@ -1,7 +1,7 @@
 """The ONLY module in this package permitted to touch the network.
 
-Everything else — every physics module, the WBGT pipeline, the parsers, the
-cache — is provably offline, and `tests/test_m0_client.py` enforces that by
+Everything else, every physics module, the WBGT pipeline, the parsers, the
+cache, is provably offline, and `tests/test_m0_client.py` enforces that by
 grepping the package for networking imports and allowing exactly this file.
 
 Keeping the quarantine to one file is what makes "the demo runs with zero live
@@ -49,8 +49,8 @@ class OfflineTransport(Transport):
 
 
 class RequestsTransport(Transport):
-    """Real HTTP. `requests` is imported lazily so importing this module — which
-    `sources/__init__` does not do — never pulls in a networking stack."""
+    """Real HTTP. `requests` is imported lazily so importing this module, which
+    `sources/__init__` does not do, never pulls in a networking stack."""
 
     def __init__(self, timeout_s: float = 60.0) -> None:
         self.timeout_s = timeout_s

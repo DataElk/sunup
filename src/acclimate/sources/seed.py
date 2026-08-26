@@ -2,7 +2,7 @@
 
 M0's exit test: "with the network disconnected, every fixture request returns
 from cache." That only holds if the cache knows which request produced each
-committed payload — a raw response on disk carries no record of what was asked
+committed payload, a raw response on disk carries no record of what was asked
 for.
 
 `fixtures/INDEX.json` supplies the missing half. Each entry names the client call
@@ -12,7 +12,7 @@ If someone changes a payload builder, the seeded keys move with it and the
 fixtures keep resolving.
 
 Entries marked role="derived" are summaries and regression artefacts, not raw API
-responses. They are listed for provenance and deliberately NOT seeded — caching
+responses. They are listed for provenance and deliberately NOT seeded, caching
 a summary under an endpoint key would let a summary masquerade as a response.
 """
 

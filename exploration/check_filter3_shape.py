@@ -52,7 +52,7 @@ if features:
     print("\n--- SAMPLE CELL PROPERTIES ---")
     print(json.dumps(sample_props, indent=2))
     
-    # Check if properties contains an array (hourly) or scalar numbers
+    # filter_type=3 was expected to return hourly arrays; it returns scalars.
     for k, v in sample_props.items():
         if isinstance(v, list):
             print(f"  Field '{k}' is an ARRAY of length {len(v)}")

@@ -1,9 +1,9 @@
-"""M2 evidence report — the acclimatization engine and the two-worker divergence.
+"""M2 evidence report: the acclimatization engine and the two-worker divergence.
 
     python scripts/m2_report.py
 
 Answers the three questions the exit test turns on:
-  1. how large is the divergence -- in personal limit (degC-WBGT) first,
+  1. how large is the divergence, in personal limit (degC-WBGT) first,
      prescribed minutes per hour second
   2. does it survive BOTH wet-bulb methods
   3. how many of the 84 tau pairs survive (gain 3-6, decay 10-21)
@@ -239,7 +239,7 @@ HOW TO READ THIS  -  M2 EXIT TEST: PASSES ON THE SHIFT-ASSIGNMENT SCENARIO
   2. THE PERSONAL LIMIT GAP IS THE RESULT, AND IT IS ROBUST.
      Non-zero and correctly signed in ALL 84 tau pairs, in every configuration.
      On the shift-assignment scenario it runs 0.39-0.71 degC (psychrometric) and
-     0.18-0.63 degC (ISO Annex D) -- material in 84/84 and 72/84 pairs. That is
+     0.18-0.63 degC (ISO Annex D), material in 84/84 and 72/84 pairs. That is
      the number to quote, because it does not depend on where a worker happens
      to fall relative to a 15-minute rung.
 
@@ -259,7 +259,7 @@ HOW TO READ THIS  -  M2 EXIT TEST: PASSES ON THE SHIFT-ASSIGNMENT SCENARIO
   5. THE INVERSION, WHICH IS THE MOST INTERESTING RESULT HERE.
      In every scenario the environmentally HOTTER arm ends up the LESS adapted
      worker. The protective schedule removes the exposure that would have
-     adapted him -- a 10:00-18:00 Phoenix shift is prescribed zero minutes in
+     adapted him, a 10:00-18:00 Phoenix shift is prescribed zero minutes in
      every hour, so that worker never acclimatizes at all.
 
      This is not an artefact. It is a real trade-off in any standard that

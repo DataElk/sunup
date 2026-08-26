@@ -1,5 +1,5 @@
 /* ============================================================================
-   ACCLIMATE — DESIGN TOKENS  (v2 — Fluent)
+   ACCLIMATE: DESIGN TOKENS  (v2, Fluent)
    ----------------------------------------------------------------------------
    THIS IS THE ONLY FILE PERMITTED TO CONTAIN A LITERAL COLOR, SHADOW, RADIUS,
    OR FONT NAME. Everything else reads var(--token).
@@ -14,7 +14,7 @@
 :root {
 
   /* ==========================================================================
-     1. SURFACE — Fluent neutral ramp
+     1. SURFACE: Fluent neutral ramp
      ====================================================================== */
   --surface-app:            #FAF9F8;
   --surface-panel:          #FFFFFF;
@@ -43,7 +43,7 @@
   --ink-inverse:   #FFFFFF;
 
   /* ==========================================================================
-     4. ACCENT — Fluent communication blue.
+     4. ACCENT: Fluent communication blue.
      Means INTERACTIVE or SELECTED. Never used to encode data.
      ====================================================================== */
   --accent:         #0078D4;
@@ -54,7 +54,7 @@
   --ink-link:       #0078D4;
 
   /* ==========================================================================
-     5. STATUS — Fluent semantic colours.
+     5. STATUS: Fluent semantic colours.
      ONLY for prescription severity chips.
      ====================================================================== */
   --status-cleared:       #107C10;
@@ -67,22 +67,22 @@
   --status-stop-bg:       #FDE7E9;
 
   /* ==========================================================================
-     6. MISMATCH — the product's core signal.
+     6. MISMATCH: the product's core signal.
      DESIGN_SYSTEM rule 12: colour by mismatch with the calendar, NOT by heat
      severity. A hot day with an adapted crew is fine; a mild day with new
      hires is not. Encodes signed (model - calendar).
      ====================================================================== */
   --mismatch-none:     #A19F9D;  /* model and calendar agree                  */
-  --mismatch-over:     #C239B3;  /* calendar allows MORE than model —
+  --mismatch-over:     #C239B3;  /* calendar allows MORE than model, 
                                     under-protection, the dangerous case,
                                     and the product's whole argument          */
   --mismatch-over-bg:  #F6E4F5;
-  --mismatch-under:    #038387;  /* calendar allows LESS — productive hours
+  --mismatch-under:    #038387;  /* calendar allows LESS: productive hours
                                     the blanket rule was discarding           */
   --mismatch-under-bg: #D9F0F1;
 
   /* ==========================================================================
-     7. DATA RAMPS — values only, never chrome.
+     7. DATA RAMPS: values only, never chrome.
      Heat runs yellow->red so it cannot be confused with the blue accent.
      ====================================================================== */
   --heat-0: #FFF4CE;
@@ -92,7 +92,7 @@
   --heat-4: #C43E1C;
   --heat-5: #8E2A0F;
 
-  /* Adaptation is drawn as a LINE in ink, not a fill — avoids a third colour
+  /* Adaptation is drawn as a LINE in ink, not a fill, avoids a third colour
      scale competing with heat and accent. */
   --adapt-line:           #323130;
   --adapt-line-projected: #A19F9D;
@@ -118,7 +118,7 @@
   --map-park:       #6B8F5E;
 
   /* ==========================================================================
-     8. TYPE — Segoe UI with a metric-compatible fallback chain.
+     8. TYPE: Segoe UI with a metric-compatible fallback chain.
      Selawik is Microsoft's own open metric-compatible substitute; the rest
      mirrors Microsoft's public web stack.
      ====================================================================== */
@@ -129,7 +129,7 @@
   --font-data: "Cascadia Mono", Consolas, "Segoe UI Mono", ui-monospace,
                monospace;
 
-  /* Fluent's type ramp. 14px body — Fluent's default. */
+  /* Fluent's type ramp. 14px body, Fluent's default. */
   --text-caption:  12px;
   --text-body:     14px;   /* DEFAULT                                        */
   --text-body-lg:  16px;
@@ -148,7 +148,7 @@
   --weight-bold:     700;
 
   /* ==========================================================================
-     9. SPACE — 4px base
+     9. SPACE: 4px base
      ====================================================================== */
   --space-1:  4px;
   --space-2:  8px;
@@ -160,14 +160,14 @@
   --space-8: 48px;
 
   /* ==========================================================================
-     10. RADIUS — Fluent: 2px controls, 4px surfaces. No more.
+     10. RADIUS: Fluent: 2px controls, 4px surfaces. No more.
      ====================================================================== */
   --radius-none:    0;
   --radius-control: 2px;
   --radius-surface: 4px;
 
   /* ==========================================================================
-     11. ELEVATION — Fluent depth. Inline elements use borders, not shadows.
+     11. ELEVATION: Fluent depth. Inline elements use borders, not shadows.
      ====================================================================== */
   /* Fluent's focus underline on a text control, and the wash behind a panel.
      Both are shadow/colour values, so they belong here rather than inline. */
@@ -180,12 +180,12 @@
   --elevation-dialog: 0 8px 16px rgba(0,0,0,0.18);
 
   /* ==========================================================================
-     12. SHELL — the layout frame, built so views can be added without
+     12. SHELL: the layout frame, built so views can be added without
      restructuring. Each new view is a rail entry plus a content component.
      ====================================================================== */
   --rail-width:       48px;   /* icon navigation rail, left edge             */
   --rail-width-open: 200px;   /* expanded with labels                        */
-  --toolbar-height:   40px;   /* slim command bar — NOT a ribbon             */
+  --toolbar-height:   40px;   /* slim command bar, NOT a ribbon             */
   --statusbar-height: 24px;
   --drawer-width:    380px;   /* detail drawer, opens on demand only         */
 
@@ -205,7 +205,7 @@
 }
 
 /* ==========================================================================
-   TOUCH DENSITY — the field surface. Same tokens, larger targets.
+   TOUCH DENSITY: the field surface. Same tokens, larger targets.
    data-density="touch" on the root. Never a second stylesheet.
    ========================================================================== */
 [data-density="touch"] {

@@ -7,7 +7,7 @@ Emits two generated modules:
   app/data/weather.js   hourly WBGT per site-series per date. Worker-independent,
                         so it is computed once here and never recomputed in the
                         browser. This is the ONLY thing the Python pipeline still
-                        hands to the app -- everything per-worker now runs in
+                        hands to the app, everything per-worker now runs in
                         app/js/engine.js.
 
   app/data/seed.js      the starting roster: sites, crews, workers, day logs.
@@ -15,7 +15,7 @@ Emits two generated modules:
 WHY THE SEED IS DATA AND NOT CONTENT. The old build baked finished prescriptions
 into roster.js, so the demo crew was the application. Here the seed is written
 into an empty localStorage store on first load and is thereafter ordinary
-editable data -- rename it, re-trade it, delete it, or put it back from Settings.
+editable data, rename it, re-trade it, delete it, or put it back from Settings.
 Every seeded record carries `seeded: true` so the interface can mark it.
 
 Shipped as a script tag rather than JSON so the app still runs from file:// with
@@ -23,7 +23,7 @@ no server and no fetch. Same content, same purpose.
 
 THE DAY LOGS ARE DELIBERATELY IMPERFECT. They include a worker who exceeded his
 prescription, a worker who logged work on a stop-work day, and several days with
-no entry at all -- because a roster where every day is neatly logged would never
+no entry at all, because a roster where every day is neatly logged would never
 exercise the assumed-day fallback or the overexposure metric.
 """
 
@@ -159,7 +159,7 @@ def main():
 def seed_day_logs(workers, dates, today, cache):
     """A believable, incomplete log.
 
-    Actuals are generated from the REAL prescription -- the Python engine is run
+    Actuals are generated from the REAL prescription, the Python engine is run
     for each worker and each day, and the logged minutes sit close to what was
     prescribed, because that is what a compliant crew looks like. A flat
     percentage of the shift would have made every worker on a restricted

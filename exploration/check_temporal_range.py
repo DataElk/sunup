@@ -4,7 +4,7 @@ check_temporal_range.py
 THE ONE REMAINING UNKNOWN.
 
 For 2024-07-15, filter_type=3 returned a per-cell temporal min/max spanning
-10.87 C — the real diurnal swing. If 2026 dates do the same, the hourly
+10.87 C, the real diurnal swing. If 2026 dates do the same, the hourly
 reconstruction strategy works: one call per site per day gives amplitude and
 offset, and Open-Meteo supplies the diurnal shape.
 
@@ -58,7 +58,7 @@ def unwrap(resp):
 results = {}
 
 for date in DATES:
-    print(f"\n{'='*72}\n{date}  —  filter_type=3 (full day)\n{'='*72}")
+    print(f"\n{'='*72}\n{date}, filter_type=3 (full day)\n{'='*72}")
 
     resp = client.create_heatmap(
         polygon_aoi=PHOENIX_PARCEL,
@@ -72,7 +72,7 @@ for date in DATES:
     stats = result.get("stats_data", {}).get("temperature_stats", {})
 
     if not features:
-        print("  NO FEATURES RETURNED — record this, it is itself a finding.")
+        print("  NO FEATURES RETURNED: record this, it is itself a finding.")
         results[date] = {"error": "no features", "raw_stats": stats}
         continue
 
@@ -98,7 +98,7 @@ for date in DATES:
     max_range = max(ranges)
     mean_range = sum(ranges) / len(ranges)
 
-    # Spatial spread, for contrast — this is the axis that is legitimately flat
+    # Spatial spread: for contrast. This is the axis that is legitimately flat
     # at parcel scale and must not be mistaken for the diurnal range.
     spatial = stats.get("maximum", 0) - stats.get("minimum", 0)
 
@@ -149,15 +149,15 @@ if control.get("verdict") != "USABLE":
     print("CONTROL FAILED. 2024-07-15 no longer shows the verified 10.87 C range.")
     print("The API changed. Re-verify FORTYGUARD_API_CONTRACT.md before building.")
 elif all(r.get("verdict") == "USABLE" for r in recent):
-    print("PASS — 2026 dates carry diurnal range.")
+    print("PASS: 2026 dates carry diurnal range.")
     print("The reconstruction strategy in CLAUDE.md stands. Build M0 as written.")
 else:
-    print("FAIL — 2026 dates do not carry usable diurnal range.")
+    print("FAIL: 2026 dates do not carry usable diurnal range.")
     print("The one-call-per-site-day strategy is dead. Options, in order:")
     print("  1. Open-Meteo hourly for the SHAPE and the AMPLITUDE; FortyGuard")
     print("     filter_type=3 daily mean only for the site-specific OFFSET.")
     print("     Cheapest. Weakens the spatial claim but does not break it.")
-    print("  2. filter_type=2 (range of hours) — test whether it returns")
+    print("  2. filter_type=2 (range of hours), test whether it returns")
     print("     per-hour data or one aggregate. Untested. Try this before 3.")
     print("  3. 24x filter_type=1 calls per site-day. Correct but ~336 calls per")
     print("     site for a 14-day backfill. Only viable for 2-3 demo sites.")

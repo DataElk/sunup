@@ -2,7 +2,7 @@
 
     python scripts/build_golden_vectors.py
 
-The per-worker maths now exists twice -- in src/acclimate/acclimatization.py and
+The per-worker maths now exists twice, in src/acclimate/acclimatization.py and
 in app/js/engine.js. Two implementations of the thing that decides whether a
 worker is told to stop WILL drift. This emits the Python engine's answers over a
 deliberately awkward set of inputs; tests/test_js_engine.py replays them through
@@ -11,7 +11,7 @@ the JavaScript engine under Node and fails on any disagreement beyond 1e-9.
 COVERAGE IS CHOSEN TO BREAK THINGS, not to look thorough:
 
   * every work class, so both ends of the RAL/REL table are exercised
-  * adaptation at 0, mid, and 1 -- the endpoints of the personal-limit
+  * adaptation at 0, mid, and 1, the endpoints of the personal-limit
     interpolation
   * shifts that start before dawn and shifts that straddle the peak
   * every clothing adjustment, including the +11 degC vapour-barrier entry that

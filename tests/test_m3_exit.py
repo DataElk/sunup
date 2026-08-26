@@ -1,9 +1,9 @@
-"""M3 exit test — site selection and the boundary-artifact mitigation.
+"""M3 exit test: site selection and the boundary-artifact mitigation.
 
 SPEC.md, milestone M3:
 
-    Exit: the boundary-artifact mitigation is in place — buffered AOI, 500 m
-    edge discard, percentile ranking — and selected cells are cross-checked
+    Exit: the boundary-artifact mitigation is in place, buffered AOI, 500 m
+    edge discard, percentile ranking, and selected cells are cross-checked
     against satellite segmentation. No selected site sits within 500 m of an
     AOI edge.
 
@@ -76,7 +76,7 @@ def test_distance_to_boundary_is_zero_on_the_edge_and_large_at_the_centre():
 
 
 # ---------------------------------------------------------------------------
-# Mitigation step 1 — buffered AOI
+# Mitigation step 1: buffered AOI
 # ---------------------------------------------------------------------------
 
 
@@ -105,7 +105,7 @@ def test_buffer_rejects_a_negative_distance():
 
 
 # ---------------------------------------------------------------------------
-# Mitigation step 2 — 500 m edge discard.  THE EXIT CRITERION.
+# Mitigation step 2, 500 m edge discard.  THE EXIT CRITERION.
 # ---------------------------------------------------------------------------
 
 
@@ -146,7 +146,7 @@ def test_discard_keeps_interior_cells_and_drops_edge_cells():
 
 def test_the_documented_artifact_cells_would_have_been_discarded(store):
     """FORTYGUARD_API_CONTRACT.md section 5 records the top/bottom 5 cells of the
-    original run as boundary artifacts. Confirm the mitigation catches them —
+    original run as boundary artifacts. Confirm the mitigation catches them, 
     that is the whole reason it exists."""
     fixture = json.load(open(store.path("heatmap/phoenix_40c_exceedance_sites.json")))
     ring = ss.ring_of(METRO_AOI)
@@ -157,7 +157,7 @@ def test_the_documented_artifact_cells_would_have_been_discarded(store):
 
 
 # ---------------------------------------------------------------------------
-# Mitigation step 3 — percentile ranking
+# Mitigation step 3: percentile ranking
 # ---------------------------------------------------------------------------
 
 
@@ -184,7 +184,7 @@ def test_selection_used_percentiles_not_extremes(selection):
 def test_percentile_ranking_shrinks_the_headline_dose_ratio(selection):
     """The number the writeup must correct.
 
-    The project's headline 1.84x is a RAW min/max ratio — precisely the
+    The project's headline 1.84x is a RAW min/max ratio, precisely the
     boundary-artifact statistic the contract warns against. After the mitigation
     the defensible ratio is materially smaller, and that is what may be claimed.
     """
@@ -216,7 +216,7 @@ def test_select_sites_refuses_a_grid_with_no_interior():
 
 
 # ---------------------------------------------------------------------------
-# Mitigation step 4 — satellite segmentation cross-check
+# Mitigation step 4: satellite segmentation cross-check
 # ---------------------------------------------------------------------------
 
 

@@ -245,7 +245,7 @@ export function mapView(ctx) {
     el('span', 'legend-note',
       `Quantile classes, ${mapData.classOccupancyPct}% of cells each. `
       + `${mapData.tileResolutionM} m tiles but ~${(mapData.effectiveResolutionM / 1000).toFixed(0)} km `
-      + `effective resolution — a single-hour retrieval scores `
+      + `effective resolution, a single-hour retrieval scores `
       + `${audit.snapshotLag1PctOfRange}% against ${audit.lag1PctOfRange}% on the same grid, `
       + `so the smoothness is the field, not the 14-day count.`),
     el('span', 'legend-note',

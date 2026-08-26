@@ -5,7 +5,7 @@ Why this module exists: FortyGuard returns ONE clear-sky daily mean for solar
 needs 24 values. Open-Meteo has the hourly field but no fixture is cached, and
 this build makes no live calls.
 
-So the SHAPE comes from astronomy — exact, free, offline — and the LEVEL comes
+So the SHAPE comes from astronomy, exact, free, offline, and the LEVEL comes
 from FortyGuard: the clear-sky GHI curve is scaled by one factor so its own
 daylight-hours mean equals the number FortyGuard reported for that site-day.
 There is no free parameter in that step.
@@ -197,7 +197,7 @@ def solar_day(
 
     ``anchor_daily_ghi_w_m2`` is FortyGuard's clear-sky daily mean. When given,
     the whole clear-sky curve is scaled so its daylight-hours mean matches it.
-    When absent the raw Haurwitz level is used and ``anchor_scale`` is 1.0 —
+    When absent the raw Haurwitz level is used and ``anchor_scale`` is 1.0, 
     which the provenance record then reports as unanchored.
 
     ``cloud_fraction`` is 24 values in [0, 1]. Cloud is applied AFTER anchoring,

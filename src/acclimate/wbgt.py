@@ -1,4 +1,4 @@
-"""M1 — the WBGT pipeline.
+"""M1, the WBGT pipeline.
 
     Environment  ->  WBGT  ->  daily stimulus s  ->  adaptation state A  ->  work/rest
                  ^^^^^^^^
@@ -17,7 +17,7 @@ Input map (constants.py section 5):
             reconstructed to hourly against a diurnal shape (physics.diurnal)
     T_nwb   FortyGuard /v1/env_params wet_bulb_temperature_celsius. That is the
             PSYCHROMETRIC value; WBGT is defined on the NATURAL wet bulb. Two
-            models are available — see NaturalWetBulbModel and constants.py 5b/5g.
+            models are available, see NaturalWetBulbModel and constants.py 5b/5g.
     T_globe modelled, sphere energy balance (physics.globe)
     solar   Open-Meteo hourly when cached, else a modelled clear-sky curve
             anchored to FortyGuard's daily clear-sky mean (physics.solar)
@@ -72,7 +72,7 @@ class SourceSelection:
     """Which inputs to take from Open-Meteo when a fixture is available.
 
     Defaults to all of them. Turning individual fields off is how the report
-    attributes a change to one input instead of four — e.g. measured wind with
+    attributes a change to one input instead of four, e.g. measured wind with
     everything else left on the FortyGuard-only path.
     """
 
@@ -249,7 +249,7 @@ def build_wbgt_day(
         use = SourceSelection.none()
 
     # env_params was only ever called for one site-day. On every other day
-    # Open-Meteo supplies the wet bulb and humidity instead — justified by the
+    # Open-Meteo supplies the wet bulb and humidity instead, justified by the
     # provenance audit, which showed the two agree to 0.1 degC and are not
     # independent sources anyway (FORTYGUARD_API_CONTRACT.md section 6).
     if env is None:
@@ -304,7 +304,7 @@ def build_wbgt_day(
         )
     elif not reconstruction.warp_gamma_plausible:
         notes.append(
-            "Diurnal warp gamma %.3f is outside the plausible band %s — the "
+            "Diurnal warp gamma %.3f is outside the plausible band %s, the "
             "shape source and FortyGuard disagree about where the day's mass sits."
             % (reconstruction.warp_gamma, C.DIURNAL_WARP_GAMMA_PLAUSIBLE)
         )
@@ -322,13 +322,13 @@ def build_wbgt_day(
         wet_bulb = open_meteo.wet_bulb_temperature_c
         humidity = open_meteo.relative_humidity_pct
         wet_bulb_source = (
-            "openmeteo.wet_bulb_temperature_2m (psychrometric) — env_params was "
+            "openmeteo.wet_bulb_temperature_2m (psychrometric), env_params was "
             "never called for this site-day; the two agree to 0.1 degC"
         )
 
     # --- cloud --------------------------------------------------------------
-    # Cloud drives two different terms — solar attenuation and longwave sky
-    # emissivity — so it should come from the same provider as the radiation.
+    # Cloud drives two different terms: solar attenuation and longwave sky
+    # emissivity, so it should come from the same provider as the radiation.
     if use.cloud or env is None:
         cloud = open_meteo.cloud_cover_fraction
         cloud_source = CLOUD_OPEN_METEO
@@ -441,7 +441,7 @@ def build_wbgt_day(
 
         if not C.WBGT_PLAUSIBLE_MIN <= value <= C.WBGT_PLAUSIBLE_MAX:
             raise ImplausibleValue(
-                "WBGT %.2f at hour %d is outside the sanity band %s — that is a "
+                "WBGT %.2f at hour %d is outside the sanity band %s. That is a "
                 "bug, not weather (constants.py section 5)."
                 % (value, h, (C.WBGT_PLAUSIBLE_MIN, C.WBGT_PLAUSIBLE_MAX))
             )

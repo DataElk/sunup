@@ -246,7 +246,7 @@ export function removeWorker(id) {
 
 /* --- The day log -------------------------------------------------------------
    `null` minutes means "no entry" and the day falls back to the prescription,
-   marked assumed. Zero is a MEASUREMENT -- he was here and worked nothing --
+   marked assumed. Zero is a MEASUREMENT: he was here and worked nothing --
    and must not be confused with the absence of one.
    ---------------------------------------------------------------------------- */
 
@@ -272,7 +272,7 @@ export function loggedMinutes(workerId) {
   return out;
 }
 
-/* --- UI state (separate key: clearing the roster should not lose your place) -- */
+/* --- UI state (separate key: clearing the roster should not lose your place), */
 
 export function readUi(fallback) { return readRaw(UI_KEY, fallback); }
 export function writeUi(value) { writeRaw(UI_KEY, value); }

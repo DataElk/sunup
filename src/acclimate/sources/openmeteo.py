@@ -1,4 +1,4 @@
-"""Open-Meteo hourly fields — wind, shortwave radiation, regional temperature.
+"""Open-Meteo hourly fields: wind, shortwave radiation, regional temperature.
 
 constants.py section 5 records the gap this fills: wind is available from
 NEITHER FortyGuard endpoint, and hourly solar is available from neither either.
@@ -142,7 +142,7 @@ def try_load_day(
     date: dt.date,
     store: Optional[FixtureStore] = None,
 ) -> Optional[OpenMeteoDay]:
-    """load_day, but None instead of raising — for optional diagnostics only.
+    """load_day, but None instead of raising, for optional diagnostics only.
 
     Never use this on a path where the value is required. A required value that
     is missing must raise, so the gap is visible.

@@ -1,7 +1,7 @@
 """Diagnostics for the acclimatization model's structural limits.
 
 THE QUESTION THIS ANSWERS. The mild-vs-hot scenario failed to reach materiality
-in M2, and the obvious explanation was data coverage — only four cached
+in M2, and the obvious explanation was data coverage, only four cached
 site-days, histories overlapping on two of three. But there is a second possible
 explanation that no amount of data would fix, and it has to be ruled in or out
 before anyone spends credits chasing the first.

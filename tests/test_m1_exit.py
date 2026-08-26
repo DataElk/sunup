@@ -2,7 +2,7 @@
 
 SPEC.md, milestone M1:
 
-    Exit: reproduces the verified reference in constants.py section 5 —
+    Exit: reproduces the verified reference in constants.py section 5, 
     downtown Phoenix 2024-07-15 gives ~31 degC at 14:00 and ~24.8 degC at 06:00,
     both within +/-1 degC. The day crosses both the RAL and REL curves for
     moderate work.
@@ -173,7 +173,7 @@ def test_no_pipeline_module_can_open_a_socket():
     """SPEC.md hard constraint 6: the demo must run with zero live API calls.
 
     M0 added a client, so the package as a whole is no longer free of
-    networking — it is confined to `sources/transport.py`, and
+    networking. It is confined to `sources/transport.py`, and
     `tests/test_m0_client.py::test_networking_is_quarantined_to_exactly_one_module`
     is what enforces that boundary.
 
@@ -258,7 +258,7 @@ def test_amplitude_comparison_is_now_independent_and_recorded(reference_day):
     """CLAUDE.md: M1 must compare FortyGuard's amplitude against Open-Meteo's.
 
     Was blocked with no fixture; now answered. FortyGuard's 2024 archive cell
-    reads about 94% of Open-Meteo's amplitude — mild compression, far milder
+    reads about 94% of Open-Meteo's amplitude, mild compression, far milder
     than the ~40% narrowing fixtures/MANIFEST.md records for 2026 dates.
     """
     check = reference_day.amplitude_check
@@ -267,7 +267,7 @@ def test_amplitude_comparison_is_now_independent_and_recorded(reference_day):
     assert check.discrepancy_c is not None
     assert check.fortyguard_amplitude_c == pytest.approx(11.133, abs=0.01)
     assert check.reference_amplitude_c == pytest.approx(11.800, abs=0.01)
-    # FortyGuard reads LOW, which under-estimates stimulus — a safe direction.
+    # FortyGuard reads LOW: which under-estimates stimulus, a safe direction.
     assert check.discrepancy_c < 0.0
     assert 0.90 < check.ratio < 1.0
 

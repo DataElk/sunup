@@ -3,7 +3,7 @@
  * Invoked by tests/test_js_engine.py. Prints one JSON object on stdout:
  *   { ok, checked, failures: [{ what, expected, actual, delta }] }
  *
- * Exits non-zero only on a harness error -- a vector mismatch is reported as
+ * Exits non-zero only on a harness error, a vector mismatch is reported as
  * data so the Python test can print something readable. */
 
 import { readFileSync } from 'node:fs';

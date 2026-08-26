@@ -11,7 +11,7 @@ Canvas draws that directly with no library and no basemap tiles, which is what
 keeps the demo offline (SPEC.md hard constraint 6).
 
 Cells inside the 500 m edge-discard band are marked null rather than dropped, so
-the map can SHOW the discarded band instead of quietly hiding it — the boundary
+the map can SHOW the discarded band instead of quietly hiding it, the boundary
 artifact is part of the story, not an embarrassment.
 """
 
@@ -41,12 +41,12 @@ WINDOW_HOURS = 24.0 * 14
 # COUNT; the colours themselves stay in the stylesheet.
 HEAT_STOPS = ("--heat-0", "--heat-1", "--heat-2", "--heat-3", "--heat-4", "--heat-5")
 
-# Measured, not assumed -- by scripts/audit_resolution.py, which runs the
+# Measured: not assumed, by scripts/audit_resolution.py, which runs the
 # identical statistic on every layer over the identical lattice.
 #
 # Settled by a metro-extent filter_type=1 retrieval. A single INSTANT and the
 # 14-day hour count are equally smooth over the same 250x186 grid, so the
-# smoothness is NOT an artifact of aggregating 336 hours -- the instantaneous
+# smoothness is NOT an artifact of aggregating 336 hours, the instantaneous
 # field is itself smooth. At 14:00 on a day above 40 degC the entire Phoenix
 # metro spans 1.02 degC.
 TILE_RESOLUTION_M = 101

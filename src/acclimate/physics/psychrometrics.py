@@ -4,7 +4,7 @@ Only what the globe-temperature balance needs: vapour pressure (for sky
 emissivity), air density/viscosity/conductivity (for the convective coefficient),
 and station pressure from elevation.
 
-Wet bulb itself is NOT computed here — FortyGuard measures it and returns 24
+Wet bulb itself is NOT computed here, FortyGuard measures it and returns 24
 hourly values. See constants.py section 5b for why we take that value unmodified.
 """
 

@@ -41,7 +41,7 @@ def main():
     base = os.getenv("FORTYGUARD_BASE_URL", "https://api.fortyguard.com")
     headers = {"api-key": key, "Content-Type": "application/json"}
 
-    # Reuse an already-submitted activity if one is pending — never pay twice.
+    # Reuse an already-submitted activity if one is pending, never pay twice.
     activity_id = None
     if os.path.exists(STATE):
         try:

@@ -1,5 +1,5 @@
 /* ============================================================================
-   ACCLIMATE — components
+   ACCLIMATE: components
 
    Fluent's ARCHITECTURE, not just its palette. The metrics below are matched to
    the Fluent UI control specs the Office surfaces use:
@@ -176,7 +176,7 @@ body {
   background: var(--surface-panel);
 }
 
-/* A flex column so a view that wants the whole pane -- the map -- can take
+/* A flex column so a view that wants the whole pane, the map, can take
    it, while ordinary views still size to their content. */
 .content { flex: 1; overflow: auto; min-width: 0; display: flex; flex-direction: column; }
 .content > .view { flex: 1 0 auto; }

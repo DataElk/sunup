@@ -56,7 +56,7 @@ def test_reproduces_iso_table_d1(ta, tg, va, rh, tnw_iso, wbgt_iso):
 
 @pytest.mark.parametrize("ta,tg,va,rh,tnw_iso,wbgt_iso", TABLE_D1)
 def test_reproduces_iso_table_d1_wbgt_column(ta, tg, va, rh, tnw_iso, wbgt_iso):
-    """Table D.1's WBGT column uses ISO Formula (1) — WITHOUT solar load.
+    """Table D.1's WBGT column uses ISO Formula (1), WITHOUT solar load.
 
     Checked by construction: with 0.7*tnw + 0.2*tg + 0.1*ta the column is out by
     up to 3.4 degC, and with 0.7*tnw + 0.3*tg it agrees to 0.4 degC. That is

@@ -1,4 +1,4 @@
-"""Natural wet bulb temperature — ISO 7243:2017 Annex D.
+"""Natural wet bulb temperature, ISO 7243:2017 Annex D.
 
 WHY THIS EXISTS. WBGT is defined on the NATURAL wet bulb temperature, and
 ISO 7243:2017 Annex B.1 is explicit that this is not the psychrometric value:
@@ -12,7 +12,7 @@ citation, so the correction is now available and verified against the standard's
 own worked examples (see tests/test_natural_wet_bulb.py, which reproduces all
 22 rows of Table D.1).
 
-ISO 7243:2017, Formula (D.1) — solved iteratively for t_nw:
+ISO 7243:2017, Formula (D.1), solved iteratively for t_nw:
 
     4,18 * v^0,444 * (t_a - t_nw)
       + 1e-8 * [(t_r + 273)^4 - (t_nw + 273)^4]
@@ -21,7 +21,7 @@ ISO 7243:2017, Formula (D.1) — solved iteratively for t_nw:
 
 convection + radiation - evaporation = 0 for a naturally ventilated wet wick.
 
-ISO 7243:2017, Formula (D.2) — mean radiant temperature from globe temperature:
+ISO 7243:2017, Formula (D.2), mean radiant temperature from globe temperature:
 
     t_r = [ (t_g + 273)^4
             + (1,1e8 * v^0,6) / (eps_g * d^0,4) * (t_g - t_a) ]^(1/4) - 273
@@ -35,7 +35,7 @@ READ THE STANDARD'S OWN WARNING BEFORE USING THIS. Annex D opens:
 
 and Table D.1 is tabulated only for t_nw in 15-30 degC and air velocity up to
 0,9 m/s. Phoenix afternoons run about 3 m/s, well outside that. This module is
-therefore offered as a SELECTABLE model, not the default — see
+therefore offered as a SELECTABLE model, not the default, see
 constants.py section 5b for the decision and what it costs.
 """
 
@@ -93,8 +93,8 @@ def natural_wet_bulb_c(
 ) -> NaturalWetBulbResult:
     """ISO 7243:2017 Formula (D.1), solved for t_nw by bisection.
 
-    The residual is strictly decreasing in t_nw — every term loses heat faster as
-    the wick warms — so the root is unique.
+    The residual is strictly decreasing in t_nw, every term loses heat faster as
+    the wick warms, so the root is unique.
     """
     speed = max(air_speed_m_s, C.MIN_AIR_SPEED_M_S)
     rh = min(max(relative_humidity_pct, 0.0), 100.0) / 100.0

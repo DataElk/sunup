@@ -1,7 +1,7 @@
 """The application: entities, persistence, the feedback loop, and the shell.
 
 Replaces tests/test_m4_interface.py and tests/test_m5_exit.py, which described
-an architecture that no longer exists -- a screen that rendered one frozen
+an architecture that no longer exists, a screen that rendered one frozen
 roster payload. The properties those files protected are all still here; what
 changed is where they live now that the roster is editable and the engine runs
 in the browser.
@@ -88,7 +88,7 @@ def test_icons_are_drawn_svg():
 
 
 # ---------------------------------------------------------------------------
-# Rule 10 — the adaptation number is a detail-view answer
+# Rule 10: the adaptation number is a detail-view answer
 # ---------------------------------------------------------------------------
 
 

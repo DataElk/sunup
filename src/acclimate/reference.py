@@ -36,11 +36,11 @@ class ReferenceCase:
     date: dt.date
     latitude: float
     longitude: float
-    # filter_type=3 — carries the per-cell diurnal min/mean/max the
+    # filter_type=3, carries the per-cell diurnal min/mean/max the
     # reconstruction needs.
     heatmap_filter3_fixture: str
     env_params_fixture: str
-    # filter_type=1 at 14:00 — an INDEPENDENT snapshot used only to check the
+    # filter_type=1 at 14:00, an INDEPENDENT snapshot used only to check the
     # reconstruction, never as an input to it.
     heatmap_snapshot_fixture: str
     snapshot_hour: int
@@ -91,7 +91,7 @@ def build(
     off ``day.provenance.assumed_inputs``.
 
     ``use`` selects which inputs Open-Meteo supplies, so a single input can be
-    swapped in isolation — that is how the M1 report attributes the change to
+    swapped in isolation. That is how the M1 report attributes the change to
     measured wind rather than to four changes at once.
     """
     store = store or FixtureStore()
@@ -120,7 +120,7 @@ def snapshot_cross_check(
 
     The reconstruction is fitted to a filter_type=3 daily min/mean/max. The
     snapshot is a different call on a different day-part axis, so agreement here
-    is real evidence that the shape is landing in the right place — not a
+    is real evidence that the shape is landing in the right place, not a
     tautology.
     """
     snapshot = load_snapshot(case, store)

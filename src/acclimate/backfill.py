@@ -1,4 +1,4 @@
-"""M3 — the 14-day, two-site backfill, read back offline.
+"""M3, the 14-day, two-site backfill, read back offline.
 
 `scripts/m3_fetch.py --backfill` does the retrieval; this module reads it back.
 Everything goes through the M0 client with an OFFLINE transport, so a site-day
@@ -7,7 +7,7 @@ during a demo.
 
 Each site-day is FortyGuard `filter_type=3` tile data (per-cell diurnal
 min/mean/max) reconstructed against Open-Meteo hourly shape, solar, wind, cloud,
-wet bulb and humidity — the same pipeline M1 validated, on a site chosen by M3's
+wet bulb and humidity, the same pipeline M1 validated, on a site chosen by M3's
 percentile ranking rather than by hand.
 """
 
@@ -129,7 +129,7 @@ class BackfillCache:
         return [self.get(site_name, d, model) for d in dates]
 
     def shared_dates(self, model: str) -> List[dt.date]:
-        """Dates available at BOTH sites — the only ones a fair comparison can use."""
+        """Dates available at BOTH sites: the only ones a fair comparison can use."""
         cool = set(self.available_dates("cool_site"))
         hot = set(self.available_dates("hot_site"))
         return sorted(cool & hot)

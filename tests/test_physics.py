@@ -225,7 +225,7 @@ def test_globe_sits_at_air_temperature_under_a_black_sky_with_no_sun():
     so the net longwave vanishes exactly and the globe has nothing to do but
     match the air.
 
-    This is an identity, not an approximation — it holds only because the ground
+    This is an identity, not an approximation, it holds only because the ground
     REFLECTS the sky's downwelling longwave as well as emitting its own. It is
     the test that caught that term missing.
     """

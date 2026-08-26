@@ -81,7 +81,7 @@ def test_every_indexed_fixture_request_serves_from_cache(seeded):
 
     assert replayed >= 8, replayed
     assert transport.call_count == 0, (
-        "the transport was reached %d times — the cache did not cover every "
+        "the transport was reached %d times. The cache did not cover every "
         "fixture request" % transport.call_count
     )
     assert client.live_calls == 0
@@ -89,7 +89,7 @@ def test_every_indexed_fixture_request_serves_from_cache(seeded):
 
 
 def test_a_request_with_no_fixture_is_blocked_not_silently_wrong(seeded):
-    """A cache miss must fail loudly, naming the call — never invent a response."""
+    """A cache miss must fail loudly, naming the call, never invent a response."""
     cache, _ = seeded
     client = FortyGuardClient(cache=cache, transport=OfflineTransport())
     with pytest.raises(LiveCallBlocked) as excinfo:
@@ -119,7 +119,7 @@ def test_refresh_true_bypasses_the_cache_and_is_therefore_blocked_offline(seeded
 
 
 # ---------------------------------------------------------------------------
-# Clamping — "a negative or over-window value cannot reach the rest of the system"
+# Clamping, "a negative or over-window value cannot reach the rest of the system"
 # ---------------------------------------------------------------------------
 
 
@@ -168,7 +168,7 @@ def test_raw_values_are_kept_so_the_clamp_is_auditable():
 
 
 def test_clamped_fraction_is_reported_not_swallowed():
-    """A grid where many cells clamp means a badly chosen threshold — that has
+    """A grid where many cells clamp means a badly chosen threshold. That has
     to be visible to whoever ranks sites (contract section 5)."""
     grid = parse_analysis_grid(_analysis_payload([-1.0, -2.0, -0.5, 10.0]), 168.0)
     assert grid.clamped_fraction == pytest.approx(0.75)
@@ -309,7 +309,7 @@ def test_failed_status_raises(tmp_path):
 
 def test_poll_timeout_keeps_the_activity_id(tmp_path):
     """A submitted activity has already been paid for. The id must survive so it
-    can be retrieved rather than resubmitted — the mistake made on 2026-08-24."""
+    can be retrieved rather than resubmitted, the mistake made on 2026-08-24."""
     transport = FakeTransport({"data": {"activity_id": "70dcdf72"}}, [])
     client = FortyGuardClient(cache=DiskCache(str(tmp_path)), transport=transport,
                               refresh=True, sleep=lambda _s: None, poll_timeout_s=0.0)
@@ -333,7 +333,7 @@ def test_a_completed_response_is_written_to_cache(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# env_params cap tolerance — correct whether or not the cap binds
+# env_params cap tolerance, correct whether or not the cap binds
 # ---------------------------------------------------------------------------
 
 
@@ -456,7 +456,7 @@ def test_networking_is_quarantined_to_exactly_one_module():
 
     M0 has to be able to make live calls, so the package can no longer be
     entirely free of networking. Instead it is confined to one file, and every
-    other module — all the physics, the pipeline, the parsers, the cache — stays
+    other module, all the physics, the pipeline, the parsers, the cache, stays
     provably offline.
     """
     package = os.path.abspath(

@@ -2,7 +2,7 @@
    Editors. Every one opens in a Panel, saves on submit, and closes.
 
    Editing a trade, an intensity override, a shift or clothing changes the
-   prescription for that worker immediately -- there is no build step between
+   prescription for that worker immediately. There is no build step between
    the form and the answer, because compute.js re-derives from the store on
    every change.
 
@@ -55,7 +55,7 @@ export function editSite(siteId, after) {
   const measured = compute.measuredSeriesKeys();
   const seriesOptions = [{ value: '', label: 'No weather history' }]
     .concat(measured.map((k) => ({
-      value: k, label: `${k} — measured, 14 days hourly`,
+      value: k, label: `${k}, measured, 14 days hourly`,
     })));
   const series = select(existing ? existing.seriesKey || '' : '', seriesOptions);
 
@@ -112,7 +112,7 @@ export function estimateWeather(siteId, after) {
 
   const source = select(measured[0], measured.map((k) => ({
     value: k,
-    label: `${k} — ${meta[k] ? `${(meta[k].exceedanceHours / 14).toFixed(1)} h/day above threshold` : 'measured'}`,
+    label: `${k}, ${meta[k] ? `${(meta[k].exceedanceHours / 14).toFixed(1)} h/day above threshold` : 'measured'}`,
   })));
   const ratio = input('1.00', { type: 'number', step: '0.01', min: '0.5', max: '1.5' });
 
@@ -147,7 +147,7 @@ export function estimateWeather(siteId, after) {
     });
     dismissPanel();
     compute.invalidate();
-    toast('Weather estimated — this site is now marked derived');
+    toast('Weather estimated, this site is now marked derived');
     if (after) after();
   }
 
@@ -196,7 +196,7 @@ export function editWorker(workerId, defaultCrewId, after) {
   const crew = select(existing ? existing.crewId : defaultCrewId,
     store.crews().map((c) => {
       const site = store.site(c.siteId);
-      return { value: c.id, label: `${c.name}${site ? ` — ${site.name}` : ''}` };
+      return { value: c.id, label: `${c.name}${site ? `, ${site.name}` : ''}` };
     }));
   const trade = select(existing ? existing.trade : 'concrete',
     TRADES.map((t) => ({
@@ -290,7 +290,7 @@ export function editDayLog(workerId, date, after) {
   const fields = form(save);
   fields.append(
     field('Minutes actually worked', minutes,
-      'Leave blank if not recorded — the day then falls back to the '
+      'Leave blank if not recorded, the day then falls back to the '
       + 'prescription and is marked assumed. Zero means present but not working.'),
     field('Note', note));
   body.appendChild(fields);

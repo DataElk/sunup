@@ -109,7 +109,7 @@ export function forecastView(ctx) {
     summary.append(
       metric(`${bands}/${total}`, 'prescription band correct'),
       metric(`${bias > 0 ? '+' : ''}${bias.toFixed(1)}`,
-        `bias, min — ${bias < 0 ? 'conservative' : (bias > 0 ? 'permissive' : 'none')}`,
+        `bias, min, ${bias < 0 ? 'conservative' : (bias > 0 ? 'permissive' : 'none')}`,
         bias > 0 ? 'permissive' : 'safe'),
       metric(String(usable.length), 'workers with a usable comparison'),
       metric(String(rows.length - usable.length), 'excluded as degenerate'));
@@ -203,7 +203,7 @@ export function settingsView(ctx) {
     wrap.appendChild(banner('info', 'Everything here is yours to change',
       'The starting roster is seed data written into your browser on first '
       + 'load, not built-in content. Rename it, re-trade it, delete it. '
-      + 'Nothing leaves this device — there is no backend.'));
+      + 'Nothing leaves this device. There is no backend.'));
 
     const actions = el('div', 'callout-actions');
 
@@ -259,8 +259,8 @@ export function settingsView(ctx) {
     const wrap = el('div', 'stack');
     const density = select(
       document.documentElement.getAttribute('data-density') || 'desktop',
-      [{ value: 'desktop', label: 'Desktop — 36px rows' },
-       { value: 'touch', label: 'Field — 44px rows, larger type' }]);
+      [{ value: 'desktop', label: 'Desktop, 36px rows' },
+       { value: 'touch', label: 'Field, 44px rows, larger type' }]);
     density.addEventListener('change', () => {
       if (density.value === 'touch') {
         document.documentElement.setAttribute('data-density', 'touch');

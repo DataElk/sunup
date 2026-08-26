@@ -35,7 +35,7 @@ def worker():
 
 
 # ---------------------------------------------------------------------------
-# GAP 14 — a worker on leave must DECAY, never reset
+# GAP 14: a worker on leave must DECAY, never reset
 # ---------------------------------------------------------------------------
 
 
@@ -113,7 +113,7 @@ def test_absence_is_distinguishable_from_a_worked_day_of_zero_minutes(cache, wor
 
 
 # ---------------------------------------------------------------------------
-# GAP 13 — forward projection
+# GAP 13: forward projection
 # ---------------------------------------------------------------------------
 
 
@@ -165,7 +165,7 @@ def test_projection_preserves_the_workers_configuration(worker, days):
 def test_repeat_day_advances_the_date_and_records_the_substitution(days):
     """A projection has to sit somewhere in time. `[day] * count` handed back
     the same frozen record `count` times, so every projected day shared the
-    source date -- which reached M4's ramp strip as a "today" marker drawn on
+    source date, which reached M4's ramp strip as a "today" marker drawn on
     all six future cells."""
     source = days[4]
     copies = ac.repeat_day(source, 3)
@@ -191,7 +191,7 @@ def test_a_projected_ramp_reaches_higher_adaptation_than_the_history_alone(worke
 
 
 # ---------------------------------------------------------------------------
-# GAP 5/9 — retain the per-hour excess
+# GAP 5/9: retain the per-hour excess
 # ---------------------------------------------------------------------------
 
 

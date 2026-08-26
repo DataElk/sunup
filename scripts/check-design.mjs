@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * check-design.mjs — machine-enforced design consistency.
+ * check-design.mjs, machine-enforced design consistency.
  *
  * Prose style guides do not survive twelve days of edits. This does.
  * Wire it into the build:  "check:design": "node scripts/check-design.mjs"
@@ -114,13 +114,13 @@ const RULES = [
     id: 'tabular-numerals',
     severity: 'warn',
     pattern: /toFixed\(|toLocaleString\(/g,
-    why: 'Formatted number found — confirm its container uses var(--font-data) and ' +
+    why: 'Formatted number found, confirm its container uses var(--font-data) and ' +
          'tabular-nums. Columns of figures must align.',
   },
 ];
 
 /* ---------------------------------------------------------------------------
-   SEMANTIC CHECKS — things a regex on one line cannot catch
+   SEMANTIC CHECKS: things a regex on one line cannot catch
    ------------------------------------------------------------------------ */
 function semanticChecks(file, text) {
   // The counterfactual is the product's entire argument. A roster or worker view
@@ -142,7 +142,7 @@ function semanticChecks(file, text) {
       /\bA\s*=\s*\{|adaptationState.*toFixed|\{\s*A\.toFixed/i.test(text)) {
     record(warnings, file, 0, 'exposed-state-variable',
       'Adaptation state appears to render on a roster row. It belongs in the ' +
-      'detail view only — the roster shows minutes.',
+      'detail view only, the roster shows minutes.',
       basename(file));
   }
 
@@ -211,7 +211,7 @@ function walk(dir, out = []) {
 const files = SCAN_DIRS.flatMap((d) => walk(join(ROOT, d)));
 
 if (files.length === 0) {
-  console.log('check-design: no source files found yet — nothing to check.');
+  console.log('check-design: no source files found yet, nothing to check.');
   process.exit(0);
 }
 
@@ -222,7 +222,7 @@ for (const file of files) {
   const lines = text.split('\n');
 
   lines.forEach((lineText, i) => {
-    // Skip comment lines — rationale often names colors it does not use.
+    // Skip comment lines, rationale often names colors it does not use.
     const t = lineText.trim();
     if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return;
 
