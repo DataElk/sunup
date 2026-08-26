@@ -16,6 +16,7 @@
 import { simulate } from './engine.js';
 import * as store from './store.js';
 import * as compute from './compute.js';
+import * as liveWeather from './liveweather.js';
 import {
   el, detailsList, chip, tag, toast, confirmDialog, field, select, icon,
 } from './ui.js';
@@ -186,6 +187,68 @@ function metric(value, label, kind) {
 export function settingsView(ctx) {
   const root = el('div', 'view');
   const state = store.getState();
+
+  root.appendChild(section('Live weather', (() => {
+    const wrap = el('div', 'stack');
+    const key = input('', {
+      type: 'password', autocomplete: 'new-password',
+      placeholder: liveWeather.hasConfiguredKey() ? 'Key saved in this browser' : 'Enter key',
+    });
+    const actions = el('div', 'callout-actions');
+    const save = el('button', 'btn btn-primary', 'Save key');
+    const test = el('button', 'btn', 'Test key');
+    const clearKey = el('button', 'btn btn-danger', 'Remove key');
+    save.type = 'button';
+    test.type = 'button';
+    clearKey.type = 'button';
+    test.disabled = !liveWeather.hasConfiguredKey();
+    clearKey.disabled = !liveWeather.hasConfiguredKey();
+
+    save.addEventListener('click', () => {
+      try {
+        liveWeather.saveKey(key.value);
+        key.value = '';
+        key.placeholder = 'Key saved in this browser';
+        test.disabled = false;
+        clearKey.disabled = false;
+        toast('Key saved in this browser');
+        ctx.refresh();
+      } catch (error) {
+        toast(error.message);
+      }
+    });
+    test.addEventListener('click', async () => {
+      test.disabled = true;
+      try {
+        await liveWeather.testKey(compute.today());
+        toast('Key authenticated. Live weather is available.');
+      } catch (error) {
+        toast(error.message);
+      } finally {
+        test.disabled = false;
+      }
+    });
+    clearKey.addEventListener('click', () => {
+      try {
+        liveWeather.clearKey();
+        key.value = '';
+        key.placeholder = 'Enter key';
+        test.disabled = true;
+        clearKey.disabled = true;
+        toast('Key removed from this browser');
+        ctx.refresh();
+      } catch (error) {
+        toast(error.message);
+      }
+    });
+
+    wrap.append(
+      field('API key', key,
+        'Saved only in this browser. It is not included in store exports or reset data.'),
+      actions);
+    actions.append(save, test, clearKey);
+    return wrap;
+  })()));
 
   root.appendChild(section('Data', (() => {
     const wrap = el('div', 'stack');

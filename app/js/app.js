@@ -19,6 +19,7 @@ import * as store from './store.js';
 import * as compute from './compute.js';
 import * as forms from './forms.js';
 import * as views from './views.js';
+import { hasConfiguredKey } from './liveweather.js';
 import { mapView } from './mapview.js';
 import { forecastView, settingsView } from './extraviews.js';
 import { el, icon, commandBar, navTree, toast, dismissPanel } from './ui.js';
@@ -279,7 +280,7 @@ function statusFor(current) {
     statusHost.appendChild(wrap);
   };
   add('Date', weather.today);
-  add('Source', 'FortyGuard + Open-Meteo, cached');
+  add('Source', hasConfiguredKey() ? 'Live weather enabled' : 'Cached seed, no live calls');
   add('Model', `assumes natural wet bulb = ${weather.model}`);
   add('Store', `${state.workers.length} workers, local only`,
     'Everything lives in this browser. There is no backend and nothing is sent anywhere.');
