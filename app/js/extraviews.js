@@ -18,7 +18,7 @@ import * as store from './store.js';
 import * as compute from './compute.js';
 import * as liveWeather from './liveweather.js';
 import {
-  el, detailsList, chip, tag, toast, confirmDialog, field,
+  el, detailsList, chip, tag, toast, confirmDialog, field, input,
 } from './ui.js';
 import { section } from './views.js';
 

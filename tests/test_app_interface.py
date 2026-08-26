@@ -308,6 +308,13 @@ def test_routing_is_three_levels_deep_and_linkable():
     assert "hashchange" in source
 
 
+def test_settings_imports_every_control_it_renders():
+    source = strip_comments(read("js", "extraviews.js"))
+    imports = source[:source.index("const HORIZON")]
+    assert re.search(r"\binput\b", imports)
+    assert "const key = input(" in source
+
+
 def test_the_shell_has_a_command_bar_a_tree_and_breadcrumbs():
     html = read("index.html")
     for id_ in ("rail", "tree", "commandbar", "content", "statusbar"):
