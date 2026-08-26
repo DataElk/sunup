@@ -161,6 +161,7 @@ export function addSite(fields) {
     id: newId('site'),
     name: 'New site',
     polygon: null,
+    location: null,
     seriesKey: null,
     weatherSource: 'none',
     seeded: false,

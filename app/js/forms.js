@@ -15,6 +15,7 @@
 import { CONSTANTS } from './engine.js';
 import * as store from './store.js';
 import * as compute from './compute.js';
+import { isWithinArizona, loadLeaflet, pointFeature, polygonCentre, sitePoint } from './leaflet.js';
 import {
   el, panel, dismissPanel, field, input, select, toast, confirmDialog,
 } from './ui.js';
@@ -48,24 +49,21 @@ function footer(submitLabel, onSubmit, extra) {
 
 /* --- Site --------------------------------------------------------------------- */
 
-export function editSite(siteId, after) {
+export function editSite(siteId, after, initialPoint = null) {
   const existing = siteId ? store.site(siteId) : null;
   const name = input(existing ? existing.name : '', { placeholder: 'Site name' });
-
-  const measured = compute.measuredSeriesKeys();
-  const seriesOptions = [{ value: '', label: 'No weather history' }]
-    .concat(measured.map((k) => ({
-      value: k, label: `${k}, measured, 14 days hourly`,
-    })));
-  const series = select(existing ? existing.seriesKey || '' : '', seriesOptions);
+  const picker = el('div', 'site-picker');
+  const initial = initialPoint || sitePoint(existing);
+  let chosen = initial ? { lng: initial.lon ?? initial.lng, lat: initial.lat } : null;
+  let polygon = existing ? existing.polygon : null;
+  let changedLocation = Boolean(initialPoint);
 
   const body = el('div', 'panel-stack');
   const fields = form(save);
   fields.append(
     field('Name', name),
-    field('Weather series', series,
-      'A site with no series cannot be prescribed for. Measured series come '
-      + 'from the 14-day backfill; there are two.'));
+    field('Location', picker,
+      'Click a point or draw a boundary in Arizona. Live weather is fetched after creation.'));
   body.appendChild(fields);
 
   if (existing && existing.weatherSource === 'derived') {
@@ -78,13 +76,20 @@ export function editSite(siteId, after) {
   }
 
   function save() {
+    if (!chosen) {
+      toast('Choose a site location in Arizona first');
+      return;
+    }
     const changes = {
       name: name.value.trim() || 'Untitled site',
-      seriesKey: series.value || null,
-      weatherSource: series.value
-        ? (existing && existing.weatherSource === 'derived' ? 'derived' : 'measured')
-        : 'none',
+      location: chosen,
+      polygon: polygon || pointFeature(chosen),
     };
+    if (!existing || changedLocation) {
+      changes.seriesKey = null;
+      changes.weatherSource = 'none';
+      delete changes.derivedNote;
+    }
     if (existing) store.updateSite(existing.id, changes);
     else store.addSite(changes);
     dismissPanel();
@@ -92,12 +97,98 @@ export function editSite(siteId, after) {
     if (after) after();
   }
 
-  panel({
+  const surface = panel({
     title: existing ? 'Edit site' : 'New site',
-    subtitle: existing ? existing.id : 'Sites group crews and carry the weather',
+    subtitle: existing ? existing.id : 'Choose a job location in Arizona',
     body,
     footer: footer(existing ? 'Save' : 'Create', save),
   });
+  mountSitePicker(picker, initial, polygon, (next) => {
+    chosen = next.location;
+    polygon = next.polygon;
+    changedLocation = true;
+  });
+  return surface;
+}
+
+async function mountSitePicker(host, initial, initialPolygon, onChange) {
+  const note = el('p', 'field-hint', 'Loading map…');
+  const canvas = el('div', 'site-picker-map');
+  const controls = el('div', 'callout-actions');
+  const point = el('button', 'btn', 'Set point');
+  const area = el('button', 'btn', 'Draw boundary');
+  const finish = el('button', 'btn', 'Finish boundary');
+  [point, area, finish].forEach((button) => { button.type = 'button'; });
+  finish.disabled = true;
+  controls.append(point, area, finish);
+  host.append(note, canvas, controls);
+
+  let map;
+  let marker;
+  let line;
+  let vertices = [];
+  let mode = 'point';
+  const center = initial ? [initial.lat, initial.lon ?? initial.lng] : [33.45, -112.07];
+
+  function showPoint(L, location) {
+    if (marker) marker.remove();
+    marker = L.marker([location.lat, location.lng]).addTo(map);
+  }
+
+  function redrawLine(L) {
+    if (line) line.remove();
+    if (vertices.length) line = L.polyline(vertices.map((v) => [v.lat, v.lng])).addTo(map);
+  }
+
+  try {
+    const L = await loadLeaflet();
+    map = L.map(canvas, { maxBounds: [[30.8, -115.2], [37.25, -108.65]], maxBoundsViscosity: 1 })
+      .setView(center, initial ? 13 : 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+    if (initial) showPoint(L, { lat: initial.lat, lng: initial.lon ?? initial.lng });
+    if (initialPolygon && initialPolygon.features) L.geoJSON(initialPolygon).addTo(map);
+    note.textContent = 'Arizona coverage only. Choose a point or trace a work boundary.';
+
+    point.addEventListener('click', () => { mode = 'point'; finish.disabled = true; });
+    area.addEventListener('click', () => { mode = 'area'; finish.disabled = vertices.length < 3; });
+    finish.addEventListener('click', () => {
+      if (vertices.length < 3) return;
+      const ring = vertices.map((v) => [v.lng, v.lat]);
+      ring.push(ring[0]);
+      const picked = { type: 'FeatureCollection', features: [{
+        type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] },
+      }] };
+      const location = polygonCentre(picked);
+      if (location) {
+        showPoint(L, location);
+        onChange({ location, polygon: picked });
+      }
+      mode = 'point'; vertices = []; redrawLine(L); finish.disabled = true;
+    });
+    map.on('click', (event) => {
+      if (!isWithinArizona(event.latlng)) {
+        note.textContent = 'FortyGuard weather for this workspace is limited to Arizona.';
+        return;
+      }
+      if (mode === 'area') {
+        vertices.push(event.latlng);
+        redrawLine(L);
+        finish.disabled = vertices.length < 3;
+      } else {
+        vertices = [];
+        redrawLine(L);
+        showPoint(L, event.latlng);
+        onChange({ location: { lng: event.latlng.lng, lat: event.latlng.lat },
+          polygon: pointFeature(event.latlng) });
+      }
+    });
+  } catch {
+    note.textContent = 'The map could not load. Check your connection and try again.';
+    point.disabled = true;
+    area.disabled = true;
+  }
 }
 
 /* --- Estimate weather for a site that has none -------------------------------
