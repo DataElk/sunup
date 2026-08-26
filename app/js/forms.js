@@ -16,6 +16,8 @@ import { CONSTANTS } from './engine.js';
 import * as store from './store.js';
 import * as compute from './compute.js';
 import { isWithinArizona, loadLeaflet, pointFeature, polygonCentre, sitePoint } from './leaflet.js';
+import { hasConfiguredKey } from './liveweather.js';
+import { startSiteBackfill } from './siteweather.js';
 import {
   el, panel, dismissPanel, field, input, select, toast, confirmDialog,
 } from './ui.js';
@@ -90,11 +92,17 @@ export function editSite(siteId, after, initialPoint = null) {
       changes.weatherSource = 'none';
       delete changes.derivedNote;
     }
-    if (existing) store.updateSite(existing.id, changes);
-    else store.addSite(changes);
+    const saved = existing ? store.updateSite(existing.id, changes) : store.addSite(changes);
     dismissPanel();
     compute.invalidate();
     if (after) after();
+    if ((!existing || changedLocation) && hasConfiguredKey()) {
+      startSiteBackfill(saved.id).then((started) => {
+        if (!started) toast('Live weather could not start for this site');
+      });
+    } else if (!existing || changedLocation) {
+      toast('Site saved with cached weather unavailable. Add a key to fetch its history.');
+    }
   }
 
   const surface = panel({

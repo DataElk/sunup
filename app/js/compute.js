@@ -56,7 +56,7 @@ export function forWorker(workerId) {
   if (cache.has(key)) return cache.get(key);
 
   const series = W().series[site.seriesKey];
-  const dates = W().dates.filter((d) => !worker.hireDate || d >= worker.hireDate);
+  const dates = W().dates.filter((d) => series[d] && (!worker.hireDate || d >= worker.hireDate));
   if (!dates.length) {
     return { worker, site, unavailable: true, reason: 'not-started' };
   }

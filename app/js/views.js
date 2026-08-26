@@ -249,6 +249,8 @@ export function siteView(ctx, siteId) {
 
   if (site.weatherSource === 'none') {
     root.appendChild(noWeatherBanner(ctx, site));
+  } else if (site.weatherStatus === 'backfill') {
+    root.appendChild(backfillBanner(site));
   } else if (site.weatherSource === 'derived') {
     root.appendChild(derivedBanner(site));
   }
@@ -311,6 +313,7 @@ export function crewView(ctx, siteId, crewId) {
   ]));
 
   if (site.weatherSource === 'none') root.appendChild(noWeatherBanner(ctx, site));
+  else if (site.weatherStatus === 'backfill') root.appendChild(backfillBanner(site));
   else if (site.weatherSource === 'derived') root.appendChild(derivedBanner(site));
 
   const rows = store.workers(crewId).map((w) => compute.forWorker(w.id)).filter(Boolean);
@@ -556,6 +559,11 @@ function derivedBanner(site) {
 }
 
 function noWeatherBanner(ctx, site) {
+  if (site.weatherStatus === 'loading' || site.weatherStatus === 'backfill') {
+    const progress = site.weatherProgress || { completed: 0, total: 14 };
+    return banner('info', 'Retrieving live weather',
+      `${progress.completed} of ${progress.total} days ready. Prescriptions appear after the first five days.`);
+  }
   const node = banner('danger', 'No weather history, prescriptions unavailable',
     'This site has no hourly WBGT series, so nothing can be prescribed for the '
     + 'crews under it.');
@@ -573,6 +581,12 @@ function noWeatherBanner(ctx, site) {
   actions.append(fetchBtn, est);
   node.appendChild(actions);
   return node;
+}
+
+function backfillBanner(site) {
+  const progress = site.weatherProgress || { completed: 5, total: 14 };
+  return banner('info', 'Live weather is still backfilling',
+    `${progress.completed} of ${progress.total} days ready. Prescriptions update as history arrives.`);
 }
 
 function missing(ctx, message) {

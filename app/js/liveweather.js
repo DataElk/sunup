@@ -111,3 +111,22 @@ export async function submitHeatmap(payload) {
 export async function activityStatus(activityId) {
   return request(`/v1/status/${encodeURIComponent(activityId)}`);
 }
+
+export async function waitForActivity(activityId, onPoll) {
+  let errors = 0;
+  for (;;) {
+    try {
+      const response = await activityStatus(activityId);
+      errors = 0;
+      const data = response && response.data;
+      const status = String(data && data.status || '').toLowerCase();
+      if (onPoll) onPoll(status);
+      if (status === 'completed' || status === 'succeeded') return data.result;
+      if (status === 'failed') throw new Error('The live weather task failed.');
+    } catch (error) {
+      errors += 1;
+      if (errors > 3) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+}
