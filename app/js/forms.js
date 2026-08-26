@@ -122,11 +122,13 @@ export function editSite(siteId, after, initialPoint = null) {
 async function mountSitePicker(host, initial, initialPolygon, onChange) {
   const note = el('p', 'field-hint', 'Loading map…');
   const canvas = el('div', 'site-picker-map');
-  const controls = el('div', 'callout-actions');
+  const controls = el('div', 'site-picker-actions');
   const point = el('button', 'btn', 'Set point');
   const area = el('button', 'btn', 'Draw boundary');
   const finish = el('button', 'btn', 'Finish boundary');
   [point, area, finish].forEach((button) => { button.type = 'button'; });
+  point.setAttribute('aria-pressed', 'true');
+  area.setAttribute('aria-pressed', 'false');
   finish.disabled = true;
   controls.append(point, area, finish);
   host.append(note, canvas, controls);
@@ -155,12 +157,25 @@ async function mountSitePicker(host, initial, initialPolygon, onChange) {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19, attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);
+    requestAnimationFrame(() => {
+      if (canvas.isConnected) map.invalidateSize({ pan: false });
+    });
     if (initial) showPoint(L, { lat: initial.lat, lng: initial.lon ?? initial.lng });
     if (initialPolygon && initialPolygon.features) L.geoJSON(initialPolygon).addTo(map);
     note.textContent = 'Arizona coverage only. Choose a point or trace a work boundary.';
 
-    point.addEventListener('click', () => { mode = 'point'; finish.disabled = true; });
-    area.addEventListener('click', () => { mode = 'area'; finish.disabled = vertices.length < 3; });
+    point.addEventListener('click', () => {
+      mode = 'point';
+      point.setAttribute('aria-pressed', 'true');
+      area.setAttribute('aria-pressed', 'false');
+      finish.disabled = true;
+    });
+    area.addEventListener('click', () => {
+      mode = 'area';
+      point.setAttribute('aria-pressed', 'false');
+      area.setAttribute('aria-pressed', 'true');
+      finish.disabled = vertices.length < 3;
+    });
     finish.addEventListener('click', () => {
       if (vertices.length < 3) return;
       const ring = vertices.map((v) => [v.lng, v.lat]);
@@ -173,7 +188,12 @@ async function mountSitePicker(host, initial, initialPolygon, onChange) {
         showPoint(L, location);
         onChange({ location, polygon: picked });
       }
-      mode = 'point'; vertices = []; redrawLine(L); finish.disabled = true;
+      mode = 'point';
+      point.setAttribute('aria-pressed', 'true');
+      area.setAttribute('aria-pressed', 'false');
+      vertices = [];
+      redrawLine(L);
+      finish.disabled = true;
     });
     map.on('click', (event) => {
       if (!isWithinArizona(event.latlng)) {

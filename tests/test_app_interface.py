@@ -396,6 +396,17 @@ def test_the_live_map_fills_its_route_after_leaflet_mounts():
     assert "map.invalidateSize" in source
 
 
+def test_the_site_picker_keeps_leaflet_inside_the_panel():
+    css = read("styles", "components.css")
+    assert "isolation: isolate" in css
+    assert ".site-picker-actions" in css
+    assert "grid-template-columns: repeat(3" in css
+    forms = strip_comments(read("js", "forms.js"))
+    assert "site-picker-actions" in forms
+    assert "map.invalidateSize" in forms
+    assert "aria-pressed" in forms
+
+
 # ---------------------------------------------------------------------------
 # Forecast vs actual
 # ---------------------------------------------------------------------------
