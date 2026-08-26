@@ -277,7 +277,7 @@ export function siteView(ctx, siteId) {
         render: (r) => String(r.calendarMinutes) },
       { label: 'Stopped', width: '80px', numeric: true,
         render: (r) => r.stopped ? String(r.stopped) : '' },
-      { label: 'Flags', width: '150px',
+      { label: 'Flags', width: '220px',
         render: (r) => {
           const wrap = el('span', 'loggedcell');
           if (r.overexposed) wrap.appendChild(tag(`${r.overexposed} overexposed`, 'danger'));

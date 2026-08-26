@@ -301,6 +301,13 @@ def test_unprescribed_work_is_surfaced_not_just_recorded():
     assert ".flag-unprescribed" in css
 
 
+def test_the_crew_flags_column_has_room_for_both_alerts():
+    views = strip_comments(read("js", "views.js"))
+    site_view = views[views.index("export function siteView"):
+                      views.index("export function crewView")]
+    assert "{ label: 'Flags', width: '220px'" in site_view
+
+
 def test_both_facts_are_reported_not_just_the_flattering_one():
     """Working over prescription raises adaptation AND accumulates strain."""
     engine = strip_comments(read("js", "engine.js"))
