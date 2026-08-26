@@ -619,7 +619,11 @@ body {
    Map
    ========================================================================== */
 
-.view-map { flex: 1; min-height: 0; }
+.content > .view-map {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
 .map-holder { flex: 1; min-height: 320px; display: grid; place-items: center; padding: var(--space-2); }
 .map-canvas { display: block; }
 .map-legend {
@@ -668,9 +672,15 @@ body {
   overflow: hidden;
 }
 
+.live-map {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.site-picker-map { height: 320px; }
+
 .live-map,
 .site-picker-map {
-  height: 320px;
   border: 1px solid var(--line-subtle);
   border-radius: var(--radius-surface);
 }

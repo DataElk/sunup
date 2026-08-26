@@ -18,6 +18,9 @@ export function mapView(ctx) {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19, attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);
+    requestAnimationFrame(() => {
+      if (canvas.isConnected) map.invalidateSize({ pan: false });
+    });
     note.textContent = 'Arizona only. Click the map to create a site, or open a site to edit its boundary.';
 
     const layers = [];

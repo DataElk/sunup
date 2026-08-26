@@ -378,6 +378,17 @@ def test_the_leaflet_map_has_osm_attribution():
     assert "tile.openstreetmap.org" in source
 
 
+def test_the_live_map_fills_its_route_after_leaflet_mounts():
+    css = read("styles", "components.css")
+    assert ".content > .view-map" in css
+    live_map = re.search(r"^\.live-map \{(.*?)\}", css, flags=re.S | re.M)
+    assert live_map, "the live map needs its own sizing rule"
+    assert "flex: 1" in live_map.group(1)
+    assert "min-height: 0" in live_map.group(1)
+    source = strip_comments(read("js", "mapview.js"))
+    assert "map.invalidateSize" in source
+
+
 # ---------------------------------------------------------------------------
 # Forecast vs actual
 # ---------------------------------------------------------------------------
