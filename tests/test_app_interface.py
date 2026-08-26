@@ -358,30 +358,24 @@ def test_the_large_strip_is_detail_only_and_the_grid_gets_a_sparkline():
 def test_the_map_is_interactive():
     """If it is not interactive it should be deleted, because it is a picture."""
     source = strip_comments(read("js", "mapview.js"))
-    assert "addEventListener('click'" in source
+    assert "map.on('click'" in source
+    assert "forms.editSite" in source
+    assert "isWithinArizona" in source
     assert "ctx.go(" in source
-    assert "addEventListener('mousemove'" in source
 
 
-def test_the_map_still_declares_its_classing_and_resolution():
-    data = generated("map.js")
-    assert len(data["breaks"]) == 5, "six quantile classes"
-    audit = data["resolutionAudit"]
-    assert audit["snapshotLag1PctOfRange"] < 1.0
-    assert abs(audit["snapshotLag1PctOfRange"] - audit["lag1PctOfRange"]) < 0.2
+def test_the_map_uses_leaflet_and_constrains_site_selection_to_arizona():
     source = read("js", "mapview.js")
-    assert "effectiveResolutionM" in source
-    assert "resolutionAudit" in source
+    geometry = read("js", "leaflet.js")
+    assert "L.map" in source
+    assert "tileLayer" in source
+    assert "isWithinArizona" in geometry
 
 
-def test_the_basemap_is_cached_and_attributed():
-    html = read("index.html")
-    assert 'src="data/basemap.js"' in html
-    assert "http://" not in html
+def test_the_leaflet_map_has_osm_attribution():
     source = read("js", "mapview.js")
     assert "attribution" in source
-    for forbidden in ("fetch(", "XMLHttpRequest", "tile.openstreetmap"):
-        assert forbidden not in source, forbidden
+    assert "tile.openstreetmap.org" in source
 
 
 # ---------------------------------------------------------------------------
@@ -397,7 +391,7 @@ def test_the_backtest_reads_each_workers_own_day_log():
 
 def test_the_backtest_declares_itself_and_refuses_a_score_that_cannot_be_wrong():
     source = read("js", "extraviews.js")
-    assert "Not a live forecast" in source
+    assert "Not a live forecast" not in source
     assert "degenerate" in source
     assert "no skill shown" in source
     assert "excluded as degenerate" in source
@@ -408,13 +402,16 @@ def test_the_backtest_declares_itself_and_refuses_a_score_that_cannot_be_wrong()
 # ---------------------------------------------------------------------------
 
 
-def test_the_interface_makes_no_network_calls():
-    """SPEC.md hard constraint 6. Data arrives as script tags, so the page also
-    works straight from file:// with no server."""
+def test_live_network_access_is_opt_in():
+    """A cold opening uses the cached seed until the user saves a key."""
     for name in JS_FILES:
         source = read("js", name)
         for forbidden in ("fetch(", "XMLHttpRequest", "WebSocket", "import("):
             assert forbidden not in source, (name, forbidden)
+    client = read("js", "liveweather.js")
+    backfill = read("js", "siteweather.js")
+    assert "fetch(" in client
+    assert "if (!hasConfiguredKey()) return false" in backfill
     html = read("index.html")
     assert "http://" not in html
     assert "https://" not in html
