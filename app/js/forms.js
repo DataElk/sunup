@@ -154,6 +154,7 @@ async function mountSitePicker(host, initial, initialPolygon, onChange) {
     const L = await loadLeaflet();
     map = L.map(canvas, { maxBounds: [[30.8, -115.2], [37.25, -108.65]], maxBoundsViscosity: 1 })
       .setView(center, initial ? 13 : 7);
+    L.DomEvent.disableClickPropagation(canvas);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19, attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);

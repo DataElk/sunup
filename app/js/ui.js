@@ -403,7 +403,8 @@ export function tag(text, kind) {
 }
 
 export function field(label, control, hint) {
-  const wrap = el('label', 'field');
+  const wrapsControl = control.matches('input, select, textarea');
+  const wrap = el(wrapsControl ? 'label' : 'div', 'field');
   wrap.appendChild(el('span', 'field-label', label));
   wrap.appendChild(control);
   if (hint) wrap.appendChild(el('span', 'field-hint', hint));

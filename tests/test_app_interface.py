@@ -405,6 +405,13 @@ def test_the_site_picker_keeps_leaflet_inside_the_panel():
     assert "site-picker-actions" in forms
     assert "map.invalidateSize" in forms
     assert "aria-pressed" in forms
+    assert "disableClickPropagation" in forms
+    map_view = strip_comments(read("js", "mapview.js"))
+    assert "document.querySelector('.panel')" in map_view
+    ui = strip_comments(read("js", "ui.js"))
+    field = ui[ui.index("export function field"):
+               ui.index("export function input")]
+    assert "control.matches('input, select, textarea')" in field
 
 
 # ---------------------------------------------------------------------------

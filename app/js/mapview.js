@@ -44,6 +44,7 @@ export function mapView(ctx) {
       map.fitBounds(group.getBounds().pad(0.25), { maxZoom: 11 });
     }
     map.on('click', (event) => {
+      if (document.querySelector('.panel')) return;
       if (!isWithinArizona(event.latlng)) {
         note.textContent = 'FortyGuard weather for this workspace is limited to Arizona.';
         return;
