@@ -235,28 +235,30 @@ export function statusDot(status) {
    `sortKey` when sortable and a `render(row)` that returns a node or string. */
 
 export function detailsList({ columns, rows, sort, onSort, selection, onSelectionChange,
-                              onInvoke, rowKey, empty }) {
+                              onInvoke, rowKey, empty, selectable = true }) {
   const wrap = el('div', 'dlist-wrap');
   const table = el('div', 'dlist');
   table.setAttribute('role', 'grid');
 
-  const template = `28px ${columns.map((c) => c.width || '1fr').join(' ')}`;
+  const template = `${selectable ? '28px ' : ''}${columns.map((c) => c.width || '1fr').join(' ')}`;
 
   const head = el('div', 'dl-head');
   head.style.gridTemplateColumns = template;
   head.setAttribute('role', 'row');
 
-  const all = el('input', 'dl-check');
-  all.type = 'checkbox';
-  all.setAttribute('aria-label', 'Select all');
-  all.checked = rows.length > 0 && selection.size === rows.length;
-  all.indeterminate = selection.size > 0 && selection.size < rows.length;
-  all.addEventListener('change', () => {
-    const next = new Set();
-    if (all.checked) rows.forEach((r) => next.add(rowKey(r)));
-    onSelectionChange(next);
-  });
-  head.appendChild(all);
+  if (selectable) {
+    const all = el('input', 'dl-check');
+    all.type = 'checkbox';
+    all.setAttribute('aria-label', 'Select all');
+    all.checked = rows.length > 0 && selection.size === rows.length;
+    all.indeterminate = selection.size > 0 && selection.size < rows.length;
+    all.addEventListener('change', () => {
+      const next = new Set();
+      if (all.checked) rows.forEach((r) => next.add(rowKey(r)));
+      onSelectionChange(next);
+    });
+    head.appendChild(all);
+  }
 
   for (const column of columns) {
     const cell = el('div', 'dl-th');
@@ -297,17 +299,19 @@ export function detailsList({ columns, rows, sort, onSort, selection, onSelectio
     line.tabIndex = 0;
     if (selection.has(key)) line.classList.add('sel');
 
-    const check = el('input', 'dl-check');
-    check.type = 'checkbox';
-    check.checked = selection.has(key);
-    check.setAttribute('aria-label', `Select ${key}`);
-    check.addEventListener('click', (e) => e.stopPropagation());
-    check.addEventListener('change', () => {
-      const next = new Set(selection);
-      if (check.checked) next.add(key); else next.delete(key);
-      onSelectionChange(next);
-    });
-    line.appendChild(check);
+    if (selectable) {
+      const check = el('input', 'dl-check');
+      check.type = 'checkbox';
+      check.checked = selection.has(key);
+      check.setAttribute('aria-label', `Select ${key}`);
+      check.addEventListener('click', (e) => e.stopPropagation());
+      check.addEventListener('change', () => {
+        const next = new Set(selection);
+        if (check.checked) next.add(key); else next.delete(key);
+        onSelectionChange(next);
+      });
+      line.appendChild(check);
+    }
 
     for (const column of columns) {
       const cell = el('div', 'dl-td');

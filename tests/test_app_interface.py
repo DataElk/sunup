@@ -426,6 +426,15 @@ def test_the_backtest_declares_itself_and_refuses_a_score_that_cannot_be_wrong()
     assert "excluded as degenerate" in source
 
 
+def test_forecast_has_no_decorative_selection_controls():
+    ui = strip_comments(read("js", "ui.js"))
+    assert "selectable = true" in ui
+    forecast = strip_comments(read("js", "extraviews.js"))
+    block = forecast[forecast.index("export function forecastView"):
+                     forecast.index("function metric")]
+    assert "selectable: false" in block
+
+
 # ---------------------------------------------------------------------------
 # Offline
 # ---------------------------------------------------------------------------

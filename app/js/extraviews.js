@@ -161,6 +161,7 @@ export function forecastView(ctx) {
     selection: new Set(),
     onSelectionChange: () => {},
     rowKey: (r) => r.worker.id,
+    selectable: false,
     empty: 'No worker has enough history for a backtest yet.',
   }));
 
