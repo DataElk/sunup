@@ -440,21 +440,20 @@ body {
   gap: var(--space-2);
   padding: var(--space-3);
   border: var(--border-width) solid var(--line-default);
-  border-left: 3px solid var(--accent);
   border-radius: var(--radius-control);
   background: var(--surface-panel);
   font-size: var(--text-caption);
 }
 .callout p { margin: 0; color: var(--ink-secondary); }
 .callout[data-kind="warn"], .callout-warn {
-  border-left-color: var(--mismatch-over);
+  border-color: var(--mismatch-over);
   background: var(--mismatch-over-bg);
 }
 .callout[data-kind="danger"] {
-  border-left-color: var(--status-stop);
+  border-color: var(--status-stop);
   background: var(--status-stop-bg);
 }
-.callout[data-kind="assumed"] { border-left-color: var(--ink-tertiary); background: var(--surface-sunken); }
+.callout[data-kind="assumed"] { border-color: var(--ink-tertiary); background: var(--surface-sunken); }
 .callout-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 
 /* ==========================================================================

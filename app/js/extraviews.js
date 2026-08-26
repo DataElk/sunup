@@ -18,9 +18,9 @@ import * as store from './store.js';
 import * as compute from './compute.js';
 import * as liveWeather from './liveweather.js';
 import {
-  el, detailsList, chip, tag, toast, confirmDialog, field, select, icon,
+  el, detailsList, chip, tag, toast, confirmDialog, field,
 } from './ui.js';
-import { banner, section, STATUS_TEXT } from './views.js';
+import { section } from './views.js';
 
 /* --- Forecast vs actual --------------------------------------------------------- */
 
@@ -95,13 +95,6 @@ export function forecastView(ctx) {
     .filter(Boolean);
 
   const usable = rows.filter((r) => !r.degenerate);
-  const asOf = rows.length ? rows[0].asOf : '—';
-
-  root.appendChild(banner('info', `Backtest from ${asOf}, ${HORIZON} days forward`,
-    'Not a live forecast. The days after the as-of date come from the same '
-    + 'cached backfill; the model simply did not see them when it projected, '
-    + 'and each worker is compared against his own day log.'));
-
   if (usable.length) {
     const bands = usable.reduce((s, r) => s + r.bandsMatched, 0);
     const total = usable.reduce((s, r) => s + r.bandsTotal, 0);
@@ -263,11 +256,6 @@ export function settingsView(ctx) {
         state.seeded === null ? 'not seeded' : String(state.seeded)));
     wrap.appendChild(counts);
 
-    wrap.appendChild(banner('info', 'Everything here is yours to change',
-      'The starting roster is seed data written into your browser on first '
-      + 'load, not built-in content. Rename it, re-trade it, delete it. '
-      + 'Nothing leaves this device. There is no backend.'));
-
     const actions = el('div', 'callout-actions');
 
     const reset = el('button', 'btn btn-danger', 'Reset to demo data');
@@ -315,47 +303,6 @@ export function settingsView(ctx) {
 
     actions.append(reset, clear, copy);
     wrap.appendChild(actions);
-    return wrap;
-  })()));
-
-  root.appendChild(section('Display', (() => {
-    const wrap = el('div', 'stack');
-    const density = select(
-      document.documentElement.getAttribute('data-density') || 'desktop',
-      [{ value: 'desktop', label: 'Desktop, 36px rows' },
-       { value: 'touch', label: 'Field, 44px rows, larger type' }]);
-    density.addEventListener('change', () => {
-      if (density.value === 'touch') {
-        document.documentElement.setAttribute('data-density', 'touch');
-      } else {
-        document.documentElement.removeAttribute('data-density');
-      }
-      store.writeUi({ ...(store.readUi({}) || {}), density: density.value });
-      ctx.refresh();
-    });
-    wrap.appendChild(field('Density', density,
-      'Field density enlarges rows and type. It is the same grid, not a '
-      + 'different layout.'));
-    return wrap;
-  })()));
-
-  root.appendChild(section('Provenance', (() => {
-    const wrap = el('div', 'stack');
-    const kv = el('dl', 'kv');
-    const weather = window.ACCLIMATE_WEATHER;
-    kv.append(
-      el('dt', null, 'Weather'), el('dd', null,
-        `FortyGuard tiles + Open-Meteo hourly, ${weather.dates.length} days to ${weather.today}`),
-      el('dt', null, 'Wet bulb'), el('dd', null, `${weather.model} (assumed = natural)`),
-      el('dt', null, 'Engine'), el('dd', null,
-        'Runs in this browser; constants generated from constants.py'),
-      el('dt', null, 'Network'), el('dd', null, 'None. Every byte is cached at build time.'));
-    wrap.appendChild(kv);
-    wrap.appendChild(banner('warn', 'The work/rest ladder is our construction',
-      'NIOSH publishes no work/rest lookup table. The exposure limits are '
-      + 'NIOSH 2016-106 Figures 8-1 and 8-2; the four-rung structure applied to '
-      + 'a personal limit is ours, and it is the model’s largest unvalidated '
-      + 'assumption.'));
     return wrap;
   })()));
 

@@ -333,10 +333,6 @@ window.addEventListener('hashchange', () => { dismissPanel(); render(); });
   await store.initStore();
   store.subscribe(() => compute.invalidate());
 
-  const ui = store.readUi({});
-  if (ui && ui.density === 'touch') {
-    document.documentElement.setAttribute('data-density', 'touch');
-  }
   for (const site of store.sites()) expanded.add(site.id);
 
   if (!location.hash) location.hash = '#/sites';

@@ -18,7 +18,6 @@
 import { CONSTANTS } from './engine.js';
 
 const STORE_KEY = 'acclimate.store.v1';
-const UI_KEY = 'acclimate.ui.v1';
 const SEED_KEY = 'acclimate.seedVersion';
 
 const listeners = new Set();
@@ -272,11 +271,6 @@ export function loggedMinutes(workerId) {
   }
   return out;
 }
-
-/* --- UI state (separate key: clearing the roster should not lose your place), */
-
-export function readUi(fallback) { return readRaw(UI_KEY, fallback); }
-export function writeUi(value) { writeRaw(UI_KEY, value); }
 
 /* --- Export / import ---------------------------------------------------------- */
 
