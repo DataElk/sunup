@@ -1,0 +1,214 @@
+"""The browser engine must agree with the Python engine, and must be current.
+
+The per-worker maths now runs in two places. That is a deliberate trade -- an
+editable roster cannot recompute anything if the model only exists in a build
+script -- but two implementations of the thing that decides whether a worker is
+told to stop will drift unless something stops them.
+
+Two gates here:
+
+  1. AGREEMENT. tests/replay_golden.mjs runs app/js/engine.js under Node over
+     vectors emitted by the Python engine and reports any disagreement beyond
+     1e-9.
+
+  2. CURRENCY. app/data/constants.js carries a hash of the constants it was
+     generated from. If constants.py changed and the generator was not re-run,
+     the browser is quietly running yesterday's exposure limits. That fails
+     here rather than in the field.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import subprocess
+
+import pytest
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+GENERATED = os.path.join(ROOT, "app", "data", "constants.js")
+VECTORS = os.path.join(ROOT, "tests", "fixtures", "golden_vectors.json")
+
+pytestmark = pytest.mark.skipif(shutil.which("node") is None,
+                                reason="node not available")
+
+
+def _generated_payload():
+    with open(GENERATED, "r", encoding="utf-8") as fh:
+        text = fh.read()
+    return json.loads(text[text.index("{"): text.rindex("}") + 1])
+
+
+# ---------------------------------------------------------------------------
+# Currency
+# ---------------------------------------------------------------------------
+
+
+def test_the_generated_constants_are_not_stale():
+    """constants.py is the single source of truth. This proves the browser copy
+    was generated from the CURRENT one."""
+    import sys
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    import build_js_constants as gen
+
+    expected = gen.source_hash(gen.payload())
+    actual = _generated_payload()["sourceHash"]
+    assert actual == expected, (
+        "app/data/constants.js is stale. constants.py has changed since it was "
+        "generated. Run: python scripts/build_js_constants.py")
+
+
+def test_the_generated_file_says_it_is_generated():
+    with open(GENERATED, "r", encoding="utf-8") as fh:
+        head = fh.read(400)
+    assert "GENERATED" in head
+    assert "build_js_constants.py" in head
+    assert "DO NOT EDIT" in head
+
+
+def test_no_exposure_limit_is_hand_typed_into_the_engine():
+    """Every number in engine.js must come through the generated constants."""
+    with open(os.path.join(ROOT, "app", "js", "engine.js"), "r",
+              encoding="utf-8") as fh:
+        source = fh.read()
+    body = source[source.index("const K ="):]
+    for literal in ("22.5", "25.0", "26.0", "28.0", "30.0", "21.5",
+                    "4.0", "14.0", "6.0"):
+        assert literal not in body, (
+            "%s appears literally in engine.js; it must come from "
+            "ACCLIMATE_CONSTANTS" % literal)
+
+
+def test_the_forbidden_inputs_reach_the_browser():
+    """A legal constraint, not a preference. The browser store enforces it too."""
+    payload = _generated_payload()
+    forbidden = set(payload["forbiddenInputs"])
+    for name in ("age", "sex", "bmi", "weight", "height"):
+        assert any(name in f for f in forbidden), name
+
+
+# ---------------------------------------------------------------------------
+# Agreement
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def replay():
+    result = subprocess.run(
+        ["node", os.path.join("tests", "replay_golden.mjs")],
+        cwd=ROOT, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    return json.loads(result.stdout)
+
+
+def test_the_vectors_actually_cover_something(replay):
+    """A gate that checks nothing passes trivially."""
+    assert replay["checked"] > 500, replay["checked"]
+
+
+def test_the_browser_engine_agrees_with_python(replay):
+    if not replay["ok"]:
+        lines = ["%d disagreement(s), first %d shown:"
+                 % (replay["totalFailures"], len(replay["failures"]))]
+        for f in replay["failures"]:
+            lines.append("  %-52s expected %r got %r (delta %s)"
+                         % (f["what"], f["expected"], f["actual"], f["delta"]))
+        pytest.fail("\n".join(lines))
+
+
+def test_the_replay_used_the_current_constants(replay):
+    assert replay["sourceHash"] == _generated_payload()["sourceHash"]
+
+
+# ---------------------------------------------------------------------------
+# The feedback loop has no Python counterpart, so it is checked directly
+# ---------------------------------------------------------------------------
+
+
+def _node(expression):
+    script = (
+        "import {readFileSync} from 'node:fs';"
+        "globalThis.window=globalThis;"
+        "(0,eval)(readFileSync('app/data/constants.js','utf8'));"
+        "const e=await import('./app/js/engine.js');"
+        "process.stdout.write(JSON.stringify(%s));" % expression
+    )
+    result = subprocess.run(["node", "--input-type=module", "-e", script],
+                            cwd=ROOT, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    return json.loads(result.stdout)
+
+
+WORKER = ("{trade:'concrete',clothing:'work_clothes',shiftStart:6,shiftEnd:14,"
+          "workClassOverride:null}")
+
+
+def test_rule_a_scales_proportionally_and_preserves_shape():
+    """Rule A: the hottest hours were prescribed least and must still weigh
+    least. Halving the day's total must halve every hour's duty, not flatten
+    them."""
+    out = _node(
+        "(()=>{const w=%s;"
+        "const hours=[{minutes:60},{minutes:30},{minutes:15},{minutes:0}];"
+        "const a=e.allocateActual(hours,105/2,w);"
+        "return {rule:a.rule,duties:a.duties,unprescribed:a.unprescribedWork};})()"
+        % WORKER)
+    assert out["rule"] == "proportional"
+    assert out["unprescribed"] is False
+    # prescribed total 105; actual 52.5 -> factor 0.5 on every hour
+    assert out["duties"] == pytest.approx([0.5, 0.25, 0.125, 0.0], abs=1e-12)
+
+
+def test_rule_c_takes_over_when_nothing_was_prescribed():
+    """The case that matters most: told to stop, worked anyway."""
+    out = _node(
+        "(()=>{const w=%s;"
+        "const hours=[{minutes:0},{minutes:0},{minutes:0},{minutes:0}];"
+        "const a=e.allocateActual(hours,120,w);"
+        "return {rule:a.rule,duties:a.duties,unprescribed:a.unprescribedWork};})()"
+        % WORKER)
+    assert out["rule"] == "uniform"
+    assert out["unprescribed"] is True, "must be flagged, not averaged away"
+    # 120 minutes spread over an 8 h shift = 15 min/h = 0.25 duty
+    assert out["duties"] == pytest.approx([0.25] * 4, abs=1e-12)
+
+
+def test_a_zero_log_is_not_treated_as_no_log():
+    """Logging 0 is a measurement -- he was here and did not work. It must not
+    fall back to the prescription."""
+    out = _node(
+        "(()=>{const w=%s;"
+        "const hours=[{minutes:60},{minutes:60}];"
+        "const a=e.allocateActual(hours,0,w);"
+        "return {rule:a.rule,duties:a.duties,actual:a.actual};})()" % WORKER)
+    assert out["rule"] == "proportional"
+    assert out["actual"] == 0
+    assert out["duties"] == pytest.approx([0.0, 0.0], abs=1e-12)
+
+
+def test_overexposure_counts_only_unauthorised_hours_above_the_limit():
+    out = _node(
+        "(()=>{"
+        "const hours=[{minutes:30,overLimit:2.0},{minutes:60,overLimit:-1.0},"
+        "             {minutes:0,overLimit:4.0}];"
+        "const alloc={duties:[1.0,1.0,0.5]};"
+        "return e.overexposure(hours,alloc);})()")
+    # hour 1: extra duty 0.5 over a 2.0 degC excess -> 1.0
+    # hour 2: below the limit -> contributes nothing even though duty rose
+    # hour 3: extra duty 0.5 over a 4.0 degC excess -> 2.0
+    assert out == pytest.approx(3.0, abs=1e-12)
+
+
+def test_an_unlogged_day_is_marked_assumed_and_uses_the_prescription():
+    out = _node(
+        "(()=>{const w=%s;"
+        "const days=[{date:'2026-08-01',hourly:Array(24).fill(31.0)}];"
+        "const r=e.simulate({worker:w,days,logs:{}});"
+        "const d=r.records[0];"
+        "return {assumed:d.assumed,rule:d.allocationRule,"
+        "        actual:d.actualMinutes,prescribed:d.prescribedMinutes};})()"
+        % WORKER)
+    assert out["assumed"] is True
+    assert out["rule"] == "prescribed"
+    assert out["actual"] == out["prescribed"]

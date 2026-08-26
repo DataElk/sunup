@@ -1,0 +1,300 @@
+/* ============================================================================
+   Forecast vs actual, and Settings.
+
+   FORECAST is no longer a scripted pair. It stands at an as-of date, projects
+   every active worker forward by carrying that day's weather, and compares
+   against what each worker's OWN DAY LOG says happened. Accuracy is therefore
+   measured against what crews actually did.
+
+   It keeps two habits from the earlier build, because both were right: it says
+   plainly that it is a backtest rather than a live forecast, and it refuses to
+   bank a score that cannot be wrong. A worker prescribed zero on every day of
+   the horizon matches perfectly while demonstrating nothing, and the row says
+   so instead of counting it.
+   ========================================================================== */
+
+import { simulate } from './engine.js';
+import * as store from './store.js';
+import * as compute from './compute.js';
+import {
+  el, detailsList, chip, tag, toast, confirmDialog, field, select, icon,
+} from './ui.js';
+import { banner, section, STATUS_TEXT } from './views.js';
+
+/* --- Forecast vs actual --------------------------------------------------------- */
+
+const HORIZON = 5;
+
+function backtest(worker) {
+  const site = compute.siteOf(worker);
+  if (!site || !site.seriesKey) return null;
+  const series = window.ACCLIMATE_WEATHER.series[site.seriesKey];
+  const dates = window.ACCLIMATE_WEATHER.dates
+    .filter((d) => !worker.hireDate || d >= worker.hireDate);
+  if (dates.length < HORIZON + 2) return null;
+
+  const cut = dates.length - HORIZON;
+  const asOf = dates[cut - 1];
+  const before = dates.slice(0, cut).map((d) => ({ date: d, hourly: series[d] }));
+  const after = dates.slice(cut).map((d) => ({ date: d, hourly: series[d] }));
+  const logs = store.loggedMinutes(worker.id);
+
+  const history = simulate({ worker, days: before, logs, initialAdaptation: 0 });
+
+  /* The projection: carry the as-of day forward, seeing nothing after it. */
+  const carried = after.map((d) => ({ date: d.date, hourly: series[asOf] }));
+  const predicted = simulate({
+    worker, days: carried, logs: {},
+    initialAdaptation: history.finalAdaptation,
+    firstDayOnJob: history.records.length + 1,
+  }).records;
+
+  /* The truth: the real days, with the worker's real log. */
+  const actual = simulate({
+    worker, days: after, logs,
+    initialAdaptation: history.finalAdaptation,
+    firstDayOnJob: history.records.length + 1,
+  }).records;
+
+  const pairs = predicted.map((p, i) => ({
+    date: p.date,
+    predicted: p.prescribedMinutes,
+    actual: actual[i].prescribedMinutes,
+    logged: actual[i].assumed ? null : actual[i].actualMinutes,
+    error: p.prescribedMinutes - actual[i].prescribedMinutes,
+    bandMatched: p.status === actual[i].status,
+    predictedStatus: p.status,
+    actualStatus: actual[i].status,
+  }));
+
+  const errors = pairs.map((p) => Math.abs(p.error));
+  const signed = pairs.map((p) => p.error);
+  const values = new Set(pairs.flatMap((p) => [p.predicted, p.actual]));
+
+  return {
+    worker,
+    site,
+    asOf,
+    pairs,
+    loggedDays: pairs.filter((p) => p.logged !== null).length,
+    bandsMatched: pairs.filter((p) => p.bandMatched).length,
+    bandsTotal: pairs.length,
+    meanAbs: Math.round((errors.reduce((a, b) => a + b, 0) / errors.length) * 10) / 10,
+    bias: Math.round((signed.reduce((a, b) => a + b, 0) / signed.length) * 10) / 10,
+    degenerate: values.size === 1,
+  };
+}
+
+export function forecastView(ctx) {
+  const root = el('div', 'view');
+
+  const rows = store.workers()
+    .filter((w) => w.active !== false)
+    .map(backtest)
+    .filter(Boolean);
+
+  const usable = rows.filter((r) => !r.degenerate);
+  const asOf = rows.length ? rows[0].asOf : '—';
+
+  root.appendChild(banner('info', `Backtest from ${asOf}, ${HORIZON} days forward`,
+    'Not a live forecast. The days after the as-of date come from the same '
+    + 'cached backfill; the model simply did not see them when it projected, '
+    + 'and each worker is compared against his own day log.'));
+
+  if (usable.length) {
+    const bands = usable.reduce((s, r) => s + r.bandsMatched, 0);
+    const total = usable.reduce((s, r) => s + r.bandsTotal, 0);
+    const bias = usable.reduce((s, r) => s + r.bias, 0) / usable.length;
+    const summary = el('div', 'fc-summary');
+    summary.append(
+      metric(`${bands}/${total}`, 'prescription band correct'),
+      metric(`${bias > 0 ? '+' : ''}${bias.toFixed(1)}`,
+        `bias, min — ${bias < 0 ? 'conservative' : (bias > 0 ? 'permissive' : 'none')}`,
+        bias > 0 ? 'permissive' : 'safe'),
+      metric(String(usable.length), 'workers with a usable comparison'),
+      metric(String(rows.length - usable.length), 'excluded as degenerate'));
+    root.appendChild(summary);
+  }
+
+  root.appendChild(detailsList({
+    columns: [
+      { label: 'Worker', width: '1.6fr',
+        render: (r) => {
+          const wrap = el('div', 'cellline');
+          wrap.appendChild(el('span', 'nm', r.worker.name));
+          if (r.degenerate) {
+            const t = tag('no skill shown', 'assumed');
+            t.title = 'Predicted and actual are identical on every day, so the '
+              + 'band cannot be wrong. Not counted in the summary.';
+            wrap.appendChild(t);
+          }
+          return wrap;
+        } },
+      { label: 'Site', width: '1fr', render: (r) => r.site.name },
+      { label: 'Logged', width: '84px', numeric: true,
+        render: (r) => `${r.loggedDays}/${r.bandsTotal}` },
+      { label: 'Band', width: '76px', numeric: true,
+        render: (r) => {
+          const node = el('span', 'num', `${r.bandsMatched}/${r.bandsTotal}`);
+          if (r.degenerate) node.classList.add('void');
+          return node;
+        } },
+      { label: 'Bias', width: '76px', numeric: true,
+        render: (r) => {
+          if (r.degenerate) return '';
+          const node = el('span', 'num', `${r.bias > 0 ? '+' : ''}${r.bias}`);
+          node.classList.add(r.bias > 0 ? 'danger' : 'ok');
+          return node;
+        } },
+      { label: 'Mean |err|', width: '92px', numeric: true,
+        render: (r) => r.degenerate ? '' : String(r.meanAbs) },
+      { label: 'Days', width: '150px',
+        render: (r) => {
+          const wrap = el('span', 'fc-days');
+          for (const pair of r.pairs) {
+            const dot = el('span', 'fc-dot');
+            dot.setAttribute('data-ok', String(pair.bandMatched));
+            dot.title = `${pair.date}: projected ${pair.predicted}, `
+              + `actual ${pair.actual}`;
+            wrap.appendChild(dot);
+          }
+          return wrap;
+        } },
+    ],
+    rows,
+    sort: null,
+    onSort: () => {},
+    selection: new Set(),
+    onSelectionChange: () => {},
+    rowKey: (r) => r.worker.id,
+    empty: 'No worker has enough history for a backtest yet.',
+  }));
+
+  return root;
+}
+
+function metric(value, label, kind) {
+  const wrap = el('div', 'fc-metric');
+  const node = el('div', 'fc-value num', value);
+  if (kind) node.setAttribute('data-kind', kind);
+  wrap.append(node, el('div', 'fc-label', label));
+  return wrap;
+}
+
+/* --- Settings -------------------------------------------------------------------- */
+
+export function settingsView(ctx) {
+  const root = el('div', 'view');
+  const state = store.getState();
+
+  root.appendChild(section('Data', (() => {
+    const wrap = el('div', 'stack');
+    const counts = el('dl', 'kv');
+    counts.append(
+      el('dt', null, 'Sites'), el('dd', 'num', String(state.sites.length)),
+      el('dt', null, 'Crews'), el('dd', 'num', String(state.crews.length)),
+      el('dt', null, 'Workers'), el('dd', 'num', String(state.workers.length)),
+      el('dt', null, 'Logged days'), el('dd', 'num',
+        String(Object.values(state.dayLogs).reduce((s, m) => s + Object.keys(m).length, 0))),
+      el('dt', null, 'Seed version'), el('dd', 'num',
+        state.seeded === null ? 'not seeded' : String(state.seeded)));
+    wrap.appendChild(counts);
+
+    wrap.appendChild(banner('info', 'Everything here is yours to change',
+      'The starting roster is seed data written into your browser on first '
+      + 'load, not built-in content. Rename it, re-trade it, delete it. '
+      + 'Nothing leaves this device — there is no backend.'));
+
+    const actions = el('div', 'callout-actions');
+
+    const reset = el('button', 'btn btn-danger', 'Reset to demo data');
+    reset.type = 'button';
+    reset.addEventListener('click', () => confirmDialog({
+      title: 'Reset to demo data',
+      message: 'This replaces every site, crew and worker with the seed roster '
+        + 'and DISCARDS ALL DAY LOGS. It cannot be undone.',
+      confirmLabel: 'Reset',
+      danger: true,
+      onConfirm: () => {
+        store.resetToSeed();
+        compute.invalidate();
+        toast('Reset to demo data');
+        ctx.go('#/sites');
+      },
+    }));
+
+    const clear = el('button', 'btn btn-danger', 'Delete everything');
+    clear.type = 'button';
+    clear.addEventListener('click', () => confirmDialog({
+      title: 'Delete everything',
+      message: 'Removes every site, crew, worker and day log, leaving an empty '
+        + 'store. You can put the demo roster back afterwards.',
+      confirmLabel: 'Delete all',
+      danger: true,
+      onConfirm: () => {
+        for (const site of store.sites().slice()) store.removeSite(site.id);
+        compute.invalidate();
+        toast('Store emptied');
+        ctx.go('#/sites');
+      },
+    }));
+
+    const copy = el('button', 'btn', 'Copy store as JSON');
+    copy.type = 'button';
+    copy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(store.exportJson());
+        toast('Store copied to clipboard');
+      } catch {
+        toast('Clipboard blocked by the browser');
+      }
+    });
+
+    actions.append(reset, clear, copy);
+    wrap.appendChild(actions);
+    return wrap;
+  })()));
+
+  root.appendChild(section('Display', (() => {
+    const wrap = el('div', 'stack');
+    const density = select(
+      document.documentElement.getAttribute('data-density') || 'desktop',
+      [{ value: 'desktop', label: 'Desktop — 36px rows' },
+       { value: 'touch', label: 'Field — 44px rows, larger type' }]);
+    density.addEventListener('change', () => {
+      if (density.value === 'touch') {
+        document.documentElement.setAttribute('data-density', 'touch');
+      } else {
+        document.documentElement.removeAttribute('data-density');
+      }
+      store.writeUi({ ...(store.readUi({}) || {}), density: density.value });
+      ctx.refresh();
+    });
+    wrap.appendChild(field('Density', density,
+      'Field density enlarges rows and type. It is the same grid, not a '
+      + 'different layout.'));
+    return wrap;
+  })()));
+
+  root.appendChild(section('Provenance', (() => {
+    const wrap = el('div', 'stack');
+    const kv = el('dl', 'kv');
+    const weather = window.ACCLIMATE_WEATHER;
+    kv.append(
+      el('dt', null, 'Weather'), el('dd', null,
+        `FortyGuard tiles + Open-Meteo hourly, ${weather.dates.length} days to ${weather.today}`),
+      el('dt', null, 'Wet bulb'), el('dd', null, `${weather.model} (assumed = natural)`),
+      el('dt', null, 'Engine'), el('dd', null,
+        'Runs in this browser; constants generated from constants.py'),
+      el('dt', null, 'Network'), el('dd', null, 'None. Every byte is cached at build time.'));
+    wrap.appendChild(kv);
+    wrap.appendChild(banner('warn', 'The work/rest ladder is our construction',
+      'NIOSH publishes no work/rest lookup table. The exposure limits are '
+      + 'NIOSH 2016-106 Figures 8-1 and 8-2; the four-rung structure applied to '
+      + 'a personal limit is ours, and it is the model’s largest unvalidated '
+      + 'assumption.'));
+    return wrap;
+  })()));
+
+  return root;
+}
