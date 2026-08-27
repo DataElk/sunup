@@ -194,7 +194,7 @@ function loggedCell(result) {
 
 function previousObserved(result) {
   if (!result || result.unavailable) return null;
-  const prior = result.observed.filter((record) => record.date < compute.today());
+  const prior = result.observed.filter((record) => record.date < result.current.date);
   return prior.length ? prior[prior.length - 1] : null;
 }
 
@@ -220,7 +220,7 @@ export function todayView(ctx) {
   const date = new Date(`${compute.today()}T00:00:00Z`).toLocaleDateString([], {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
   });
-  root.appendChild(pageHeader('Today', date));
+  root.appendChild(pageHeader('Today', `${date}. Each row shows its active weather date.`));
 
   const rows = store.workers()
     .filter((worker) => worker.active !== false)
@@ -245,7 +245,7 @@ export function todayView(ctx) {
   const summary = el('div', 'fc-summary');
   summary.append(
     todayMetric(String(rows.length), 'active workers'),
-    todayMetric(`${(minutes / 60).toFixed(1)} h`, 'prescribed today'),
+    todayMetric(`${(minutes / 60).toFixed(1)} h`, 'prescribed for active date'),
     todayMetric(String(stopped), 'stop work'),
     todayMetric(String(missing), 'need closeout'),
     todayMetric(String(unavailable), 'weather unavailable'));
@@ -256,6 +256,9 @@ export function todayView(ctx) {
       { label: 'Worker', width: '1.4fr', render: (row) => workerNameCell(row.result) },
       { label: 'Site / crew', width: '1.3fr',
         render: (row) => `${row.site ? row.site.name : 'No site'} / ${row.crew ? row.crew.name : 'No crew'}` },
+      { label: 'Date', width: '96px',
+        render: (row) => row.result.unavailable
+          ? compute.currentDateForSite(row.site) : row.result.current.date },
       { label: 'Shift', width: '96px', numeric: true,
         render: (row) => `${pad(row.worker.shiftStart)}:00-${pad(row.worker.shiftEnd)}:00` },
       { label: 'Prescribed (min)', width: '136px', numeric: true,
@@ -530,8 +533,10 @@ export function workerView(ctx, siteId, crewId, workerId) {
       'Review the flagged days in the log.'));
   }
 
-  root.appendChild(section('Fourteen days and six upcoming',
-    rampStrip(result.records)));
+  const historyLabel = result.projected.length
+    ? `${result.observed.length} observed days and ${result.projected.length} forecast days`
+    : `${result.observed.length} observed days`;
+  root.appendChild(section(historyLabel, rampStrip(result.records)));
 
   /* Day log ------------------------------------------------------------------ */
   const logRows = result.observed.slice().reverse();
@@ -718,9 +723,9 @@ function weatherFailureBanner(ctx, site) {
   const partial = site.weatherStatus === 'partial';
   const node = banner(partial ? 'warn' : 'danger',
     partial ? 'Live weather history is incomplete' : 'Live weather fetch failed',
-    partial
+    site.weatherError || (partial
       ? 'Some days are available. Retry to complete this site’s history.'
-      : 'No live days are available. Check the API key, then retry.');
+      : 'No live days are available. Check the API key, then retry.'));
   const actions = el('div', 'callout-actions');
   actions.appendChild(liveFetchButton(ctx, site, 'Retry live fetch'));
   node.appendChild(actions);

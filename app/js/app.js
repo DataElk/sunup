@@ -128,7 +128,8 @@ function commandsFor(current) {
       { icon: 'remove', label: 'Remove', danger: true, enabled: () => any,
         run: () => forms.confirmRemove('crew', selectedCrews(), after) },
       { icon: 'log', label: 'Log selected crew', overflow: true, enabled: () => one,
-        run: () => forms.editCrewDayLog([...selection][0], compute.today(), after) },
+        run: () => forms.editCrewDayLog([...selection][0],
+          compute.currentDateForCrew([...selection][0]), after) },
       { icon: 'site', label: 'Edit site', overflow: true,
         run: () => forms.editSite(current.siteId, after) },
     ];
@@ -140,14 +141,16 @@ function commandsFor(current) {
       { icon: 'edit', label: 'Edit', enabled: () => one,
         run: () => forms.editWorker([...selection][0], current.crewId, after) },
       { icon: 'log', label: 'Log crew',
-        run: () => forms.editCrewDayLog(current.crewId, compute.today(), after) },
+        run: () => forms.editCrewDayLog(current.crewId,
+          compute.currentDateForCrew(current.crewId), after) },
       { divider: true },
       { icon: 'remove', label: 'Remove', danger: true, enabled: () => any,
         run: () => forms.confirmRemove('worker', selectedWorkers(), after) },
       { icon: 'copy', label: 'Copy compliance record', overflow: true,
         run: () => copyRecord(current.crewId) },
       { icon: 'log', label: 'Log selected worker', overflow: true, enabled: () => one,
-        run: () => forms.editDayLog([...selection][0], compute.today(), after) },
+        run: () => forms.editDayLog([...selection][0],
+          compute.currentDateForWorker([...selection][0]), after) },
       { icon: 'crew', label: 'Edit crew', overflow: true,
         run: () => forms.editCrew(current.crewId, current.siteId, after) },
     ];
@@ -155,7 +158,8 @@ function commandsFor(current) {
   if (current.view === 'worker') {
     return [
       { icon: 'log', label: 'Log today',
-        run: () => forms.editDayLog(current.workerId, compute.today(), after) },
+        run: () => forms.editDayLog(current.workerId,
+          compute.currentDateForWorker(current.workerId), after) },
       { icon: 'edit', label: 'Edit worker',
         run: () => forms.editWorker(current.workerId, current.crewId, after) },
       { divider: true },
@@ -180,7 +184,7 @@ function copyRecord(crewId) {
   const site = store.site(crew.siteId);
   const lines = [];
   lines.push('ACCLIMATE - HEAT EXPOSURE COMPLIANCE RECORD');
-  lines.push(`Date: ${compute.today()}`);
+  lines.push(`Date: ${compute.currentDateForCrew(crewId)}`);
   lines.push(`Site: ${site.name}   Crew: ${crew.name}`);
   lines.push(`Weather source: ${site.weatherSource}`);
   lines.push('');
@@ -275,7 +279,7 @@ function statusFor(current) {
     if (title) wrap.title = title;
     statusHost.appendChild(wrap);
   };
-  add('Date', weather.today);
+  add('Date', compute.today());
   add('Source', hasConfiguredKey() ? 'Live weather' : 'Cached weather');
   add('Store', `${state.workers.length} workers, browser storage`);
 }

@@ -140,3 +140,35 @@ export async function waitForActivity(activityId, onPoll) {
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 }
+
+export async function fetchRegionalWeather(location, startDate, endDate) {
+  if (!hasConfiguredKey()) throw new Error('Live weather is not configured.');
+  const url = new URL('https://api.open-meteo.com/v1/forecast');
+  url.searchParams.set('latitude', String(location.lat));
+  url.searchParams.set('longitude', String(location.lng));
+  url.searchParams.set('start_date', startDate);
+  url.searchParams.set('end_date', endDate);
+  url.searchParams.set('timezone', 'America/Phoenix');
+  url.searchParams.set('wind_speed_unit', 'ms');
+  url.searchParams.set('hourly', [
+    'temperature_2m', 'relative_humidity_2m', 'wet_bulb_temperature_2m',
+    'shortwave_radiation', 'wind_speed_10m', 'cloud_cover',
+  ].join(','));
+  let response;
+  try {
+    response = await fetch(url);
+  } catch {
+    throw new Error('Regional hourly weather could not be reached.');
+  }
+  if (!response.ok) {
+    throw new Error(`Regional hourly weather failed (${response.status}).`);
+  }
+  const payload = await response.json();
+  const units = payload && payload.hourly_units;
+  if (!units || units.wind_speed_10m !== 'm/s'
+      || units.temperature_2m !== '°C'
+      || units.shortwave_radiation !== 'W/m²') {
+    throw new Error('Regional hourly weather returned unexpected units.');
+  }
+  return payload;
+}

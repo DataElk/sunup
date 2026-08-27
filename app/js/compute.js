@@ -17,10 +17,44 @@ const W = () => window.ACCLIMATE_WEATHER;
 let cache = new Map();
 export function invalidate() { cache = new Map(); }
 
-export function today() { return W().today; }
-export function allDates() { return W().dates; }
+export function today() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Phoenix', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
 
-/** Days ahead the strip projects by carrying the last observed day forward. */
+export function observedDatesForSite(site) {
+  if (site && Array.isArray(site.weatherDates) && site.weatherDates.length) {
+    return site.weatherDates.slice().sort();
+  }
+  return W().dates.slice();
+}
+
+export function forecastDatesForSite(site) {
+  return site && Array.isArray(site.weatherForecastDates)
+    ? site.weatherForecastDates.slice().sort() : [];
+}
+
+export function allDates(site = null) { return observedDatesForSite(site); }
+
+export function currentDateForSite(site) {
+  const dates = observedDatesForSite(site);
+  return (site && site.weatherAsOfDate) || dates[dates.length - 1] || today();
+}
+
+export function currentDateForWorker(workerId) {
+  const worker = store.worker(workerId);
+  return worker ? currentDateForSite(siteOf(worker)) : today();
+}
+
+export function currentDateForCrew(crewId) {
+  const crew = store.crew(crewId);
+  return crew ? currentDateForSite(store.site(crew.siteId)) : today();
+}
+
+/** Maximum number of real forecast days shown after the observed history. */
 export const PROJECTION_DAYS = 6;
 
 function signature(worker, logs) {
@@ -56,28 +90,26 @@ export function forWorker(workerId) {
   if (cache.has(key)) return cache.get(key);
 
   const series = W().series[site.seriesKey];
-  const dates = W().dates.filter((d) => series[d] && (!worker.hireDate || d >= worker.hireDate));
+  const dates = observedDatesForSite(site)
+    .filter((d) => series[d] && (!worker.hireDate || d >= worker.hireDate));
   if (!dates.length) {
     return { worker, site, unavailable: true, reason: 'not-started' };
   }
 
   const observed = dates.map((date) => ({ date, hourly: series[date] }));
-  const lastHourly = series[dates[dates.length - 1]];
-  const projected = [];
-  for (let i = 1; i <= PROJECTION_DAYS; i += 1) {
-    const d = new Date(`${dates[dates.length - 1]}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() + i);
-    projected.push({ date: d.toISOString().slice(0, 10), hourly: lastHourly,
-                     projected: true });
-  }
+  const projected = forecastDatesForSite(site)
+    .filter((date) => series[date])
+    .slice(0, PROJECTION_DAYS)
+    .map((date) => ({ date, hourly: series[date], projected: true }));
 
   const run = simulate({
     worker, days: observed.concat(projected), logs, initialAdaptation: 0,
   });
 
   const records = run.records;
-  const todayIndex = records.findIndex((r) => r.date === W().today);
-  const current = todayIndex >= 0 ? records[todayIndex] : records[records.length - 1];
+  const currentDate = currentDateForSite(site);
+  const todayIndex = records.findIndex((r) => r.date === currentDate && !r.projected);
+  const current = todayIndex >= 0 ? records[todayIndex] : records[dates.length - 1];
 
   const result = {
     worker,

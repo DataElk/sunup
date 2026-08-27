@@ -2,59 +2,88 @@
 
 import * as store from './store.js';
 import * as compute from './compute.js';
-import { hasConfiguredKey, submitHeatmap, waitForActivity } from './liveweather.js';
+import {
+  bufferedAoi, buildWbgtSeries, parseOpenMeteoDays, selectSiteCell,
+} from './environment.js';
+import {
+  fetchRegionalWeather, hasConfiguredKey, submitHeatmap, waitForActivity,
+} from './liveweather.js';
 
+const HISTORY_DAYS = 14;
 const FIRST_DAYS = 5;
+const FORECAST_DAYS = 6;
 const inflight = new Set();
 
 function weather() { return window.ACCLIMATE_WEATHER; }
 
-function nearestFeature(features, location) {
-  let best = null;
-  let bestDistance = Infinity;
-  for (const feature of features || []) {
-    const ring = feature.geometry && feature.geometry.coordinates && feature.geometry.coordinates[0];
-    if (!ring || !ring.length) continue;
-    const point = ring[0];
-    const distance = Math.hypot(point[0] - location.lng, point[1] - location.lat);
-    if (distance < bestDistance) { bestDistance = distance; best = feature; }
-  }
-  return best;
+function phoenixToday() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Phoenix', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
 }
 
-function baseSeries(date) {
-  const all = weather().series;
-  return all.hot_site[date] || all.cool_site[date] || Object.values(all)[0][date];
+function moveDate(date, days) {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
 }
 
-function readDailySeries(result, site, date) {
-  const mapData = result && result.map_data;
-  const feature = mapData && nearestFeature(mapData.features, site.location);
-  const cell = feature && feature.properties;
-  const mean = result && result.stats_data && result.stats_data.temperature_stats
-    && result.stats_data.temperature_stats.mean;
-  if (!cell || !Number.isFinite(cell.average_temperature) || !Number.isFinite(mean)) {
-    throw new Error('The live weather task returned no usable temperature tile.');
-  }
-  const offset = cell.average_temperature - mean;
-  return baseSeries(date).map((value) => Math.round((value + offset) * 1000) / 1000);
+export function observedDateWindow(asOf = phoenixToday()) {
+  return Array.from({ length: HISTORY_DAYS }, (_, index) => (
+    moveDate(asOf, index - HISTORY_DAYS + 1)
+  ));
 }
 
-function payload(site, date) {
+export function forecastDateWindow(asOf = phoenixToday()) {
+  return Array.from({ length: FORECAST_DAYS }, (_, index) => moveDate(asOf, index + 1));
+}
+
+function siteDates(site) {
+  return Array.isArray(site.weatherDates) && site.weatherDates.length
+    ? site.weatherDates : observedDateWindow();
+}
+
+function forecastDates(site) {
+  return Array.isArray(site.weatherForecastDates) && site.weatherForecastDates.length
+    ? site.weatherForecastDates : forecastDateWindow();
+}
+
+function payload(site, date, queryAoi) {
   return {
-    polygon_aoi: site.polygon,
+    polygon_aoi: queryAoi,
     date_time: { start_date: date, filter_type: 3 },
     granularity: 100,
   };
 }
 
-async function fetchDay(site, date, onActivity) {
-  const submitted = await submitHeatmap(payload(site, date));
+export function readDailySeries(result, site, driver, queryAoi) {
+  const cell = selectSiteCell(result, site, queryAoi);
+  return buildWbgtSeries(cell, driver, site.location);
+}
+
+async function fetchDay(site, date, driver, onActivity) {
+  const queryAoi = bufferedAoi(site);
+  const submitted = await submitHeatmap(payload(site, date, queryAoi));
   const activityId = submitted && submitted.data && submitted.data.activity_id;
   if (!activityId) throw new Error('The live weather task was not accepted.');
   if (onActivity) onActivity(activityId);
   const result = await waitForActivity(activityId);
-  return readDailySeries(result, site, date);
+  return readDailySeries(result, site, driver, queryAoi);
+}
+
+async function loadDrivers(site) {
+  const observed = siteDates(site);
+  const projected = forecastDates(site);
+  const raw = await fetchRegionalWeather(
+    site.location, observed[0], projected[projected.length - 1],
+  );
+  const days = parseOpenMeteoDays(raw);
+  for (const date of observed.concat(projected)) {
+    if (!days[date]) throw new Error(`Regional hourly weather is missing ${date}.`);
+  }
+  return days;
 }
 
 function updateProgress(siteId, changes) {
@@ -68,15 +97,15 @@ function liveKey(site) {
 
 function dayReady(site, date) {
   const series = weather().series[liveKey(site)] || {};
-  return Array.isArray(series[date]) && series[date].length > 0;
+  return Array.isArray(series[date]) && series[date].length === 24;
 }
 
 function completedDays(site) {
-  return weather().dates.filter((date) => dayReady(site, date)).length;
+  return siteDates(site).filter((date) => dayReady(site, date)).length;
 }
 
-function orderedDates() {
-  const dates = weather().dates.slice();
+function orderedDates(site) {
+  const dates = siteDates(site);
   return dates.slice(-FIRST_DAYS).concat(dates.slice(0, -FIRST_DAYS));
 }
 
@@ -89,7 +118,7 @@ function setStage(siteId) {
   const site = store.site(siteId);
   if (!site) return 0;
   const completed = completedDays(site);
-  const total = weather().dates.length;
+  const total = siteDates(site).length;
   updateProgress(siteId, {
     weatherSource: completed >= FIRST_DAYS ? 'live' : 'none',
     weatherStatus: stageFor(completed, total),
@@ -98,14 +127,27 @@ function setStage(siteId) {
   return completed;
 }
 
+function saveForecastSeries(siteId, drivers) {
+  const site = store.site(siteId);
+  if (!site) return;
+  const key = liveKey(site);
+  const series = { ...(weather().series[key] || {}) };
+  for (const date of forecastDates(site)) {
+    series[date] = buildWbgtSeries(null, drivers[date], site.location);
+  }
+  store.saveWeatherSeries(key, series);
+  updateProgress(siteId, { seriesKey: key });
+  compute.invalidate();
+}
+
 function saveDailySeries(siteId, date, daily) {
   const site = store.site(siteId);
   if (!site) return 0;
   const key = liveKey(site);
   const series = { ...(weather().series[key] || {}), [date]: daily };
   store.saveWeatherSeries(key, series);
-  const completed = weather().dates.filter((item) => Array.isArray(series[item])).length;
-  const total = weather().dates.length;
+  const completed = siteDates(site).filter((item) => Array.isArray(series[item])).length;
+  const total = siteDates(site).length;
   updateProgress(siteId, {
     seriesKey: key,
     weatherSource: completed >= FIRST_DAYS ? 'live' : 'none',
@@ -119,28 +161,27 @@ function saveDailySeries(siteId, date, daily) {
   return completed;
 }
 
-async function fetchDates(siteId, dates) {
+async function fetchDates(siteId, dates, drivers) {
   const site = store.site(siteId);
   if (!site) return 0;
   for (const date of dates) {
     const current = store.site(siteId);
     if (!current) return 0;
     if (dayReady(current, date)) continue;
-    const daily = await fetchDay(current, date, (activityId) => updateProgress(siteId, {
-      liveActivityId: activityId,
-      liveActivityDate: date,
-    }));
+    const daily = await fetchDay(current, date, drivers[date], (activityId) => (
+      updateProgress(siteId, { liveActivityId: activityId, liveActivityDate: date })
+    ));
     saveDailySeries(siteId, date, daily);
   }
   const latest = store.site(siteId);
   return latest ? completedDays(latest) : 0;
 }
 
-async function resumePending(siteId) {
+async function resumePending(siteId, drivers) {
   const site = store.site(siteId);
   if (!site || !site.liveActivityId) return false;
   const date = site.liveActivityDate
-    || orderedDates().find((item) => !dayReady(site, item));
+    || orderedDates(site).find((item) => !dayReady(site, item));
   if (!date) {
     updateProgress(siteId, { liveActivityId: null, liveActivityDate: null });
     return false;
@@ -153,7 +194,8 @@ async function resumePending(siteId) {
   const result = await waitForActivity(site.liveActivityId);
   const current = store.site(siteId);
   if (!current) return false;
-  saveDailySeries(siteId, date, readDailySeries(result, current, date));
+  const queryAoi = bufferedAoi(current);
+  saveDailySeries(siteId, date, readDailySeries(result, current, drivers[date], queryAoi));
   return true;
 }
 
@@ -163,7 +205,8 @@ function markFailure(siteId, error) {
   const completed = completedDays(site);
   const changes = {
     weatherStatus: completed ? 'partial' : 'error',
-    weatherProgress: { completed, total: weather().dates.length },
+    weatherProgress: { completed, total: siteDates(site).length },
+    weatherError: error && error.message ? error.message : 'Live weather failed.',
   };
   if (error && error.code === 'activity_failed') {
     changes.liveActivityId = null;
@@ -172,9 +215,10 @@ function markFailure(siteId, error) {
   updateProgress(siteId, changes);
 }
 
-async function finishBackfill(siteId) {
+async function finishBackfill(siteId, drivers) {
   try {
-    await fetchDates(siteId, orderedDates());
+    const site = store.site(siteId);
+    if (site) await fetchDates(siteId, orderedDates(site), drivers);
   } catch (error) {
     markFailure(siteId, error);
   } finally {
@@ -188,11 +232,23 @@ export async function startSiteBackfill(siteId) {
   if (!site || !site.polygon || !site.location) return false;
   if (inflight.has(siteId)) return true;
   inflight.add(siteId);
+
+  const asOf = phoenixToday();
+  updateProgress(siteId, {
+    weatherDates: observedDateWindow(asOf),
+    weatherForecastDates: forecastDateWindow(asOf),
+    weatherAsOfDate: asOf,
+    weatherError: null,
+  });
   setStage(siteId);
   try {
-    await resumePending(siteId);
-    await fetchDates(siteId, weather().dates.slice(-FIRST_DAYS));
-    window.setTimeout(() => finishBackfill(siteId), 0);
+    const current = store.site(siteId);
+    const drivers = await loadDrivers(current);
+    saveForecastSeries(siteId, drivers);
+    await resumePending(siteId, drivers);
+    const latest = store.site(siteId);
+    await fetchDates(siteId, siteDates(latest).slice(-FIRST_DAYS), drivers);
+    window.setTimeout(() => finishBackfill(siteId, drivers), 0);
     return true;
   } catch (error) {
     markFailure(siteId, error);
@@ -205,7 +261,8 @@ export async function resumeSiteActivity(siteId) {
   const site = store.site(siteId);
   if (!site || !site.liveActivityId) return false;
   try {
-    return await resumePending(siteId);
+    const drivers = await loadDrivers(site);
+    return await resumePending(siteId, drivers);
   } catch (error) {
     markFailure(siteId, error);
     return false;

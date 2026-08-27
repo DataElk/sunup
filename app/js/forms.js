@@ -58,6 +58,7 @@ export function editSite(siteId, after, initialPoint = null) {
   const initial = initialPoint || sitePoint(existing);
   let chosen = initial ? { lng: initial.lon ?? initial.lng, lat: initial.lat } : null;
   let polygon = existing ? existing.polygon : null;
+  let geometryMode = existing ? existing.geometryMode || 'point' : 'point';
   let changedLocation = Boolean(initialPoint);
 
   const body = el('div', 'panel-stack');
@@ -86,6 +87,7 @@ export function editSite(siteId, after, initialPoint = null) {
       name: name.value.trim() || 'Untitled site',
       location: chosen,
       polygon: polygon || pointFeature(chosen),
+      geometryMode,
     };
     if (!existing || changedLocation) {
       if (existing && existing.seriesKey) store.removeWeatherSeries(existing.seriesKey);
@@ -94,6 +96,10 @@ export function editSite(siteId, after, initialPoint = null) {
       changes.weatherStatus = null;
       changes.weatherProgress = null;
       changes.weatherUpdatedAt = null;
+      changes.weatherDates = null;
+      changes.weatherForecastDates = null;
+      changes.weatherAsOfDate = null;
+      changes.weatherError = null;
       changes.liveActivityId = null;
       changes.liveActivityDate = null;
       delete changes.derivedNote;
@@ -117,15 +123,16 @@ export function editSite(siteId, after, initialPoint = null) {
     body,
     footer: footer(existing ? 'Save' : 'Create', save),
   });
-  mountSitePicker(picker, initial, polygon, (next) => {
+  mountSitePicker(picker, initial, polygon, geometryMode, (next) => {
     chosen = next.location;
     polygon = next.polygon;
+    geometryMode = next.mode;
     changedLocation = true;
   });
   return surface;
 }
 
-async function mountSitePicker(host, initial, initialPolygon, onChange) {
+async function mountSitePicker(host, initial, initialPolygon, initialMode, onChange) {
   const note = el('p', 'field-hint', 'Loading map…');
   const canvas = el('div', 'site-picker-map');
   const controls = el('div', 'site-picker-actions');
@@ -177,7 +184,7 @@ async function mountSitePicker(host, initial, initialPolygon, onChange) {
     requestAnimationFrame(() => {
       if (canvas.isConnected) map.invalidateSize({ pan: false });
     });
-    if (initialPolygon && initialPolygon.features) {
+    if (initialMode === 'boundary' && initialPolygon && initialPolygon.features) {
       showBoundary(L, initialPolygon);
       mode = 'area';
       point.setAttribute('aria-pressed', 'false');
@@ -212,7 +219,7 @@ async function mountSitePicker(host, initial, initialPolygon, onChange) {
       const location = polygonCentre(picked);
       if (location) {
         showBoundary(L, picked);
-        onChange({ location, polygon: picked });
+        onChange({ location, polygon: picked, mode: 'boundary' });
       }
       mode = 'area';
       point.setAttribute('aria-pressed', 'false');
@@ -240,7 +247,7 @@ async function mountSitePicker(host, initial, initialPolygon, onChange) {
         }
         showPoint(L, event.latlng);
         onChange({ location: { lng: event.latlng.lng, lat: event.latlng.lat },
-          polygon: pointFeature(event.latlng) });
+          polygon: pointFeature(event.latlng), mode: 'point' });
       }
     });
   } catch {
@@ -360,7 +367,8 @@ export function editWorker(workerId, defaultCrewId, after) {
     })));
   const start = select(existing ? existing.shiftStart : CONSTANTS.defaultShiftStartHour, HOURS);
   const end = select(existing ? existing.shiftEnd : CONSTANTS.defaultShiftEndHour, HOURS);
-  const hire = input(existing ? existing.hireDate || '' : compute.today(), { type: 'date' });
+  const hire = input(existing ? existing.hireDate || ''
+    : compute.currentDateForCrew(defaultCrewId), { type: 'date' });
 
   const fields = form(save);
   fields.append(

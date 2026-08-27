@@ -64,6 +64,50 @@ def payload() -> dict:
         "defaultShiftStartHour": int(C.DEMO_SHIFT_START_HOUR),
         "defaultShiftEndHour": int(C.DEMO_SHIFT_END_HOUR),
 
+        # Section 5: the browser composes live site weather with the same
+        # physical constants as the Python WBGT pipeline. Keeping them nested
+        # makes it clear that these are environmental inputs, not worker-model
+        # tuning parameters.
+        "environment": {
+            "wbgtOutdoorWeights": list(C.WBGT_OUTDOOR_WEIGHTS),
+            "wbgtIndoorWeights": list(C.WBGT_INDOOR_WEIGHTS),
+            "globeDiameterM": C.GLOBE_DIAMETER_M,
+            "globeEmissivity": C.GLOBE_EMISSIVITY,
+            "globeSolarAbsorptivity": C.GLOBE_SOLAR_ABSORPTIVITY,
+            "groundEmissivity": C.GROUND_EMISSIVITY,
+            "groundAlbedo": C.GROUND_ALBEDO,
+            "stefanBoltzmann": C.STEFAN_BOLTZMANN,
+            "ranzMarshallA": C.RANZ_MARSHALL_A,
+            "ranzMarshallB": C.RANZ_MARSHALL_B,
+            "minAirSpeedMS": C.MIN_AIR_SPEED_M_S,
+            "airSutherlandMu0PaS": C.AIR_SUTHERLAND_MU0_PA_S,
+            "airSutherlandT0K": C.AIR_SUTHERLAND_T0_K,
+            "airSutherlandSK": C.AIR_SUTHERLAND_S_K,
+            "airGasConstantJKgK": C.AIR_GAS_CONSTANT_J_KG_K,
+            "airPrandtl": C.AIR_PRANDTL,
+            "airConductivityRefWMK": C.AIR_CONDUCTIVITY_REF_W_M_K,
+            "airConductivityRefTK": C.AIR_CONDUCTIVITY_REF_T_K,
+            "airConductivityExponent": C.AIR_CONDUCTIVITY_EXPONENT,
+            "isaSeaLevelPressurePa": C.ISA_SEA_LEVEL_PRESSURE_PA,
+            "isaLapseCoeff": C.ISA_LAPSE_COEFF,
+            "isaLapseExponent": C.ISA_LAPSE_EXPONENT,
+            "brutsaertA": C.BRUTSAERT_A,
+            "brutsaertExponent": C.BRUTSAERT_EXPONENT,
+            "magnusAKpa": C.MAGNUS_A_KPA,
+            "magnusB": C.MAGNUS_B,
+            "magnusC": C.MAGNUS_C,
+            "windMeasurementHeightM": C.WIND_MEASUREMENT_HEIGHT_M,
+            "globeHeightM": C.GLOBE_HEIGHT_M,
+            "surfaceRoughnessLengthM": C.SURFACE_ROUGHNESS_LENGTH_M,
+            "solarConstantWM2": C.SOLAR_CONSTANT_W_M2,
+            "haurwitzA": C.HAURWITZ_A,
+            "haurwitzB": C.HAURWITZ_B,
+            "meinelTau": C.MEINEL_TAU,
+            "meinelAmExponent": C.MEINEL_AM_EXPONENT,
+            "diurnalWarpGammaBounds": list(C.DIURNAL_WARP_GAMMA_BOUNDS),
+            "diurnalWarpGammaPlausible": list(C.DIURNAL_WARP_GAMMA_PLAUSIBLE),
+        },
+
         # A legal constraint, not a preference. The store rejects any field
         # whose name matches one of these before it is ever written.
         "forbiddenInputs": sorted(C.FORBIDDEN_INPUTS),

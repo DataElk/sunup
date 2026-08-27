@@ -25,6 +25,59 @@ window.ACCLIMATE_CONSTANTS = {
  "defaultShiftEndHour": 13,
  "defaultShiftStartHour": 5,
  "degreeHoursFullStimulus": 6.0,
+ "environment": {
+  "airConductivityExponent": 0.8646,
+  "airConductivityRefTK": 300.0,
+  "airConductivityRefWMK": 0.02624,
+  "airGasConstantJKgK": 287.05,
+  "airPrandtl": 0.71,
+  "airSutherlandMu0PaS": 1.716e-05,
+  "airSutherlandSK": 110.4,
+  "airSutherlandT0K": 273.15,
+  "brutsaertA": 1.24,
+  "brutsaertExponent": 0.14285714285714285,
+  "diurnalWarpGammaBounds": [
+   0.05,
+   20.0
+  ],
+  "diurnalWarpGammaPlausible": [
+   0.4,
+   2.5
+  ],
+  "globeDiameterM": 0.15,
+  "globeEmissivity": 0.95,
+  "globeHeightM": 2.0,
+  "globeSolarAbsorptivity": 0.95,
+  "groundAlbedo": 0.2,
+  "groundEmissivity": 0.95,
+  "haurwitzA": 1098.0,
+  "haurwitzB": 0.059,
+  "isaLapseCoeff": 2.25577e-05,
+  "isaLapseExponent": 5.25588,
+  "isaSeaLevelPressurePa": 101325.0,
+  "magnusAKpa": 0.6108,
+  "magnusB": 17.27,
+  "magnusC": 237.3,
+  "meinelAmExponent": 0.678,
+  "meinelTau": 0.7,
+  "minAirSpeedMS": 0.5,
+  "ranzMarshallA": 2.0,
+  "ranzMarshallB": 0.6,
+  "solarConstantWM2": 1367.0,
+  "stefanBoltzmann": 5.670374419e-08,
+  "surfaceRoughnessLengthM": 0.1,
+  "wbgtIndoorWeights": [
+   0.7,
+   0.3,
+   0.0
+  ],
+  "wbgtOutdoorWeights": [
+   0.7,
+   0.2,
+   0.1
+  ],
+  "windMeasurementHeightM": 10.0
+ },
  "forbiddenInputs": [
   "age",
   "bmi",
@@ -61,7 +114,7 @@ window.ACCLIMATE_CONSTANTS = {
   "moderate": 28.0,
   "very_heavy": 25.0
  },
- "sourceHash": "d611d589c8b33ff4",
+ "sourceHash": "03a6127d8d65e27a",
  "stimulusFloorDeg": 0.0,
  "tauDecayDays": 13.0,
  "tauGainDays": 4.0,

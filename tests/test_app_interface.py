@@ -221,6 +221,28 @@ def test_live_weather_reports_freshness_and_skips_completed_days():
     assert "Live weather:" in views
 
 
+def test_live_sites_use_a_rolling_history_and_real_forecast_series():
+    site_weather = strip_comments(read("js", "siteweather.js"))
+    assert "export function observedDateWindow" in site_weather
+    assert "export function forecastDateWindow" in site_weather
+    assert "fetchRegionalWeather" in site_weather
+    assert "buildWbgtSeries(null, drivers[date], site.location)" in site_weather
+    compute = strip_comments(read("js", "compute.js"))
+    assert "forecastDatesForSite(site)" in compute
+    assert "lastHourly" not in compute
+    assert "hourly: lastHourly" not in compute
+
+
+def test_today_is_the_real_arizona_date_not_the_fixture_date():
+    compute = strip_comments(read("js", "compute.js"))
+    today = compute[compute.index("export function today"):
+                    compute.index("export function observedDatesForSite")]
+    assert "America/Phoenix" in today
+    assert "W().today" not in today
+    views = strip_comments(read("js", "views.js"))
+    assert "Each row shows its active weather date" in views
+
+
 def test_failed_live_weather_has_a_retry_path():
     views = strip_comments(read("js", "views.js"))
     assert "function weatherFailureBanner" in views
@@ -540,7 +562,7 @@ def test_finished_boundary_remains_the_saved_geometry():
     finish = forms[forms.index("finish.addEventListener"):
                    forms.index("map.on('click'")]
     assert "showBoundary(L, picked)" in finish
-    assert "onChange({ location, polygon: picked })" in finish
+    assert "onChange({ location, polygon: picked, mode: 'boundary' })" in finish
     assert "mode = 'area'" in finish
     assert "point.setAttribute('aria-pressed', 'false')" in finish
     save = forms[forms.index("const changes = {"):
