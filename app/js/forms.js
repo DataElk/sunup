@@ -142,6 +142,7 @@ async function mountSitePicker(host, initial, initialPolygon, onChange) {
   let map;
   let marker;
   let line;
+  let boundary;
   let vertices = [];
   let mode = 'point';
   const center = initial ? [initial.lat, initial.lon ?? initial.lng] : [33.45, -112.07];
@@ -149,6 +150,15 @@ async function mountSitePicker(host, initial, initialPolygon, onChange) {
   function showPoint(L, location) {
     if (marker) marker.remove();
     marker = L.marker([location.lat, location.lng]).addTo(map);
+  }
+
+  function showBoundary(L, featureCollection) {
+    if (boundary) boundary.remove();
+    boundary = L.geoJSON(featureCollection).addTo(map);
+    if (marker) {
+      marker.remove();
+      marker = null;
+    }
   }
 
   function redrawLine(L) {
@@ -167,8 +177,14 @@ async function mountSitePicker(host, initial, initialPolygon, onChange) {
     requestAnimationFrame(() => {
       if (canvas.isConnected) map.invalidateSize({ pan: false });
     });
-    if (initial) showPoint(L, { lat: initial.lat, lng: initial.lon ?? initial.lng });
-    if (initialPolygon && initialPolygon.features) L.geoJSON(initialPolygon).addTo(map);
+    if (initialPolygon && initialPolygon.features) {
+      showBoundary(L, initialPolygon);
+      mode = 'area';
+      point.setAttribute('aria-pressed', 'false');
+      area.setAttribute('aria-pressed', 'true');
+    } else if (initial) {
+      showPoint(L, { lat: initial.lat, lng: initial.lon ?? initial.lng });
+    }
     note.textContent = 'Arizona coverage only. Choose a point or trace a work boundary.';
 
     point.addEventListener('click', () => {
@@ -179,9 +195,12 @@ async function mountSitePicker(host, initial, initialPolygon, onChange) {
     });
     area.addEventListener('click', () => {
       mode = 'area';
+      vertices = [];
+      redrawLine(L);
       point.setAttribute('aria-pressed', 'false');
       area.setAttribute('aria-pressed', 'true');
-      finish.disabled = vertices.length < 3;
+      finish.disabled = true;
+      note.textContent = 'Click at least three corners, then finish the boundary.';
     });
     finish.addEventListener('click', () => {
       if (vertices.length < 3) return;
@@ -192,15 +211,16 @@ async function mountSitePicker(host, initial, initialPolygon, onChange) {
       }] };
       const location = polygonCentre(picked);
       if (location) {
-        showPoint(L, location);
+        showBoundary(L, picked);
         onChange({ location, polygon: picked });
       }
-      mode = 'point';
-      point.setAttribute('aria-pressed', 'true');
-      area.setAttribute('aria-pressed', 'false');
+      mode = 'area';
+      point.setAttribute('aria-pressed', 'false');
+      area.setAttribute('aria-pressed', 'true');
       vertices = [];
       redrawLine(L);
       finish.disabled = true;
+      note.textContent = 'Boundary set. Create the site or draw a replacement boundary.';
     });
     map.on('click', (event) => {
       if (!isWithinArizona(event.latlng)) {
@@ -214,6 +234,10 @@ async function mountSitePicker(host, initial, initialPolygon, onChange) {
       } else {
         vertices = [];
         redrawLine(L);
+        if (boundary) {
+          boundary.remove();
+          boundary = null;
+        }
         showPoint(L, event.latlng);
         onChange({ location: { lng: event.latlng.lng, lat: event.latlng.lat },
           polygon: pointFeature(event.latlng) });

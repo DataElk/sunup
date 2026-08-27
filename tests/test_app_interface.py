@@ -535,6 +535,19 @@ def test_the_site_picker_keeps_leaflet_inside_the_panel():
     assert "control.matches('input, select, textarea')" in field
 
 
+def test_finished_boundary_remains_the_saved_geometry():
+    forms = strip_comments(read("js", "forms.js"))
+    finish = forms[forms.index("finish.addEventListener"):
+                   forms.index("map.on('click'")]
+    assert "showBoundary(L, picked)" in finish
+    assert "onChange({ location, polygon: picked })" in finish
+    assert "mode = 'area'" in finish
+    assert "point.setAttribute('aria-pressed', 'false')" in finish
+    save = forms[forms.index("const changes = {"):
+                 forms.index("const saved =")]
+    assert "polygon: polygon || pointFeature(chosen)" in save
+
+
 # ---------------------------------------------------------------------------
 # Model performance
 # ---------------------------------------------------------------------------
