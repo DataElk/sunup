@@ -106,7 +106,7 @@ def test_the_worker_detail_does_show_it():
     source = strip_comments(read("js", "views.js"))
     detail = source[source.index("export function workerView"):]
     assert "adaptationStart" in detail
-    assert "Acclimatization state" in detail
+    assert "Readiness details" in detail
 
 
 # ---------------------------------------------------------------------------
@@ -281,7 +281,7 @@ def test_worker_feedback_makes_log_effects_visible_without_rewriting_history():
     assert "Adaptation after actual" in views
     assert "cached demo history through ${current.date}" in views
     forms = strip_comments(read("js", "forms.js"))
-    assert "They do not change the prescription already issued for this date" in forms
+    assert "The prescription already issued for this date stays unchanged" in forms
     assert "Later prescriptions recalculated" in forms
 
 
@@ -489,6 +489,20 @@ def test_settings_imports_every_control_it_renders():
     imports = source[:source.index("const HORIZON")]
     assert re.search(r"\binput\b", imports)
     assert "const key = input(" in source
+
+
+def test_editors_use_human_labels_and_modal_focus_management():
+    forms = strip_comments(read("js", "forms.js"))
+    assert "subtitle: existing ? existing.id" not in forms
+    assert "Use trade default" in forms
+    assert "humanize(CONSTANTS.tradeToWorkClass[t])" in forms
+    assert "worker-form" in forms
+    ui = strip_comments(read("js", "ui.js"))
+    panel = ui[ui.index("export function panel"):
+               ui.index("export function chip")]
+    assert "aria-modal', 'true" in panel
+    assert "panelKeydown" in panel
+    assert "returnFocus.focus()" in panel
 
 
 def test_the_shell_has_a_command_bar_a_tree_and_breadcrumbs():

@@ -26,6 +26,11 @@ const TRADES = Object.keys(CONSTANTS.tradeToWorkClass).sort();
 const CLOTHING = Object.keys(CONSTANTS.clothingAdjustmentC).sort();
 const CLASSES = Object.keys(CONSTANTS.ralByClass);
 
+function humanize(value) {
+  const text = String(value).replace(/_/g, ' ');
+  return text.replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 const HOURS = Array.from({ length: 25 }, (_, h) => ({
   value: h, label: `${String(h).padStart(2, '0')}:00`,
 }));
@@ -119,7 +124,7 @@ export function editSite(siteId, after, initialPoint = null) {
 
   const surface = panel({
     title: existing ? 'Edit site' : 'New site',
-    subtitle: existing ? existing.id : 'Choose a job location in Arizona',
+    subtitle: existing ? existing.name : 'Choose a job location in Arizona',
     body,
     footer: footer(existing ? 'Save' : 'Create', save),
   });
@@ -336,7 +341,7 @@ export function editCrew(crewId, defaultSiteId, after) {
 
   panel({
     title: existing ? 'Edit crew' : 'New crew',
-    subtitle: existing ? existing.id : 'Crews belong to a site',
+    subtitle: existing ? existing.name : 'Crews belong to a site',
     body: fields,
     footer: footer(existing ? 'Save' : 'Create', save),
   });
@@ -355,15 +360,15 @@ export function editWorker(workerId, defaultCrewId, after) {
     }));
   const trade = select(existing ? existing.trade : 'concrete',
     TRADES.map((t) => ({
-      value: t, label: `${t} (${CONSTANTS.tradeToWorkClass[t]})`,
+      value: t, label: `${humanize(t)}, ${humanize(CONSTANTS.tradeToWorkClass[t])} work`,
     })));
   const override = select(existing ? existing.workClassOverride || '' : '',
-    [{ value: '', label: 'From trade' }]
-      .concat(CLASSES.map((c) => ({ value: c, label: `Override: ${c}` }))));
+    [{ value: '', label: 'Use trade default' }]
+      .concat(CLASSES.map((c) => ({ value: c, label: humanize(c) }))));
   const clothing = select(existing ? existing.clothing : 'work_clothes',
     CLOTHING.map((c) => ({
       value: c,
-      label: `${c.replace(/_/g, ' ')} (${CONSTANTS.clothingAdjustmentC[c] >= 0 ? '+' : ''}${CONSTANTS.clothingAdjustmentC[c]} °C)`,
+      label: `${humanize(c)} (${CONSTANTS.clothingAdjustmentC[c] >= 0 ? '+' : ''}${CONSTANTS.clothingAdjustmentC[c]} °C)`,
     })));
   const start = select(existing ? existing.shiftStart : CONSTANTS.defaultShiftStartHour, HOURS);
   const end = select(existing ? existing.shiftEnd : CONSTANTS.defaultShiftEndHour, HOURS);
@@ -371,15 +376,17 @@ export function editWorker(workerId, defaultCrewId, after) {
     : compute.currentDateForCrew(defaultCrewId), { type: 'date' });
 
   const fields = form(save);
+  fields.classList.add('worker-form');
   fields.append(
     field('Name', name),
     field('Crew', crew),
     field('Trade', trade),
-    field('Work intensity', override),
-    field('Clothing', clothing),
+    field('Work intensity', override,
+      'Override only when the task differs from the trade default.'),
+    field('Clothing adjustment', clothing),
+    field('First day on job', hire),
     field('Shift start', start),
-    field('Shift end', end),
-    field('First day on job', hire));
+    field('Shift end', end));
 
   function save() {
     const s = Number(start.value);
@@ -441,8 +448,7 @@ export function editDayLog(workerId, date, after) {
   }
 
   body.appendChild(el('p', 'muted',
-    'Actual minutes update adaptation after this date and may change later '
-    + 'prescriptions. They do not change the prescription already issued for this date.'));
+    'Saving an actual updates future prescriptions. The prescription already issued for this date stays unchanged.'));
 
   const fields = form(save);
   fields.append(

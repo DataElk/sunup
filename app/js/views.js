@@ -687,7 +687,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
   stateWrap.append(state, el('p', 'muted',
     'Actual minutes affect adaptation after their date. Only later dates can receive '
     + 'a different prescription.'));
-  root.appendChild(section(`Acclimatization state for ${current.date}`, stateWrap));
+  root.appendChild(section(`Readiness details for ${current.date}`, stateWrap));
 
   return root;
 }

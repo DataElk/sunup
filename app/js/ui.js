@@ -349,11 +349,13 @@ let openPanel = null;
 
 export function panel({ title, subtitle, body, footer, onClose }) {
   dismissPanel();
+  const returnFocus = document.activeElement;
   const scrim = el('div', 'panel-scrim');
   const surface = el('aside', 'panel');
   surface.setAttribute('role', 'dialog');
-  surface.setAttribute('aria-modal', 'false');
+  surface.setAttribute('aria-modal', 'true');
   surface.setAttribute('aria-label', title);
+  surface.tabIndex = -1;
 
   const head = el('div', 'panel-head');
   const heading = el('div', 'panel-heading');
@@ -376,23 +378,46 @@ export function panel({ title, subtitle, body, footer, onClose }) {
   document.body.append(scrim, surface);
   requestAnimationFrame(() => surface.classList.add('in'));
 
-  openPanel = { scrim, surface, onClose };
-  document.addEventListener('keydown', escClose);
-  const first = surface.querySelector('input, select, button, textarea');
-  if (first) first.focus();
+  openPanel = { scrim, surface, onClose, returnFocus };
+  document.addEventListener('keydown', panelKeydown);
+  const first = content.querySelector('input, select, button, textarea') || close;
+  if (first) first.focus(); else surface.focus();
   return surface;
 }
 
-function escClose(event) { if (event.key === 'Escape') dismissPanel(); }
+function panelKeydown(event) {
+  if (event.key === 'Escape') {
+    dismissPanel();
+    return;
+  }
+  if (event.key !== 'Tab' || !openPanel) return;
+  const focusable = [...openPanel.surface.querySelectorAll(
+    'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [href]')];
+  if (!focusable.length) {
+    event.preventDefault();
+    openPanel.surface.focus();
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
 
 export function dismissPanel() {
   if (!openPanel) return;
-  const { scrim, surface, onClose } = openPanel;
+  const { scrim, surface, onClose, returnFocus } = openPanel;
   openPanel = null;
-  document.removeEventListener('keydown', escClose);
+  document.removeEventListener('keydown', panelKeydown);
   scrim.remove();
   surface.remove();
   if (onClose) onClose();
+  if (returnFocus && document.contains(returnFocus)) returnFocus.focus();
 }
 
 /* --- Small pieces -------------------------------------------------------------- */

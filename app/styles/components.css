@@ -547,6 +547,12 @@ body {
 .btn-primary.btn-danger { background: var(--status-stop); color: var(--ink-inverse); }
 
 .form { display: flex; flex-direction: column; gap: var(--space-3); }
+.worker-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+.worker-form > .field:nth-child(-n+2) { grid-column: 1 / -1; }
 .field { display: flex; flex-direction: column; gap: var(--space-1); }
 .field-label { font-size: var(--text-caption); font-weight: var(--weight-semibold); }
 .field-hint { font-size: var(--text-label); color: var(--ink-tertiary); line-height: 1.45; }
