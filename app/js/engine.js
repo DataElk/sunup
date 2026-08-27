@@ -244,6 +244,7 @@ export function simulate({ worker, days, logs = {}, initialAdaptation = 0,
     const allocation = allocateActual(hours, logged, worker);
     const stimulus = dailyStimulus(hours, worker, allocation);
     const dayOverexposure = overexposure(hours, allocation);
+    const adaptationEnd = advanceAdaptation(adaptation, stimulus.value, tau);
     cumulativeOverexposure += dayOverexposure;
 
     const peak = hours.length
@@ -260,6 +261,7 @@ export function simulate({ worker, days, logs = {}, initialAdaptation = 0,
       allocationRule: allocation.rule,
       unprescribedWork: allocation.unprescribedWork,
       adaptationStart: adaptation,
+      adaptationEnd,
       limit: personalLimit(adaptation, workClassOf(worker)),
       peakWbgt: peak,
       stimulus: stimulus.value,
@@ -271,7 +273,7 @@ export function simulate({ worker, days, logs = {}, initialAdaptation = 0,
       status: statusFor(prescribed, worker),
     });
 
-    adaptation = advanceAdaptation(adaptation, stimulus.value, tau);
+    adaptation = adaptationEnd;
   });
 
   return { records, finalAdaptation: adaptation, cumulativeOverexposure };

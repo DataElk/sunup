@@ -507,7 +507,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
   const head = el('div', 'wk-head');
   const metric = el('div', 'wk-metric');
   metric.append(el('div', 'wk-minutes num', String(current.prescribedMinutes)),
-                el('div', 'wk-unit', 'minutes prescribed today'));
+                el('div', 'wk-unit', `minutes prescribed for ${current.date}`));
   const facts = el('div', 'wk-facts');
   facts.append(
     fact('Trade', worker.trade),
@@ -560,6 +560,8 @@ export function workerView(ctx, siteId, crewId, workerId) {
       { label: 'Rule', width: '96px',
         render: (r) => r.assumed ? el('span', 'muted', 'Assumed')
           : el('span', 'muted', r.allocationRule) },
+      { label: 'Adapt. after', width: '96px', numeric: true,
+        render: (r) => r.adaptationEnd.toFixed(3) },
       { label: 'Flags', width: '150px',
         render: (r) => {
           const wrap = el('span', 'loggedcell');
@@ -621,19 +623,28 @@ export function workerView(ctx, siteId, crewId, workerId) {
     const wrap = el('div', 'stack');
     if (why) wrap.appendChild(why);
     wrap.appendChild(table);
-    root.appendChild(section('Hour by hour, today', wrap));
+    root.appendChild(section(`Hour by hour, ${current.date}`, wrap));
   }
 
   /* State --------------------------------------------------------------------- */
   const state = el('dl', 'kv');
+  const weatherLabel = site.seeded
+    ? `cached demo history through ${current.date}`
+    : `${site.weatherSource}${site.seriesKey ? `, ${site.seriesKey}` : ''}`;
   state.append(
-    el('dt', null, 'Adaptation'), el('dd', 'num', current.adaptationStart.toFixed(3)),
+    el('dt', null, 'Adaptation before work'),
+    el('dd', 'num', current.adaptationStart.toFixed(3)),
+    el('dt', null, current.assumed ? 'Adaptation after assumed work' : 'Adaptation after actual'),
+    el('dd', 'num', current.adaptationEnd.toFixed(3)),
     el('dt', null, 'Personal limit'), el('dd', 'num', `${current.limit.toFixed(2)} °C-WBGT`),
     el('dt', null, 'Overexposure'), el('dd', 'num',
       `${result.cumulativeOverexposure.toFixed(2)} °C·h`),
-    el('dt', null, 'Weather'), el('dd', null,
-      `${site.weatherSource}${site.seriesKey ? `, ${site.seriesKey}` : ''}`));
-  root.appendChild(section('Acclimatization state', state));
+    el('dt', null, 'Weather'), el('dd', null, weatherLabel));
+  const stateWrap = el('div', 'stack');
+  stateWrap.append(state, el('p', 'muted',
+    'Actual minutes affect adaptation after their date. Only later dates can receive '
+    + 'a different prescription.'));
+  root.appendChild(section(`Acclimatization state for ${current.date}`, stateWrap));
 
   return root;
 }

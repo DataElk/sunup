@@ -265,6 +265,21 @@ def test_today_is_the_real_arizona_date_not_the_fixture_date():
     assert "Each row shows its active weather date" in views
 
 
+def test_worker_feedback_makes_log_effects_visible_without_rewriting_history():
+    engine = strip_comments(read("js", "engine.js"))
+    assert "const adaptationEnd = advanceAdaptation" in engine
+    assert "adaptationEnd," in engine
+    views = strip_comments(read("js", "views.js"))
+    assert "minutes prescribed for ${current.date}" in views
+    assert "minutes prescribed today" not in views
+    assert "Adaptation before work" in views
+    assert "Adaptation after actual" in views
+    assert "cached demo history through ${current.date}" in views
+    forms = strip_comments(read("js", "forms.js"))
+    assert "They do not change the prescription already issued for this date" in forms
+    assert "Later prescriptions recalculated" in forms
+
+
 def test_failed_live_weather_has_a_retry_path():
     views = strip_comments(read("js", "views.js"))
     assert "function weatherFailureBanner" in views

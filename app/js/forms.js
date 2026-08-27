@@ -440,6 +440,10 @@ export function editDayLog(workerId, date, after) {
     body.appendChild(facts);
   }
 
+  body.appendChild(el('p', 'muted',
+    'Actual minutes update adaptation after this date and may change later '
+    + 'prescriptions. They do not change the prescription already issued for this date.'));
+
   const fields = form(save);
   fields.append(
     field('Minutes actually worked', minutes,
@@ -455,6 +459,7 @@ export function editDayLog(workerId, date, after) {
       store.setDayLog(workerId, date, null);
       dismissPanel();
       compute.invalidate();
+      toast('Actual removed. Later prescriptions recalculated.');
       if (after) after();
     });
   }
@@ -464,6 +469,7 @@ export function editDayLog(workerId, date, after) {
     store.setDayLog(workerId, date, raw === '' ? null : Number(raw), note.value);
     dismissPanel();
     compute.invalidate();
+    toast('Actual saved. Later prescriptions recalculated.');
     if (after) after();
   }
 
