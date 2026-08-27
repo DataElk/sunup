@@ -480,6 +480,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
     selection: new Set(),
     onSelectionChange: () => {},
     rowKey: (r) => r.date,
+    selectable: false,
     onInvoke: (r) => forms.editDayLog(workerId, r.date, ctx.refresh),
     empty: 'No days yet.',
   })));

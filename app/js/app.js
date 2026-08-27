@@ -254,7 +254,6 @@ function treeFor(current) {
     };
   });
 
-  if (current.siteId) expanded.add(current.siteId);
   const selected = current.crewId || current.siteId || null;
 
   treeHost.replaceChildren(navTree({

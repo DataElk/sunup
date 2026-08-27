@@ -355,6 +355,17 @@ def test_the_shell_has_a_command_bar_a_tree_and_breadcrumbs():
     assert "export function detailsList" in ui
 
 
+def test_current_site_can_stay_collapsed_and_day_log_has_no_checkboxes():
+    app = strip_comments(read("js", "app.js"))
+    assert "if (current.siteId) expanded.add(current.siteId)" not in app
+    views = strip_comments(read("js", "views.js"))
+    worker = views[views.index("export function workerView"):
+                   views.index("function fact")]
+    day_log = worker[worker.index("section('Day log'"):
+                     worker.index("if (current.hours.length)")]
+    assert "selectable: false" in day_log
+
+
 def test_commands_enable_on_selection_rather_than_appearing():
     """An Office toolbar does not reflow as the selection changes."""
     ui = strip_comments(read("js", "ui.js"))
