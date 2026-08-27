@@ -244,6 +244,8 @@ def test_live_weather_stops_on_the_last_complete_arizona_day():
 
 def test_key_test_distinguishes_rejection_from_service_failure():
     client = strip_comments(read("js", "liveweather.js"))
+    assert "['api', 'fortyguard', 'com'].join('.')" in client
+    assert "['api', 'forty', 'guard']" not in client
     test_key = client[client.index("export async function testKey"):
                       client.index("export async function submitHeatmap")]
     assert "const date = previousDate(asOfDate)" in test_key

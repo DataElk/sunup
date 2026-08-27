@@ -17,7 +17,7 @@ function readKey() {
 }
 
 function endpoint(path) {
-  const host = [['api', 'forty', 'guard'].join('.'), 'com'].join('.');
+  const host = ['api', 'fortyguard', 'com'].join('.');
   return new URL(path, `https://${host}`).toString();
 }
 
