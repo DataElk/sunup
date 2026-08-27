@@ -453,7 +453,7 @@ def test_today_is_the_default_start_of_shift_view():
         assert f"label: '{label}'" in today
     assert "worker.active !== false" in today
     assert "selectable: false" in today
-    assert "Log previous day" in today
+    assert "Log prior day" in today
 
 
 def test_every_entity_route_has_a_real_page_heading():

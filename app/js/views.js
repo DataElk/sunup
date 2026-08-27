@@ -240,9 +240,9 @@ function todayAttention(row) {
   const wrap = el('span', 'loggedcell');
   if (row.result.unavailable) wrap.appendChild(tag('Weather needed', 'danger'));
   if (!row.result.unavailable && row.result.current.status === 'stop') {
-    wrap.appendChild(tag('Move from heat work', 'danger'));
+    wrap.appendChild(tag('Stop heat work', 'danger'));
   }
-  if (row.missingCloseout) wrap.appendChild(tag('Log previous day', 'assumed'));
+  if (row.missingCloseout) wrap.appendChild(tag('Log prior day', 'assumed'));
   if (!wrap.childElementCount) wrap.appendChild(el('span', 'muted', 'Ready'));
   return wrap;
 }
