@@ -1,7 +1,7 @@
 /* ============================================================================
-   Forecast vs actual, and Settings.
+   Model performance, and Settings.
 
-   FORECAST is no longer a scripted pair. It stands at an as-of date, projects
+   MODEL PERFORMANCE stands at an as-of date, projects
    every active worker forward by carrying that day's weather, and compares
    against what each worker's OWN DAY LOG says happened. Accuracy is therefore
    measured against what crews actually did.
@@ -22,7 +22,7 @@ import {
 } from './ui.js';
 import { section } from './views.js';
 
-/* --- Forecast vs actual --------------------------------------------------------- */
+/* --- Model performance ---------------------------------------------------------- */
 
 const HORIZON = 5;
 
@@ -86,7 +86,7 @@ function backtest(worker) {
   };
 }
 
-export function forecastView(ctx) {
+export function performanceView(ctx) {
   const root = el('div', 'view');
 
   const rows = store.workers()

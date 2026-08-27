@@ -350,8 +350,10 @@ def test_editing_a_worker_reruns_the_prescription_immediately():
 
 def test_routing_is_three_levels_deep_and_linkable():
     source = strip_comments(read("js", "app.js"))
-    for route in ("sites", "site", "crew", "worker", "map", "forecast", "settings"):
+    for route in ("sites", "site", "crew", "worker", "map", "performance",
+                  "settings"):
         assert f"'{route}'" in source, route
+    assert "parts[0] === 'forecast'" in source, "old forecast links remain valid"
     assert "hashchange" in source
 
 
@@ -473,7 +475,7 @@ def test_the_site_picker_keeps_leaflet_inside_the_panel():
 
 
 # ---------------------------------------------------------------------------
-# Forecast vs actual
+# Model performance
 # ---------------------------------------------------------------------------
 
 
@@ -491,12 +493,12 @@ def test_the_backtest_declares_itself_and_refuses_a_score_that_cannot_be_wrong()
     assert "workers without variation" in source
 
 
-def test_forecast_has_no_decorative_selection_controls():
+def test_model_performance_has_no_decorative_selection_controls():
     ui = strip_comments(read("js", "ui.js"))
     assert "selectable = true" in ui
-    forecast = strip_comments(read("js", "extraviews.js"))
-    block = forecast[forecast.index("export function forecastView"):
-                     forecast.index("function metric")]
+    performance = strip_comments(read("js", "extraviews.js"))
+    block = performance[performance.index("export function performanceView"):
+                        performance.index("function metric")]
     assert "selectable: false" in block
 
 

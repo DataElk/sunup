@@ -8,7 +8,8 @@
      #/site/:siteId
      #/site/:siteId/crew/:crewId
      #/site/:siteId/crew/:crewId/worker/:workerId
-     #/map  #/forecast  #/settings
+     #/map  #/performance  #/settings
+     #/forecast (legacy alias for model performance)
 
    Commands live in ONE bar at the top and enable on selection rather than
    appearing and disappearing, which is what keeps an Office toolbar stable
@@ -21,7 +22,7 @@ import * as forms from './forms.js';
 import * as views from './views.js';
 import { hasConfiguredKey } from './liveweather.js';
 import { mapView } from './mapview.js';
-import { forecastView, settingsView } from './extraviews.js';
+import { performanceView, settingsView } from './extraviews.js';
 import { el, icon, commandBar, navTree, toast, dismissPanel } from './ui.js';
 
 const rail = document.getElementById('rail');
@@ -34,7 +35,7 @@ const statusHost = document.getElementById('statusbar');
 const RAIL = [
   { id: 'roster', icon: 'grid', label: 'Roster', href: '#/sites' },
   { id: 'map', icon: 'map', label: 'Map', href: '#/map' },
-  { id: 'forecast', icon: 'chart', label: 'Forecast', href: '#/forecast' },
+  { id: 'performance', icon: 'chart', label: 'Model performance', href: '#/performance' },
   { id: 'settings', icon: 'gear', label: 'Settings', href: '#/settings' },
 ];
 
@@ -50,7 +51,9 @@ function parse() {
   const parts = hash.split('/').filter(Boolean);
   if (!parts.length) return { view: 'sites' };
   if (parts[0] === 'map') return { view: 'map' };
-  if (parts[0] === 'forecast') return { view: 'forecast' };
+  if (parts[0] === 'performance' || parts[0] === 'forecast') {
+    return { view: 'performance' };
+  }
   if (parts[0] === 'settings') return { view: 'settings' };
   if (parts[0] === 'sites') return { view: 'sites' };
   if (parts[0] === 'site' && parts[1]) {
@@ -156,7 +159,7 @@ function commandsFor(current) {
     ];
   }
   if (current.view === 'settings' || current.view === 'map'
-      || current.view === 'forecast') {
+      || current.view === 'performance') {
     return [];
   }
   return [];
@@ -201,7 +204,7 @@ function copyRecord(crewId) {
 /* --- Chrome --------------------------------------------------------------------- */
 
 function railFor(current) {
-  const key = ['map', 'forecast', 'settings'].includes(current.view)
+  const key = ['map', 'performance', 'settings'].includes(current.view)
     ? current.view : 'roster';
   rail.replaceChildren();
   for (const item of RAIL) {
@@ -292,7 +295,7 @@ function render() {
   let view;
   switch (current.view) {
     case 'map': view = mapView(ctx); break;
-    case 'forecast': view = forecastView(ctx); break;
+    case 'performance': view = performanceView(ctx); break;
     case 'settings': view = settingsView(ctx); break;
     case 'site': view = views.siteView(ctx, current.siteId); break;
     case 'crew': view = views.crewView(ctx, current.siteId, current.crewId); break;
