@@ -89,7 +89,7 @@ function chartKey(className, label) {
   return item;
 }
 
-function historyChart(records) {
+function historyChart(records, recalculation = null) {
   const WIDTH = 1000;
   const HEIGHT = 354;
   const LEFT = 62;
@@ -180,8 +180,12 @@ function historyChart(records) {
 
   records.forEach((record, index) => {
     const x = xAt(index);
+    const capacityChanged = recalculationField(recalculation, record.date, 'prescribedMinutes');
     const capacity = svgNode('circle', {
-      class: record.projected ? 'capacity-point projected-point' : 'capacity-point',
+      class: [
+        'capacity-point', record.projected ? 'projected-point' : '',
+        capacityChanged ? 'calculated-point' : '',
+      ].filter(Boolean).join(' '),
       cx: x, cy: capY(record.prescribedMinutes), r: 4,
     });
     capacity.appendChild(svgNode('title', {},
@@ -190,7 +194,9 @@ function historyChart(records) {
 
     if (!record.projected && !record.assumed) {
       const actual = svgNode('circle', {
-        class: 'actual-point', cx: x, cy: capY(record.actualMinutes), r: 4,
+        class: recalculationField(recalculation, record.date, 'actualMinutes')
+          ? 'actual-point calculated-point' : 'actual-point',
+        cx: x, cy: capY(record.actualMinutes), r: 4,
       });
       actual.appendChild(svgNode('title', {},
         `${record.date}: ${record.actualMinutes} actual minutes`));
@@ -223,12 +229,12 @@ function historyChart(records) {
     chartKey('chart-key-limit', 'Personal limit'),
     chartKey('chart-key-forecast', 'Forecast'));
 
-  const wrap = el('div', 'history-chart');
+  const wrap = el('div', recalculation ? 'history-chart is-updated' : 'history-chart');
   wrap.append(legend, svg);
   return wrap;
 }
 
-function hourlyChart(hours) {
+function hourlyChart(hours, recalculation = null, date = null) {
   const WIDTH = 1000;
   const HEIGHT = 300;
   const LEFT = 62;
@@ -276,8 +282,12 @@ function hourlyChart(hours) {
       }));
     }
     const barHeight = (hour.minutes / 60) * WORK_HEIGHT;
+    const barChanged = recalculationHour(recalculation, date, hour.hour, 'minutes');
     svg.appendChild(svgNode('rect', {
-      class: hour.minutes ? 'work-bar' : 'work-bar no-work-bar',
+      class: [
+        'work-bar', hour.minutes ? '' : 'no-work-bar',
+        barChanged ? 'calculated-bar' : '',
+      ].filter(Boolean).join(' '),
       x: x + Math.max(5, cell * 0.18), y: WORK_TOP + WORK_HEIGHT - barHeight,
       width: Math.max(8, cell * 0.64), height: Math.max(2, barHeight), rx: 2,
     }));
@@ -315,7 +325,8 @@ function hourlyChart(hours) {
     chartKey('chart-key-limit', 'Personal limit'),
     chartKey('chart-key-work', 'Work minutes'),
     chartKey('chart-key-stop', 'No heat work'));
-  const wrap = el('div', 'shift-chart-wrap');
+  const wrap = el('div', recalculationField(recalculation, date, 'hours')
+    ? 'shift-chart-wrap is-updated' : 'shift-chart-wrap');
   wrap.append(legend, svg);
   return wrap;
 }
@@ -328,7 +339,7 @@ function workWindow(hours) {
   return `${pad(first.hour)}:00 to ${pad(last.hour + 1)}:00`;
 }
 
-function supervisorPlan(current) {
+function supervisorPlan(current, recalculation = null) {
   const hours = current.hours;
   const hottest = hours.reduce((best, hour) => (!best || hour.wbgt > best.wbgt ? hour : best), null);
   const recovery = hours.reduce((total, hour) => total + (60 - hour.minutes), 0);
@@ -336,14 +347,15 @@ function supervisorPlan(current) {
   card.appendChild(el('h3', 'decision-title', 'Supervisor plan'));
 
   const metrics = el('div', 'decision-metrics');
+  const hoursChanged = recalculationField(recalculation, current.date, 'hours');
   [
-    [workWindow(hours), 'planned work window'],
-    [`${recovery} min`, 'recovery time'],
+    [workWindow(hours), 'planned work window', hoursChanged],
+    [`${recovery} min`, 'recovery time', hoursChanged],
     [hottest ? `${hottest.wbgt.toFixed(1)} °C` : 'Not available',
-      hottest ? `highest WBGT at ${pad(hottest.hour)}:00` : 'highest WBGT'],
-  ].forEach(([value, label]) => {
+      hottest ? `highest WBGT at ${pad(hottest.hour)}:00` : 'highest WBGT', false],
+  ].forEach(([value, label, changed]) => {
     const metric = el('div', 'decision-metric');
-    metric.append(el('strong', 'num', value), el('span', null, label));
+    metric.append(calculatedValue(value, changed, 'num', 'strong'), el('span', null, label));
     metrics.appendChild(metric);
   });
   card.appendChild(metrics);
@@ -436,6 +448,50 @@ function recentRecalculation(workerId) {
     return null;
   }
   return null;
+}
+
+let calculationOrder = 0;
+
+function recalculationField(recalculation, date, field) {
+  const record = recalculation && recalculation.changes
+    && recalculation.changes.records && recalculation.changes.records[date];
+  return Boolean(record && record.fields && record.fields.includes(field));
+}
+
+function recalculationHour(recalculation, date, hour, field) {
+  const record = recalculation && recalculation.changes
+    && recalculation.changes.records && recalculation.changes.records[date];
+  const changed = record && record.hours && record.hours[hour];
+  return Boolean(changed && changed.includes(field));
+}
+
+function recalculationSummary(recalculation, field) {
+  const summary = recalculation && recalculation.changes && recalculation.changes.summary;
+  return Boolean(summary && summary.includes(field));
+}
+
+function recalculationHasChanges(recalculation) {
+  if (!recalculation || !recalculation.changes) return false;
+  if ((recalculation.changes.summary || []).length) return true;
+  return Object.values(recalculation.changes.records || {})
+    .some((record) => (record.fields || []).length > 0);
+}
+
+function calculatedValue(value, changed, className = null, tagName = 'span') {
+  const node = el(tagName, className);
+  if (!changed) {
+    node.textContent = value;
+    return node;
+  }
+
+  node.classList.add('calculated-value');
+  node.setAttribute('data-calculation-order', String(calculationOrder % 6));
+  calculationOrder += 1;
+  const loader = el('span', 'calculation-loader');
+  loader.setAttribute('aria-hidden', 'true');
+  loader.append(el('span'), el('span'), el('span'));
+  node.append(loader, el('span', 'calculated-result', value));
+  return node;
 }
 
 /* --- Shared cells --------------------------------------------------------------- */
@@ -805,11 +861,15 @@ export function workerView(ctx, siteId, crewId, workerId) {
 
   const current = result.current;
   const recalculation = recentRecalculation(workerId);
+  calculationOrder = 0;
   if (recalculation) root.classList.add('is-recalculated');
 
   const head = el('div', 'wk-head');
   const metric = el('div', 'wk-metric');
-  metric.append(el('div', 'wk-minutes num', String(current.prescribedMinutes)),
+  metric.append(calculatedValue(
+    String(current.prescribedMinutes),
+    recalculationField(recalculation, current.date, 'prescribedMinutes'),
+    'wk-minutes num', 'div'),
                 el('div', 'wk-unit', `minutes prescribed for ${current.date}`));
   const facts = el('div', 'wk-facts');
   facts.append(
@@ -824,6 +884,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
   root.appendChild(head);
 
   if (recalculation) {
+    const hasChanges = recalculationHasChanges(recalculation);
     const feedback = el('div', 'calculation-feedback');
     feedback.setAttribute('role', 'status');
     const check = el('span', 'calculation-check');
@@ -831,7 +892,9 @@ export function workerView(ctx, siteId, crewId, workerId) {
     feedback.append(
       check,
       el('strong', null, 'Plan recalculated'),
-      el('span', null, `Actual minutes for ${recalculation.date} are now reflected below.`));
+      el('span', null, hasChanges
+        ? `Changed values after logging ${recalculation.date} are highlighted below.`
+        : `The log for ${recalculation.date} was saved. No calculated values changed.`));
     root.appendChild(feedback);
   }
 
@@ -849,13 +912,13 @@ export function workerView(ctx, siteId, crewId, workerId) {
   }
 
   const briefing = el('div', 'worker-briefing');
-  briefing.append(supervisorPlan(current), workerLocationCard(site, ctx));
+  briefing.append(supervisorPlan(current, recalculation), workerLocationCard(site, ctx));
   root.appendChild(briefing);
 
   const historyLabel = result.projected.length
     ? `${result.observed.length} observed days and ${result.projected.length} forecast days`
     : `${result.observed.length} observed days`;
-  const history = section('Work capacity history', historyChart(result.records));
+  const history = section('Work capacity history', historyChart(result.records, recalculation));
   history.classList.add('worker-history');
   history.insertBefore(el('p', 'section-description', historyLabel), history.children[1]);
   root.appendChild(history);
@@ -867,15 +930,18 @@ export function workerView(ctx, siteId, crewId, workerId) {
       { label: 'Date', width: '1.3fr', render: (r) => r.date },
       { label: 'Job day', width: '80px', numeric: true, render: (r) => String(r.dayOnJob) },
       { label: 'Prescribed (min)', width: '130px', numeric: true,
-        render: (r) => String(r.prescribedMinutes) },
+        render: (r) => calculatedValue(String(r.prescribedMinutes),
+          recalculationField(recalculation, r.date, 'prescribedMinutes')) },
       { label: 'Actual (min)', width: '120px', numeric: true,
         render: (r) => {
           if (r.assumed) {
-            const node = el('span', 'muted', 'not logged');
+            const node = calculatedValue('not logged',
+              recalculationField(recalculation, r.date, 'actualMinutes'), 'muted');
             node.title = 'No actual minutes recorded.';
             return node;
           }
-          const node = el('span', 'num', String(r.actualMinutes));
+          const node = calculatedValue(String(r.actualMinutes),
+            recalculationField(recalculation, r.date, 'actualMinutes'), 'num');
           if (r.actualMinutes > r.prescribedMinutes) node.classList.add('danger');
           return node;
         } },
@@ -888,7 +954,10 @@ export function workerView(ctx, siteId, crewId, workerId) {
             wrap.appendChild(t);
           }
           if (r.overexposure > 0) {
-            wrap.appendChild(tag(`+${r.overexposure.toFixed(1)} °C·h`, 'danger'));
+            const exposure = tag('', 'danger');
+            exposure.appendChild(calculatedValue(`+${r.overexposure.toFixed(1)} °C·h`,
+              recalculationField(recalculation, r.date, 'overexposure')));
+            wrap.appendChild(exposure);
           }
           return wrap;
         } },
@@ -926,11 +995,17 @@ export function workerView(ctx, siteId, crewId, workerId) {
       const difference = hour.overLimit > 0
         ? `${hour.overLimit.toFixed(1)} above`
         : (hour.overLimit < 0 ? `${Math.abs(hour.overLimit).toFixed(1)} below` : 'At limit');
-      [[`${pad(hour.hour)}:00`, ''], [hour.wbgt.toFixed(1), 'num'],
-       [hour.limit.toFixed(1), 'num'],
-       [difference, 'num'],
-       [String(hour.minutes), 'num']].forEach(([text, cls]) => {
-        tr.appendChild(el('td', cls || null, text));
+      [[`${pad(hour.hour)}:00`, '', false], [hour.wbgt.toFixed(1), 'num', false],
+       [hour.limit.toFixed(1), 'num',
+         recalculationHour(recalculation, current.date, hour.hour, 'limit')],
+       [difference, 'num',
+         recalculationHour(recalculation, current.date, hour.hour, 'overLimit')],
+       [String(hour.minutes), 'num',
+         recalculationHour(recalculation, current.date, hour.hour, 'minutes')]]
+        .forEach(([text, cls, changed]) => {
+          const cell = el('td', cls || null);
+          cell.appendChild(calculatedValue(text, changed));
+          tr.appendChild(cell);
       });
       tbody.appendChild(tr);
     }
@@ -944,7 +1019,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
     exact.append(el('summary', null, 'View hourly values'), table);
     const wrap = el('div', 'shift-plan');
     if (why) wrap.appendChild(why);
-    wrap.append(hourlyChart(current.hours), exact);
+    wrap.append(hourlyChart(current.hours, recalculation, current.date), exact);
     const shiftSection = section(`Shift plan for ${current.date}`, wrap);
     shiftSection.classList.add('shift-section');
     root.appendChild(shiftSection);
@@ -956,11 +1031,17 @@ export function workerView(ctx, siteId, crewId, workerId) {
     ? `Cached through ${current.date}`
     : `${site.weatherSource}${site.seriesKey ? `, ${site.seriesKey}` : ''}`;
   state.append(
-    definition('Readiness at shift start', `${Math.round(current.adaptationStart * 100)}%`, true),
+    definition('Readiness at shift start', calculatedValue(
+      `${Math.round(current.adaptationStart * 100)}%`,
+      recalculationField(recalculation, current.date, 'adaptationStart')), true),
     definition(current.assumed ? 'After planned work' : 'After logged work',
-      `${Math.round(current.adaptationEnd * 100)}%`, true),
-    definition('Personal limit', `${current.limit.toFixed(2)} °C WBGT`, true),
-    definition('Overexposure', `${result.cumulativeOverexposure.toFixed(2)} °C·h`, true),
+      calculatedValue(`${Math.round(current.adaptationEnd * 100)}%`,
+        recalculationField(recalculation, current.date, 'adaptationEnd')), true),
+    definition('Personal limit', calculatedValue(`${current.limit.toFixed(2)} °C WBGT`,
+      recalculationField(recalculation, current.date, 'limit')), true),
+    definition('Overexposure', calculatedValue(
+      `${result.cumulativeOverexposure.toFixed(2)} °C·h`,
+      recalculationSummary(recalculation, 'cumulativeOverexposure')), true),
     definition('Weather', weatherLabel));
   const readiness = section(`Heat readiness for ${current.date}`, state);
   readiness.classList.add('readiness-section');
@@ -999,7 +1080,10 @@ function derivedBanner(site) {
 
 function definition(label, value, numeric = false) {
   const item = el('div', 'readiness-item');
-  item.append(el('dt', null, label), el('dd', numeric ? 'num' : null, value));
+  const detail = el('dd', numeric ? 'num' : null);
+  if (value instanceof Node) detail.appendChild(value);
+  else detail.textContent = value;
+  item.append(el('dt', null, label), detail);
   return item;
 }
 

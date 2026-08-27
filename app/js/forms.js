@@ -422,10 +422,72 @@ export function editWorker(workerId, defaultCrewId, after) {
    to the prescription, marked assumed. Zero is a measurement.
    ------------------------------------------------------------------------------ */
 
-function markRecalculation(workerId, date) {
+function recalculationSnapshot(result) {
+  if (!result || result.unavailable) return null;
+  return {
+    cumulativeOverexposure: result.cumulativeOverexposure,
+    records: Object.fromEntries(result.records.map((record) => [record.date, {
+      prescribedMinutes: record.prescribedMinutes,
+      actualMinutes: record.actualMinutes,
+      assumed: record.assumed,
+      adaptationStart: record.adaptationStart,
+      adaptationEnd: record.adaptationEnd,
+      limit: record.limit,
+      overexposure: record.overexposure,
+      cumulativeOverexposure: record.cumulativeOverexposure,
+      hours: record.hours.map((hour) => ({
+        hour: hour.hour,
+        limit: hour.limit,
+        overLimit: hour.overLimit,
+        minutes: hour.minutes,
+      })),
+    }])),
+  };
+}
+
+function recalculationChanges(beforeResult, afterResult) {
+  const before = recalculationSnapshot(beforeResult);
+  const after = recalculationSnapshot(afterResult);
+  const changes = { records: {}, summary: [] };
+  if (!before || !after) return changes;
+
+  if (before.cumulativeOverexposure !== after.cumulativeOverexposure) {
+    changes.summary.push('cumulativeOverexposure');
+  }
+
+  const fields = [
+    'prescribedMinutes', 'actualMinutes', 'adaptationStart', 'adaptationEnd',
+    'limit', 'overexposure', 'cumulativeOverexposure',
+  ];
+  for (const [date, current] of Object.entries(after.records)) {
+    const previous = before.records[date];
+    if (!previous) continue;
+    const recordChanges = fields.filter((field) => previous[field] !== current[field]);
+    if (previous.assumed !== current.assumed && !recordChanges.includes('actualMinutes')) {
+      recordChanges.push('actualMinutes');
+    }
+
+    const hourChanges = {};
+    current.hours.forEach((hour, index) => {
+      const oldHour = previous.hours[index];
+      if (!oldHour) return;
+      const changed = ['limit', 'overLimit', 'minutes']
+        .filter((field) => oldHour[field] !== hour[field]);
+      if (changed.length) hourChanges[hour.hour] = changed;
+    });
+    if (Object.keys(hourChanges).length) recordChanges.push('hours');
+    if (recordChanges.length) {
+      changes.records[date] = { fields: recordChanges, hours: hourChanges };
+    }
+  }
+  return changes;
+}
+
+function markRecalculation(workerId, date, beforeResult) {
+  const changes = recalculationChanges(beforeResult, compute.forWorker(workerId));
   try {
     sessionStorage.setItem('sunup:last-recalculation', JSON.stringify({
-      workerId, date, at: Date.now(),
+      workerId, date, changes, at: Date.now(),
     }));
   } catch (_) {
     /* The recalculation still works when browser storage is unavailable. */
@@ -475,7 +537,7 @@ export function editDayLog(workerId, date, after) {
       store.setDayLog(workerId, date, null);
       dismissPanel();
       compute.invalidate();
-      markRecalculation(workerId, date);
+      markRecalculation(workerId, date, result);
       toast('Actual removed. Later prescriptions recalculated.');
       if (after) after();
     });
@@ -486,7 +548,7 @@ export function editDayLog(workerId, date, after) {
     store.setDayLog(workerId, date, raw === '' ? null : Number(raw), note.value);
     dismissPanel();
     compute.invalidate();
-    markRecalculation(workerId, date);
+    markRecalculation(workerId, date, result);
     toast('Actual saved. Later prescriptions recalculated.');
     if (after) after();
   }

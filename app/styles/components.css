@@ -707,7 +707,7 @@ body {
 }
 .decision-metric:last-child { border-right: 0; }
 .decision-metric strong { font-size: var(--text-body-lg); }
-.decision-metric span { color: var(--ink-secondary); font-size: var(--text-caption); }
+.decision-metric > span { color: var(--ink-secondary); font-size: var(--text-caption); }
 
 .action-list {
   display: grid;
@@ -914,18 +914,98 @@ body {
   font-size: var(--text-body);
 }
 
-@keyframes calculation-sweep {
-  0% { opacity: .45; transform: translateY(var(--space-1)); }
-  100% { opacity: 1; transform: translateY(0); }
+@keyframes calculation-loader-hide {
+  0%, 45% { opacity: 1; }
+  60%, 100% { opacity: 0; }
+}
+@keyframes calculation-dot {
+  0%, 100% { opacity: .35; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(calc(var(--space-1) * -1)); }
+}
+@keyframes calculation-result-reveal {
+  0%, 48% {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+    background: var(--accent-subtle);
+  }
+  66% {
+    opacity: 1;
+    transform: translateY(0);
+    background: var(--accent-subtle);
+  }
+  100% { opacity: 1; transform: translateY(0); background: transparent; }
+}
+@keyframes calculation-point-pop {
+  0%, 35% { opacity: .2; transform: scale(.35); }
+  70% { opacity: 1; transform: scale(1.35); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes calculation-bar-rise {
+  0%, 35% { opacity: .25; transform: scaleY(.12); }
+  100% { opacity: 1; transform: scaleY(1); }
 }
 @keyframes calculation-pulse {
   0%, 100% { box-shadow: var(--elevation-flat); }
   45% { box-shadow: var(--elevation-flyout); }
 }
-.view-worker.is-recalculated .wk-minutes,
-.view-worker.is-recalculated .worker-history,
-.view-worker.is-recalculated .shift-section {
-  animation: calculation-sweep calc(var(--duration-normal) * 3) var(--easing-decel) both;
+.calculated-value {
+  --calculation-delay: 0ms;
+  display: inline-grid;
+  grid-template-areas: "calculated-value";
+  align-items: center;
+  min-width: 3ch;
+  vertical-align: middle;
+}
+.calculated-value[data-calculation-order="1"] { --calculation-delay: var(--duration-fast); }
+.calculated-value[data-calculation-order="2"] { --calculation-delay: calc(var(--duration-fast) * 2); }
+.calculated-value[data-calculation-order="3"] { --calculation-delay: calc(var(--duration-fast) * 3); }
+.calculated-value[data-calculation-order="4"] { --calculation-delay: calc(var(--duration-fast) * 4); }
+.calculated-value[data-calculation-order="5"] { --calculation-delay: calc(var(--duration-fast) * 5); }
+.calculation-loader,
+.calculated-result { grid-area: calculated-value; }
+.calculation-loader {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 1em;
+  animation: calculation-loader-hide calc(var(--duration-normal) * 4)
+    var(--easing-standard) var(--calculation-delay) both;
+}
+.calculation-loader span {
+  width: var(--space-1);
+  height: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  animation: calculation-dot calc(var(--duration-normal) * 2)
+    var(--easing-standard) var(--calculation-delay) 2 both;
+}
+.calculation-loader span:nth-child(2) {
+  animation-delay: calc(var(--calculation-delay) + var(--duration-fast));
+}
+.calculation-loader span:nth-child(3) {
+  animation-delay: calc(var(--calculation-delay) + var(--duration-normal));
+}
+.calculated-result {
+  padding-inline: var(--space-1);
+  margin-inline: calc(var(--space-1) * -1);
+  border-radius: var(--radius-control);
+  animation: calculation-result-reveal calc(var(--duration-normal) * 4)
+    var(--easing-decel) var(--calculation-delay) both;
+}
+.calculated-point,
+.calculated-bar {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.calculated-point {
+  animation: calculation-point-pop calc(var(--duration-normal) * 4)
+    var(--easing-decel) both;
+}
+.calculated-bar {
+  transform-origin: center bottom;
+  animation: calculation-bar-rise calc(var(--duration-normal) * 4)
+    var(--easing-decel) both;
 }
 .view-worker.is-recalculated .calculation-feedback {
   animation: calculation-pulse calc(var(--duration-normal) * 3) var(--easing-decel) both;
@@ -1086,9 +1166,10 @@ body {
 .toast.in { opacity: 1; transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: reduce) {
   .toast { transition: none; }
-  .view-worker.is-recalculated .wk-minutes,
-  .view-worker.is-recalculated .worker-history,
-  .view-worker.is-recalculated .shift-section,
+  .calculation-loader { display: none; }
+  .calculated-result,
+  .calculated-point,
+  .calculated-bar,
   .view-worker.is-recalculated .calculation-feedback { animation: none; }
 }
 

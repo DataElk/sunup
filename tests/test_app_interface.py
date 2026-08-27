@@ -393,7 +393,7 @@ def test_interface_copy_reports_state_without_explaining_methodology():
 
 
 def test_shipped_temperature_units_never_use_a_dash_separator():
-    dash_separators = re.compile(r"°C[-\u2010-\u2015]WBGT")
+    dash_separators = re.compile(r"(?:°C|degC)[-\u2010-\u2015](?:WBGT|h)\b")
     for name in JS_FILES:
         assert not dash_separators.search(read("js", name)), name
 
@@ -573,8 +573,8 @@ def test_worker_detail_uses_separate_decision_charts_and_the_grid_gets_a_sparkli
                  views.index("export function workerView")]
     assert "sparkline(" in grid
     detail = views[views.index("export function workerView"):]
-    assert "historyChart(result.records)" in detail
-    assert "hourlyChart(current.hours)" in detail
+    assert "historyChart(result.records, recalculation)" in detail
+    assert "hourlyChart(current.hours, recalculation, current.date)" in detail
     assert "rampStrip(result.records)" not in detail
 
 
@@ -593,8 +593,15 @@ def test_log_feedback_animates_the_recalculated_result_without_forcing_motion():
     views = strip_comments(read("js", "views.js"))
     css = read("styles", "components.css")
     assert "sunup:last-recalculation" in forms
+    assert "recalculationSnapshot" in forms
+    assert "recalculationChanges" in forms
     assert "Plan recalculated" in views
-    assert ".view-worker.is-recalculated" in css
+    assert "calculatedValue" in views
+    assert "calculation-loader" in views
+    assert "Changed values after logging" in views
+    assert ".calculated-value" in css
+    assert "calculation-result-reveal" in css
+    assert "calculation-point-pop" in css
     assert "@media (prefers-reduced-motion: reduce)" in css
 
 

@@ -101,7 +101,7 @@ variant into a screen. That is how a design system dies.
 | `ShiftPlan` | Hourly thermal conditions and work allocation | Shared hour axis, exact values in a disclosure below |
 | `DecisionCard` | Supervisor work window, recovery time, controls, and closeout | Derived from existing status and hourly allocation |
 | `WorkerLocation` | Static Arizona location context for one worker | Site marker and direct action to the interactive site map |
-| `CalculationFeedback` | Confirms a saved actual has recalculated the plan | Short result animation, disabled by reduced-motion preference |
+| `CalculationFeedback` | Confirms a saved actual has recalculated the plan | Changed values show staggered calculation dots, then reveal in place; chart points and bars update with the same cadence; disabled by reduced-motion preference |
 | `Panel` | Editors and confirmations | `--drawer-width` over a scrim, closes on Escape |
 | `Callout` | A state the user must act on or account for | Kinds: info, warn, danger, assumed |
 | `MapCanvas` | Exceedance choropleth and selection surface | Canvas, `--heat-*` ramp, quantile classes, crew markers are clickable |

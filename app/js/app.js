@@ -204,7 +204,7 @@ function copyRecord(crewId) {
       + `${String(c.calendarMinutes).padStart(5)}  `
       + (c.assumed ? 'not logged' : String(c.actualMinutes))
       + (row.cumulativeOverexposure > 0
-        ? `  OVEREXPOSURE ${row.cumulativeOverexposure.toFixed(2)} degC-h` : ''));
+        ? `  OVEREXPOSURE ${row.cumulativeOverexposure.toFixed(2)} °C·h` : ''));
   }
   const text = lines.join('\n');
   navigator.clipboard.writeText(text)
