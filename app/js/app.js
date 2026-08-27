@@ -4,7 +4,7 @@
    Routing is hash-based and three levels deep, so every screen survives a hard
    refresh and can be linked:
 
-     #/sites
+     #/today  #/sites
      #/site/:siteId
      #/site/:siteId/crew/:crewId
      #/site/:siteId/crew/:crewId/worker/:workerId
@@ -34,13 +34,14 @@ const content = document.getElementById('content');
 const statusHost = document.getElementById('statusbar');
 
 const RAIL = [
-  { id: 'roster', icon: 'grid', label: 'Roster', href: '#/sites' },
+  { id: 'today', icon: 'log', label: 'Today', href: '#/today' },
+  { id: 'roster', icon: 'grid', label: 'Workforce', href: '#/sites' },
   { id: 'map', icon: 'map', label: 'Map', href: '#/map' },
   { id: 'performance', icon: 'chart', label: 'Model performance', href: '#/performance' },
   { id: 'settings', icon: 'gear', label: 'Settings', href: '#/settings' },
 ];
 
-let route = { view: 'sites' };
+let route = { view: 'today' };
 let selection = new Set();
 let sort = { key: 'name', dir: 'asc' };
 let expanded = new Set();
@@ -50,7 +51,8 @@ let expanded = new Set();
 function parse() {
   const hash = location.hash.replace(/^#\/?/, '');
   const parts = hash.split('/').filter(Boolean);
-  if (!parts.length) return { view: 'sites' };
+  if (!parts.length) return { view: 'today' };
+  if (parts[0] === 'today') return { view: 'today' };
   if (parts[0] === 'map') return { view: 'map' };
   if (parts[0] === 'performance' || parts[0] === 'forecast') {
     return { view: 'performance' };
@@ -159,7 +161,7 @@ function commandsFor(current) {
           () => go(`#/site/${current.siteId}/crew/${current.crewId}`)) },
     ];
   }
-  if (current.view === 'settings' || current.view === 'map'
+  if (current.view === 'today' || current.view === 'settings' || current.view === 'map'
       || current.view === 'performance') {
     return [];
   }
@@ -205,7 +207,7 @@ function copyRecord(crewId) {
 /* --- Chrome --------------------------------------------------------------------- */
 
 function railFor(current) {
-  const key = ['map', 'performance', 'settings'].includes(current.view)
+  const key = ['today', 'map', 'performance', 'settings'].includes(current.view)
     ? current.view : 'roster';
   rail.replaceChildren();
   for (const item of RAIL) {
@@ -295,6 +297,7 @@ function render() {
 
   let view;
   switch (current.view) {
+    case 'today': view = views.todayView(ctx); break;
     case 'map': view = mapView(ctx); break;
     case 'performance': view = performanceView(ctx); break;
     case 'settings': view = settingsView(ctx); break;
@@ -323,6 +326,6 @@ window.addEventListener('hashchange', () => { dismissPanel(); render(); });
   for (const site of store.sites()) expanded.add(site.id);
   resumeSiteBackfills();
 
-  if (!location.hash) location.hash = '#/sites';
+  if (!location.hash) location.hash = '#/today';
   render();
 })();

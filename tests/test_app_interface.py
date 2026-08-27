@@ -369,11 +369,26 @@ def test_editing_a_worker_reruns_the_prescription_immediately():
 
 def test_routing_is_three_levels_deep_and_linkable():
     source = strip_comments(read("js", "app.js"))
-    for route in ("sites", "site", "crew", "worker", "map", "performance",
+    for route in ("today", "sites", "site", "crew", "worker", "map", "performance",
                   "settings"):
         assert f"'{route}'" in source, route
     assert "parts[0] === 'forecast'" in source, "old forecast links remain valid"
     assert "hashchange" in source
+
+
+def test_today_is_the_default_start_of_shift_view():
+    app = strip_comments(read("js", "app.js"))
+    assert "location.hash = '#/today'" in app
+    assert "label: 'Today'" in app
+    assert "label: 'Workforce'" in app
+    views = strip_comments(read("js", "views.js"))
+    today = views[views.index("function todayAttention"):
+                  views.index("export function sitesView")]
+    for label in ("Today", "Calendar", "Status", "Attention"):
+        assert f"label: '{label}'" in today
+    assert "worker.active !== false" in today
+    assert "selectable: false" in today
+    assert "Log previous day" in today
 
 
 def test_settings_imports_every_control_it_renders():

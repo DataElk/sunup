@@ -642,7 +642,7 @@ body {
 .legend-note { color: var(--ink-secondary); }
 
 /* ==========================================================================
-   Forecast
+   Summary metrics
    ========================================================================== */
 
 .fc-summary { display: flex; gap: var(--space-6); flex-wrap: wrap; padding: var(--space-3); background: var(--surface-sunken); border: var(--border-width) solid var(--line-default); border-radius: var(--radius-surface); }

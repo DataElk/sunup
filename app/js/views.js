@@ -190,6 +190,100 @@ function loggedCell(result) {
   return wrap;
 }
 
+/* --- Today: start-of-shift decisions ------------------------------------------ */
+
+function previousObserved(result) {
+  if (!result || result.unavailable) return null;
+  const prior = result.observed.filter((record) => record.date < compute.today());
+  return prior.length ? prior[prior.length - 1] : null;
+}
+
+function todayMetric(value, label) {
+  const wrap = el('div', 'fc-metric');
+  wrap.append(el('div', 'fc-value num', value), el('div', 'fc-label', label));
+  return wrap;
+}
+
+function todayAttention(row) {
+  const wrap = el('span', 'loggedcell');
+  if (row.result.unavailable) wrap.appendChild(tag('Weather needed', 'danger'));
+  if (!row.result.unavailable && row.result.current.status === 'stop') {
+    wrap.appendChild(tag('Move from heat work', 'danger'));
+  }
+  if (row.missingCloseout) wrap.appendChild(tag('Log previous day', 'assumed'));
+  if (!wrap.childElementCount) wrap.appendChild(el('span', 'muted', 'Ready'));
+  return wrap;
+}
+
+export function todayView(ctx) {
+  const root = el('div', 'view');
+  root.appendChild(breadcrumb([{ label: 'Today' }]));
+
+  const rows = store.workers()
+    .filter((worker) => worker.active !== false)
+    .map((worker) => {
+      const result = compute.forWorker(worker.id);
+      const crew = store.crew(worker.crewId);
+      const site = result && result.site ? result.site : (crew ? store.site(crew.siteId) : null);
+      const previous = previousObserved(result);
+      const missingCloseout = Boolean(previous && previous.assumed);
+      const priority = result.unavailable ? 0
+        : (result.current.status === 'stop' ? 1 : (missingCloseout ? 2 : 3));
+      return { worker, result, crew, site, missingCloseout, priority };
+    })
+    .sort((a, b) => a.priority - b.priority || a.worker.name.localeCompare(b.worker.name));
+
+  const usable = rows.filter((row) => !row.result.unavailable);
+  const stopped = usable.filter((row) => row.result.current.status === 'stop').length;
+  const missing = rows.filter((row) => row.missingCloseout).length;
+  const unavailable = rows.length - usable.length;
+  const minutes = usable.reduce((sum, row) => sum + row.result.current.prescribedMinutes, 0);
+
+  const summary = el('div', 'fc-summary');
+  summary.append(
+    todayMetric(String(rows.length), 'active workers'),
+    todayMetric(`${(minutes / 60).toFixed(1)} h`, 'prescribed today'),
+    todayMetric(String(stopped), 'stop work'),
+    todayMetric(String(missing), 'need closeout'),
+    todayMetric(String(unavailable), 'weather unavailable'));
+  root.appendChild(summary);
+
+  root.appendChild(detailsList({
+    columns: [
+      { label: 'Worker', width: '1.4fr', render: (row) => workerNameCell(row.result) },
+      { label: 'Site / crew', width: '1.3fr',
+        render: (row) => `${row.site ? row.site.name : 'No site'} / ${row.crew ? row.crew.name : 'No crew'}` },
+      { label: 'Shift', width: '96px', numeric: true,
+        render: (row) => `${pad(row.worker.shiftStart)}:00-${pad(row.worker.shiftEnd)}:00` },
+      { label: 'Today', width: '84px', numeric: true,
+        render: (row) => row.result.unavailable
+          ? '—' : String(row.result.current.prescribedMinutes) },
+      { label: 'Calendar', width: '84px', numeric: true,
+        render: (row) => row.result.unavailable
+          ? '—' : String(row.result.current.calendarMinutes) },
+      { label: 'Status', width: '110px',
+        render: (row) => row.result.unavailable
+          ? el('span', 'muted', 'Unavailable')
+          : chip(row.result.current.status, STATUS_TEXT[row.result.current.status]) },
+      { label: 'Attention', width: '1.4fr', render: todayAttention },
+    ],
+    rows,
+    sort: null,
+    onSort: () => {},
+    selection: new Set(),
+    onSelectionChange: () => {},
+    rowKey: (row) => row.worker.id,
+    onInvoke: (row) => {
+      if (row.site && row.crew) {
+        ctx.go(`#/site/${row.site.id}/crew/${row.crew.id}/worker/${row.worker.id}`);
+      }
+    },
+    selectable: false,
+    empty: 'No active workers. Add workers under Workforce.',
+  }));
+  return root;
+}
+
 /* --- Level 1: all sites --------------------------------------------------------- */
 
 export function sitesView(ctx) {
