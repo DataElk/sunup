@@ -170,6 +170,13 @@ export function breadcrumb(parts) {
   return nav;
 }
 
+export function pageHeader(title, meta) {
+  const head = el('header', 'view-head');
+  head.appendChild(el('h1', 'view-title', title));
+  if (meta) head.appendChild(el('p', 'view-meta', meta));
+  return head;
+}
+
 /* --- NavTree ----------------------------------------------------------------- */
 
 export function navTree({ nodes, selectedId, expanded, onSelect, onToggle }) {

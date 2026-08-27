@@ -35,8 +35,8 @@ const statusHost = document.getElementById('statusbar');
 
 const RAIL = [
   { id: 'today', icon: 'log', label: 'Today', href: '#/today' },
-  { id: 'roster', icon: 'grid', label: 'Workforce', href: '#/sites' },
-  { id: 'map', icon: 'map', label: 'Map', href: '#/map' },
+  { id: 'roster', icon: 'grid', label: 'Sites and crews', href: '#/sites' },
+  { id: 'map', icon: 'map', label: 'Site map', href: '#/map' },
   { id: 'performance', icon: 'chart', label: 'Model performance', href: '#/performance' },
   { id: 'settings', icon: 'gear', label: 'Settings', href: '#/settings' },
 ];

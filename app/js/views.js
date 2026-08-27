@@ -14,7 +14,7 @@ import { hasConfiguredKey } from './liveweather.js';
 import { startSiteBackfill } from './siteweather.js';
 import {
   el, icon, chip, tag, detailsList, breadcrumb, commandBar, panel,
-  dismissPanel, toast, confirmDialog,
+  dismissPanel, toast, confirmDialog, pageHeader,
 } from './ui.js';
 
 const STATUS_TEXT = {
@@ -217,7 +217,10 @@ function todayAttention(row) {
 
 export function todayView(ctx) {
   const root = el('div', 'view');
-  root.appendChild(breadcrumb([{ label: 'Today' }]));
+  const date = new Date(`${compute.today()}T00:00:00Z`).toLocaleDateString([], {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+  });
+  root.appendChild(pageHeader('Today', date));
 
   const rows = store.workers()
     .filter((worker) => worker.active !== false)
@@ -255,10 +258,10 @@ export function todayView(ctx) {
         render: (row) => `${row.site ? row.site.name : 'No site'} / ${row.crew ? row.crew.name : 'No crew'}` },
       { label: 'Shift', width: '96px', numeric: true,
         render: (row) => `${pad(row.worker.shiftStart)}:00-${pad(row.worker.shiftEnd)}:00` },
-      { label: 'Today', width: '84px', numeric: true,
+      { label: 'Prescribed (min)', width: '136px', numeric: true,
         render: (row) => row.result.unavailable
           ? '—' : String(row.result.current.prescribedMinutes) },
-      { label: 'Calendar', width: '84px', numeric: true,
+      { label: 'Calendar (min)', width: '104px', numeric: true,
         render: (row) => row.result.unavailable
           ? '—' : String(row.result.current.calendarMinutes) },
       { label: 'Status', width: '110px',
@@ -279,7 +282,7 @@ export function todayView(ctx) {
       }
     },
     selectable: false,
-    empty: 'No active workers. Add workers under Workforce.',
+    empty: 'No active workers. Add workers under Sites and crews.',
   }));
   return root;
 }
@@ -288,9 +291,10 @@ export function todayView(ctx) {
 
 export function sitesView(ctx) {
   const root = el('div', 'view');
-  root.appendChild(breadcrumb([{ label: 'Sites' }]));
-
   const rows = store.sites().map((s) => compute.forSite(s.id));
+  const workers = rows.reduce((sum, row) => sum + row.workers, 0);
+  root.appendChild(pageHeader('Sites and crews',
+    `${rows.length} sites, ${workers} active workers`));
   const list = detailsList({
     columns: [
       { label: 'Site', width: '2fr', sortKey: 'name',
@@ -305,9 +309,9 @@ export function sitesView(ctx) {
         render: (r) => String(r.crews.length) },
       { label: 'Workers', width: '80px', numeric: true, sortKey: 'workers',
         render: (r) => String(r.workers) },
-      { label: 'Model', width: '90px', numeric: true, sortKey: 'model',
+      { label: 'Model (min)', width: '104px', numeric: true, sortKey: 'model',
         render: (r) => r.site.weatherSource === 'none' ? '—' : `${r.modelMinutes}` },
-      { label: 'Calendar', width: '90px', numeric: true,
+      { label: 'Calendar (min)', width: '112px', numeric: true,
         render: (r) => r.site.weatherSource === 'none' ? '—' : `${r.calendarMinutes}` },
       { label: 'Status', width: '110px',
         render: (r) => r.site.weatherSource === 'none'
@@ -435,7 +439,7 @@ export function crewView(ctx, siteId, crewId) {
       { label: 'Status', width: '104px', sortKey: 'status',
         render: (r) => r.unavailable ? el('span', 'muted', '—')
           : chip(r.current.status, STATUS_TEXT[r.current.status]) },
-      { label: 'Today', width: '70px', numeric: true, sortKey: 'minutes',
+      { label: 'Today (min)', width: '88px', numeric: true, sortKey: 'minutes',
         render: (r) => r.unavailable ? '—' : String(r.current.prescribedMinutes) },
       { label: 'vs cal.', width: '70px', numeric: true, sortKey: 'divergence',
         render: (r) => r.unavailable ? '' : divergenceCell(r.current) },

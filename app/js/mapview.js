@@ -2,14 +2,14 @@
 
 import * as store from './store.js';
 import * as forms from './forms.js';
-import { el } from './ui.js';
+import { el, pageHeader } from './ui.js';
 import { isWithinArizona, loadLeaflet, sitePoint } from './leaflet.js';
 
 export function mapView(ctx) {
   const root = el('div', 'view view-map');
   const note = el('p', 'map-status', 'Loading map…');
   const canvas = el('div', 'live-map');
-  root.append(note, canvas);
+  root.append(pageHeader('Site map', `${store.sites().length} sites in Arizona`), note, canvas);
 
   loadLeaflet().then((L) => {
     const map = L.map(canvas, {

@@ -18,7 +18,7 @@ import * as store from './store.js';
 import * as compute from './compute.js';
 import * as liveWeather from './liveweather.js';
 import {
-  el, detailsList, chip, tag, toast, confirmDialog, field, input,
+  el, detailsList, chip, tag, toast, confirmDialog, field, input, pageHeader,
 } from './ui.js';
 import { section } from './views.js';
 
@@ -93,6 +93,8 @@ export function performanceView(ctx) {
     .filter((w) => w.active !== false)
     .map(backtest)
     .filter(Boolean);
+  root.appendChild(pageHeader('Model performance',
+    `${rows.length} active workers with enough history`));
 
   const usable = rows.filter((r) => !r.degenerate);
   if (usable.length) {
@@ -132,14 +134,14 @@ export function performanceView(ctx) {
           if (r.degenerate) node.classList.add('void');
           return node;
         } },
-      { label: 'Bias', width: '76px', numeric: true,
+      { label: 'Bias (min)', width: '88px', numeric: true,
         render: (r) => {
           if (r.degenerate) return '';
           const node = el('span', 'num', `${r.bias > 0 ? '+' : ''}${r.bias}`);
           node.classList.add(r.bias > 0 ? 'danger' : 'ok');
           return node;
         } },
-      { label: 'Mean |err|', width: '92px', numeric: true,
+      { label: 'Mean error (min)', width: '120px', numeric: true,
         render: (r) => r.degenerate ? '' : String(r.meanAbs) },
       { label: 'Days', width: '150px',
         render: (r) => {
@@ -180,6 +182,7 @@ function metric(value, label, kind) {
 export function settingsView(ctx) {
   const root = el('div', 'view');
   const state = store.getState();
+  root.appendChild(pageHeader('Settings'));
 
   root.appendChild(section('Live weather', (() => {
     const wrap = el('div', 'stack');

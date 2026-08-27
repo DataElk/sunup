@@ -380,11 +380,12 @@ def test_today_is_the_default_start_of_shift_view():
     app = strip_comments(read("js", "app.js"))
     assert "location.hash = '#/today'" in app
     assert "label: 'Today'" in app
-    assert "label: 'Workforce'" in app
+    assert "label: 'Sites and crews'" in app
     views = strip_comments(read("js", "views.js"))
     today = views[views.index("function todayAttention"):
                   views.index("export function sitesView")]
-    for label in ("Today", "Calendar", "Status", "Attention"):
+    assert "pageHeader('Today'" in today
+    for label in ("Prescribed (min)", "Calendar (min)", "Status", "Attention"):
         assert f"label: '{label}'" in today
     assert "worker.active !== false" in today
     assert "selectable: false" in today
@@ -421,7 +422,18 @@ def test_the_shell_has_a_command_bar_a_tree_and_breadcrumbs():
     assert "export function commandBar" in ui
     assert "export function navTree" in ui
     assert "export function breadcrumb" in ui
+    assert "export function pageHeader" in ui
     assert "export function detailsList" in ui
+
+
+def test_desktop_navigation_shows_labels_and_collapses_on_narrow_screens():
+    css = read("styles", "components.css")
+    assert "grid-template-columns: var(--rail-width-open)" in css
+    assert ".rail-label {" in css
+    narrow = css[css.index("@media (max-width: 900px)"):]
+    assert '.shell[data-tree="false"]' in narrow
+    assert "grid-template-columns: var(--rail-width)" in narrow
+    assert ".rail-label { display: none; }" in narrow
 
 
 def test_current_site_can_stay_collapsed_and_day_log_has_no_checkboxes():

@@ -43,7 +43,7 @@ body {
 
 .shell {
   display: grid;
-  grid-template-columns: 48px 280px minmax(0, 1fr);
+  grid-template-columns: var(--rail-width-open) 280px minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) var(--statusbar-height);
   grid-template-areas:
     "rail nav main"
@@ -52,7 +52,7 @@ body {
 }
 
 .shell[data-tree="false"] {
-  grid-template-columns: 48px 0 minmax(0, 1fr);
+  grid-template-columns: var(--rail-width-open) 0 minmax(0, 1fr);
 }
 .shell[data-tree="false"] .navpane { display: none; }
 
@@ -70,8 +70,10 @@ body {
 
 .rail-btn {
   height: 40px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
   color: var(--ink-secondary);
   text-decoration: none;
   border-left: 2px solid transparent;
@@ -83,7 +85,13 @@ body {
   color: var(--accent);
 }
 .rail-btn:focus-visible { outline: 2px solid var(--line-focus); outline-offset: -2px; }
-.rail-label { display: none; }
+.rail-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-body);
+}
 
 /* --- Nav pane --------------------------------------------------------------- */
 
@@ -285,6 +293,10 @@ body {
 .crumb:hover { text-decoration: underline; }
 .crumb-current { color: var(--ink-primary); font-weight: var(--weight-semibold); }
 .crumb-sep { display: inline-flex; color: var(--ink-tertiary); }
+
+.view-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); }
+.view-title { margin: 0; font-family: var(--font-display); font-size: var(--text-subtitle); font-weight: var(--weight-semibold); }
+.view-meta { margin: 0; color: var(--ink-secondary); font-size: var(--text-caption); }
 
 .sect { display: flex; flex-direction: column; gap: var(--space-2); }
 .sect-h {
@@ -741,7 +753,13 @@ body {
    ========================================================================== */
 
 @media (max-width: 900px) {
-  .shell { grid-template-columns: 48px 0 minmax(0, 1fr); }
+  .shell,
+  .shell[data-tree="false"] {
+    grid-template-columns: var(--rail-width) 0 minmax(0, 1fr);
+  }
   .navpane { display: none; }
+  .rail-btn { display: grid; place-items: center; padding: 0; }
+  .rail-label { display: none; }
+  .view-head { align-items: flex-start; flex-direction: column; gap: var(--space-1); }
   .statusbar > .sb:nth-of-type(n+3) { display: none; }
 }
