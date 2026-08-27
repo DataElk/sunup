@@ -959,7 +959,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
     definition('Readiness at shift start', `${Math.round(current.adaptationStart * 100)}%`, true),
     definition(current.assumed ? 'After planned work' : 'After logged work',
       `${Math.round(current.adaptationEnd * 100)}%`, true),
-    definition('Personal limit', `${current.limit.toFixed(2)} °C-WBGT`, true),
+    definition('Personal limit', `${current.limit.toFixed(2)} °C WBGT`, true),
     definition('Overexposure', `${result.cumulativeOverexposure.toFixed(2)} °C·h`, true),
     definition('Weather', weatherLabel));
   const readiness = section(`Heat readiness for ${current.date}`, state);

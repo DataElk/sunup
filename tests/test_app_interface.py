@@ -392,6 +392,12 @@ def test_interface_copy_reports_state_without_explaining_methodology():
         assert phrase not in settings
 
 
+def test_shipped_temperature_units_never_use_a_dash_separator():
+    dash_separators = re.compile(r"°C[-\u2010-\u2015]WBGT")
+    for name in JS_FILES:
+        assert not dash_separators.search(read("js", name)), name
+
+
 def test_unprescribed_work_is_surfaced_not_just_recorded():
     """A supervisor who logged work on a stop-work day must SEE it flagged."""
     engine = strip_comments(read("js", "engine.js"))
