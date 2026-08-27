@@ -205,6 +205,11 @@ export function addSite(fields) {
     location: null,
     seriesKey: null,
     weatherSource: 'none',
+    weatherStatus: null,
+    weatherProgress: null,
+    weatherUpdatedAt: null,
+    liveActivityId: null,
+    liveActivityDate: null,
     seeded: false,
     ...fields,
   }, 'addSite');

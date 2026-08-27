@@ -2,9 +2,10 @@
 
 import * as store from './store.js';
 import * as compute from './compute.js';
-import { activityStatus, hasConfiguredKey, submitHeatmap, waitForActivity } from './liveweather.js';
+import { hasConfiguredKey, submitHeatmap, waitForActivity } from './liveweather.js';
 
 const FIRST_DAYS = 5;
+const inflight = new Set();
 
 function weather() { return window.ACCLIMATE_WEATHER; }
 
@@ -61,55 +62,141 @@ function updateProgress(siteId, changes) {
   if (site) store.updateSite(siteId, changes);
 }
 
-async function fetchDates(siteId, dates, completed, total) {
+function liveKey(site) {
+  return site.seriesKey || `live_${site.id}`;
+}
+
+function dayReady(site, date) {
+  const series = weather().series[liveKey(site)] || {};
+  return Array.isArray(series[date]) && series[date].length > 0;
+}
+
+function completedDays(site) {
+  return weather().dates.filter((date) => dayReady(site, date)).length;
+}
+
+function orderedDates() {
+  const dates = weather().dates.slice();
+  return dates.slice(-FIRST_DAYS).concat(dates.slice(0, -FIRST_DAYS));
+}
+
+function stageFor(completed, total) {
+  if (completed >= total) return 'complete';
+  return completed >= FIRST_DAYS ? 'backfill' : 'loading';
+}
+
+function setStage(siteId) {
   const site = store.site(siteId);
-  if (!site) return completed;
-  const key = site.seriesKey || `live_${site.id}`;
-  const series = weather().series[key] || {};
+  if (!site) return 0;
+  const completed = completedDays(site);
+  const total = weather().dates.length;
+  updateProgress(siteId, {
+    weatherSource: completed >= FIRST_DAYS ? 'live' : 'none',
+    weatherStatus: stageFor(completed, total),
+    weatherProgress: { completed, total },
+  });
+  return completed;
+}
+
+function saveDailySeries(siteId, date, daily) {
+  const site = store.site(siteId);
+  if (!site) return 0;
+  const key = liveKey(site);
+  const series = { ...(weather().series[key] || {}), [date]: daily };
+  store.saveWeatherSeries(key, series);
+  const completed = weather().dates.filter((item) => Array.isArray(series[item])).length;
+  const total = weather().dates.length;
+  updateProgress(siteId, {
+    seriesKey: key,
+    weatherSource: completed >= FIRST_DAYS ? 'live' : 'none',
+    weatherStatus: stageFor(completed, total),
+    weatherProgress: { completed, total },
+    weatherUpdatedAt: new Date().toISOString(),
+    liveActivityId: null,
+    liveActivityDate: null,
+  });
+  compute.invalidate();
+  return completed;
+}
+
+async function fetchDates(siteId, dates) {
+  const site = store.site(siteId);
+  if (!site) return 0;
   for (const date of dates) {
     const current = store.site(siteId);
-    if (!current) return completed;
+    if (!current) return 0;
+    if (dayReady(current, date)) continue;
     const daily = await fetchDay(current, date, (activityId) => updateProgress(siteId, {
       liveActivityId: activityId,
+      liveActivityDate: date,
     }));
-    series[date] = daily;
-    store.saveWeatherSeries(key, series);
-    completed += 1;
-    updateProgress(siteId, {
-      seriesKey: key,
-      weatherSource: completed >= FIRST_DAYS ? 'live' : 'none',
-      weatherStatus: completed >= FIRST_DAYS
-        ? (completed === total ? 'complete' : 'backfill') : 'loading',
-      weatherProgress: { completed, total },
-      liveActivityId: null,
-    });
-    compute.invalidate();
+    saveDailySeries(siteId, date, daily);
   }
-  return completed;
+  const latest = store.site(siteId);
+  return latest ? completedDays(latest) : 0;
+}
+
+async function resumePending(siteId) {
+  const site = store.site(siteId);
+  if (!site || !site.liveActivityId) return false;
+  const date = site.liveActivityDate
+    || orderedDates().find((item) => !dayReady(site, item));
+  if (!date) {
+    updateProgress(siteId, { liveActivityId: null, liveActivityDate: null });
+    return false;
+  }
+  if (dayReady(site, date)) {
+    updateProgress(siteId, { liveActivityId: null, liveActivityDate: null });
+    return true;
+  }
+  updateProgress(siteId, { liveActivityDate: date });
+  const result = await waitForActivity(site.liveActivityId);
+  const current = store.site(siteId);
+  if (!current) return false;
+  saveDailySeries(siteId, date, readDailySeries(result, current, date));
+  return true;
+}
+
+function markFailure(siteId, error) {
+  const site = store.site(siteId);
+  if (!site) return;
+  const completed = completedDays(site);
+  const changes = {
+    weatherStatus: completed ? 'partial' : 'error',
+    weatherProgress: { completed, total: weather().dates.length },
+  };
+  if (error && error.code === 'activity_failed') {
+    changes.liveActivityId = null;
+    changes.liveActivityDate = null;
+  }
+  updateProgress(siteId, changes);
+}
+
+async function finishBackfill(siteId) {
+  try {
+    await fetchDates(siteId, orderedDates());
+  } catch (error) {
+    markFailure(siteId, error);
+  } finally {
+    inflight.delete(siteId);
+  }
 }
 
 export async function startSiteBackfill(siteId) {
   if (!hasConfiguredKey()) return false;
   const site = store.site(siteId);
   if (!site || !site.polygon || !site.location) return false;
-  const dates = weather().dates.slice();
-  const first = dates.slice(-FIRST_DAYS);
-  const remaining = dates.slice(0, -FIRST_DAYS);
-  updateProgress(siteId, {
-    weatherStatus: 'loading', weatherProgress: { completed: 0, total: dates.length },
-  });
+  if (inflight.has(siteId)) return true;
+  inflight.add(siteId);
+  setStage(siteId);
   try {
-    const completed = await fetchDates(siteId, first, 0, dates.length);
-    window.setTimeout(async () => {
-      try {
-        await fetchDates(siteId, remaining, completed, dates.length);
-      } catch {
-        updateProgress(siteId, { weatherStatus: 'partial' });
-      }
-    }, 0);
+    await resumePending(siteId);
+    await fetchDates(siteId, weather().dates.slice(-FIRST_DAYS));
+    window.setTimeout(() => finishBackfill(siteId), 0);
     return true;
-  } catch {
-    updateProgress(siteId, { weatherStatus: 'error', liveActivityId: null });
+  } catch (error) {
+    markFailure(siteId, error);
+    inflight.delete(siteId);
     return false;
   }
 }
@@ -117,6 +204,17 @@ export async function startSiteBackfill(siteId) {
 export async function resumeSiteActivity(siteId) {
   const site = store.site(siteId);
   if (!site || !site.liveActivityId) return false;
-  const response = await activityStatus(site.liveActivityId);
-  return Boolean(response && response.data);
+  try {
+    return await resumePending(siteId);
+  } catch (error) {
+    markFailure(siteId, error);
+    return false;
+  }
+}
+
+export function resumeSiteBackfills() {
+  if (!hasConfiguredKey()) return Promise.resolve([]);
+  const resumable = store.sites().filter((site) => site.liveActivityId
+    || ['loading', 'backfill', 'partial'].includes(site.weatherStatus));
+  return Promise.allSettled(resumable.map((site) => startSiteBackfill(site.id)));
 }

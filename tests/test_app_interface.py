@@ -202,6 +202,25 @@ def test_dynamic_weather_series_persist_and_hydrate():
     assert "store.saveWeatherSeries(key" in forms
 
 
+def test_interrupted_live_weather_resumes_the_paid_activity():
+    site_weather = strip_comments(read("js", "siteweather.js"))
+    assert "liveActivityDate" in site_weather
+    assert "await waitForActivity(site.liveActivityId)" in site_weather
+    assert "export function resumeSiteBackfills" in site_weather
+    assert "Promise.allSettled" in site_weather
+    app = strip_comments(read("js", "app.js"))
+    assert "resumeSiteBackfills()" in app
+
+
+def test_live_weather_reports_freshness_and_skips_completed_days():
+    site_weather = strip_comments(read("js", "siteweather.js"))
+    assert "if (dayReady(current, date)) continue" in site_weather
+    assert "weatherUpdatedAt: new Date().toISOString()" in site_weather
+    views = strip_comments(read("js", "views.js"))
+    assert "function weatherFreshness" in views
+    assert "Live weather:" in views
+
+
 def test_failed_live_weather_has_a_retry_path():
     views = strip_comments(read("js", "views.js"))
     assert "function weatherFailureBanner" in views

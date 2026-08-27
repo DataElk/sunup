@@ -93,7 +93,9 @@ export function editSite(siteId, after, initialPoint = null) {
       changes.weatherSource = 'none';
       changes.weatherStatus = null;
       changes.weatherProgress = null;
+      changes.weatherUpdatedAt = null;
       changes.liveActivityId = null;
+      changes.liveActivityDate = null;
       delete changes.derivedNote;
     }
     const saved = existing ? store.updateSite(existing.id, changes) : store.addSite(changes);
@@ -260,6 +262,11 @@ export function estimateWeather(siteId, after) {
     store.updateSite(site.id, {
       seriesKey: key,
       weatherSource: 'derived',
+      weatherStatus: null,
+      weatherProgress: null,
+      weatherUpdatedAt: null,
+      liveActivityId: null,
+      liveActivityDate: null,
       derivedNote: `Source: ${source.value}. Adjustment: ${factor.toFixed(2)}.`,
     });
     dismissPanel();

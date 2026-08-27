@@ -245,6 +245,8 @@ export function siteView(ctx, siteId) {
   root.appendChild(breadcrumb([
     { label: 'Sites', href: '#/sites' }, { label: site.name },
   ]));
+  const freshness = weatherFreshness(site);
+  if (freshness) root.appendChild(freshness);
 
   if (site.weatherSource === 'none') {
     root.appendChild(noWeatherBanner(ctx, site));
@@ -311,6 +313,8 @@ export function crewView(ctx, siteId, crewId) {
     { label: site.name, href: `#/site/${siteId}` },
     { label: crew.name },
   ]));
+  const freshness = weatherFreshness(site);
+  if (freshness) root.appendChild(freshness);
 
   if (site.weatherSource === 'none') root.appendChild(noWeatherBanner(ctx, site));
   else if (site.weatherStatus === 'error' || site.weatherStatus === 'partial') {
@@ -559,13 +563,26 @@ function derivedBanner(site) {
     site.derivedNote || 'A measured source site was used.');
 }
 
+function weatherFreshness(site) {
+  if (site.weatherSource !== 'live' || !site.weatherUpdatedAt) return null;
+  const progress = site.weatherProgress || { completed: 0, total: 14 };
+  const value = new Date(site.weatherUpdatedAt);
+  const updated = Number.isNaN(value.getTime())
+    ? site.weatherUpdatedAt
+    : value.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  return el('p', 'muted',
+    `Live weather: ${progress.completed} of ${progress.total} days. Updated ${updated}.`);
+}
+
 function noWeatherBanner(ctx, site) {
   if (site.weatherStatus === 'loading' || site.weatherStatus === 'backfill') {
     const progress = site.weatherProgress || { completed: 0, total: 14 };
     return banner('info', 'Retrieving live weather',
       `${progress.completed} of ${progress.total} days ready. Prescriptions appear after the first five days.`);
   }
-  if (site.weatherStatus === 'error') return weatherFailureBanner(ctx, site);
+  if (site.weatherStatus === 'error' || site.weatherStatus === 'partial') {
+    return weatherFailureBanner(ctx, site);
+  }
   const node = banner('danger', 'No weather history, prescriptions unavailable',
     'This site has no hourly WBGT series, so nothing can be prescribed for the '
     + 'crews under it.');

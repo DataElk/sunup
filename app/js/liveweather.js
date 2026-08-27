@@ -127,8 +127,13 @@ export async function waitForActivity(activityId, onPoll) {
       const status = String(data && data.status || '').toLowerCase();
       if (onPoll) onPoll(status);
       if (status === 'completed' || status === 'succeeded') return data.result;
-      if (status === 'failed') throw new Error('The live weather task failed.');
+      if (status === 'failed') {
+        const error = new Error('The live weather task failed.');
+        error.code = 'activity_failed';
+        throw error;
+      }
     } catch (error) {
+      if (error && error.code === 'activity_failed') throw error;
       errors += 1;
       if (errors > 3) throw error;
     }

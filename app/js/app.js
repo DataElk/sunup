@@ -21,6 +21,7 @@ import * as compute from './compute.js';
 import * as forms from './forms.js';
 import * as views from './views.js';
 import { hasConfiguredKey } from './liveweather.js';
+import { resumeSiteBackfills } from './siteweather.js';
 import { mapView } from './mapview.js';
 import { performanceView, settingsView } from './extraviews.js';
 import { el, icon, commandBar, navTree, toast, dismissPanel } from './ui.js';
@@ -320,6 +321,7 @@ window.addEventListener('hashchange', () => { dismissPanel(); render(); });
   });
 
   for (const site of store.sites()) expanded.add(site.id);
+  resumeSiteBackfills();
 
   if (!location.hash) location.hash = '#/sites';
   render();
