@@ -106,7 +106,7 @@ def test_the_worker_detail_does_show_it():
     source = strip_comments(read("js", "views.js"))
     detail = source[source.index("export function workerView"):]
     assert "adaptationStart" in detail
-    assert "Readiness details" in detail
+    assert "Heat readiness" in detail
 
 
 # ---------------------------------------------------------------------------
@@ -277,9 +277,10 @@ def test_worker_feedback_makes_log_effects_visible_without_rewriting_history():
     views = strip_comments(read("js", "views.js"))
     assert "minutes prescribed for ${current.date}" in views
     assert "minutes prescribed today" not in views
-    assert "Adaptation before work" in views
-    assert "Adaptation after actual" in views
-    assert "cached demo history through ${current.date}" in views
+    assert "Readiness at shift start" in views
+    assert "After logged work" in views
+    assert "Cached through ${current.date}" in views
+    assert "cached demo history" not in views
     forms = strip_comments(read("js", "forms.js"))
     assert "The prescription already issued for this date stays unchanged" in forms
     assert "Later prescriptions recalculated" in forms
@@ -397,9 +398,9 @@ def test_unprescribed_work_is_surfaced_not_just_recorded():
     assert "unprescribedWork" in engine
     views = read("js", "views.js")
     assert "unprescribed" in views
-    assert "flag-unprescribed" in views
+    assert "tag('unprescribed', 'danger')" in views
     css = read("styles", "components.css")
-    assert ".flag-unprescribed" in css
+    assert '.tag[data-kind="danger"]' in css
 
 
 def test_the_crew_flags_column_has_room_for_both_alerts():
@@ -534,8 +535,10 @@ def test_current_site_can_stay_collapsed_and_day_log_has_no_checkboxes():
     worker = views[views.index("export function workerView"):
                    views.index("function fact")]
     day_log = worker[worker.index("section('Day log'"):
-                     worker.index("if (current.hours.length)")]
+                      worker.index("if (current.hours.length)")]
     assert "selectable: false" in day_log
+    assert "label: 'Rule'" not in day_log
+    assert "label: 'Adapt. after'" not in day_log
 
 
 def test_commands_enable_on_selection_rather_than_appearing():
@@ -558,14 +561,35 @@ def test_the_grid_rows_use_the_readable_row_token():
     assert '[data-density="touch"] .dl-row' in css
 
 
-def test_the_large_strip_is_detail_only_and_the_grid_gets_a_sparkline():
+def test_worker_detail_uses_separate_decision_charts_and_the_grid_gets_a_sparkline():
     views = strip_comments(read("js", "views.js"))
     grid = views[views.index("export function crewView"):
                  views.index("export function workerView")]
     assert "sparkline(" in grid
-    assert "rampStrip(" not in grid
     detail = views[views.index("export function workerView"):]
-    assert "rampStrip(" in detail
+    assert "historyChart(result.records)" in detail
+    assert "hourlyChart(current.hours)" in detail
+    assert "rampStrip(result.records)" not in detail
+
+
+def test_worker_detail_adds_location_context_and_supervisor_actions():
+    views = strip_comments(read("js", "views.js"))
+    assert "function workerLocationCard" in views
+    assert "sitePoint(site)" in views
+    assert "Open site map" in views
+    assert "function supervisorPlan" in views
+    assert "planned work window" in views
+    assert "shaded or cooled recovery area" in views
+
+
+def test_log_feedback_animates_the_recalculated_result_without_forcing_motion():
+    forms = strip_comments(read("js", "forms.js"))
+    views = strip_comments(read("js", "views.js"))
+    css = read("styles", "components.css")
+    assert "sunup:last-recalculation" in forms
+    assert "Plan recalculated" in views
+    assert ".view-worker.is-recalculated" in css
+    assert "@media (prefers-reduced-motion: reduce)" in css
 
 
 # ---------------------------------------------------------------------------

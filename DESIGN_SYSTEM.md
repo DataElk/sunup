@@ -25,10 +25,10 @@ safety professional doing their job on a workstation, not a consumer being delig
 
 ### Why this is also the strategically correct choice
 
-The default output of any AI coding tool asked for a dashboard is: rounded cards, soft
-drop shadows, an indigo or violet accent, generous whitespace, Inter, one large number
-per card, a gradient somewhere. This system is defined largely by refusing those
-things, and Fluent refuses them by default rather than by exception.
+Generic dashboards lean on rounded cards, soft shadows, oversized whitespace, one
+large number per card, and decorative gradients. This system is defined by operational
+hierarchy instead: compact decisions, stable navigation, restrained surfaces, and data
+graphics that answer a specific question.
 
 ---
 
@@ -63,25 +63,21 @@ Rules the shell exists to enforce:
 
 ---
 
-## The signature: the ramp strip
+## The signature: a decision profile
 
-Every design needs one element it is remembered by. Here it is the **ramp strip**, the
-horizontal run of day cells showing seven days behind, today, and six ahead.
+The worker page is remembered by a coordinated **decision profile**, not one mixed
+chart. It has two related views:
 
-It is the right signature because the paper shift card and the calendar ramp are
-precisely the artifacts this product replaces.
+- **Work capacity history** separates prescribed minutes from thermal load. Minutes
+  use their own 0 to 480 scale. Peak WBGT and personal limit share a temperature scale
+  in a second aligned panel. Actual minutes are hollow markers. Forecast segments are
+  shaded and dashed.
+- **Shift plan** plots hourly WBGT against the personal limit, then aligns recommended
+  work minutes beneath the same hour axis. Stop-work hours receive a quiet risk band.
 
-**It must be the largest thing on a roster row.** An earlier version rendered it at
-~13px per cell with pale fills and an adaptation line that was invisible; a signature
-element you cannot read is not a signature. Give it real width, real cell size, and
-enough contrast that the shape of a worker's history is legible at a glance across the
-room.
-
-- **Bar height** encodes heat (peak WBGT). A position encoding, so it costs no colour.
-- **Bar fill** encodes the prescription band. Colour is for fit, never for temperature.
-- **A line in ink** encodes adaptation, drawn across the cells in `--adapt-line`, and
-  `--adapt-line-projected` beyond today. Deliberately not a third colour scale.
-- **Past solid, future dashed** at `--projected-alpha`. An honesty requirement.
+Minutes, temperature, and readiness never share an axis. A combined plot can conserve
+space while making every relationship harder to read. Aligned panels keep the shared
+time context without implying that unlike measures are directly comparable.
 
 ---
 
@@ -101,7 +97,11 @@ variant into a screen. That is how a design system dies.
 | `StatusChip` | Prescription severity | Compact pill with a status dot, from the `--status-*` scale |
 | `Tag` | Provenance and state marks: seed, derived, override, assumed | `--font-data`, never carries severity |
 | `Sparkline` | 14 days in 86px, on a grid row | Height is peak WBGT, fill is the status band |
-| `RampStrip` | The signature. Day cells with the adaptation line | Worker detail only, where there is room to read it |
+| `WorkerTrend` | Prescribed and actual minutes, then WBGT and personal limit | Two aligned panels with independent units and a shared date axis |
+| `ShiftPlan` | Hourly thermal conditions and work allocation | Shared hour axis, exact values in a disclosure below |
+| `DecisionCard` | Supervisor work window, recovery time, controls, and closeout | Derived from existing status and hourly allocation |
+| `WorkerLocation` | Static Arizona location context for one worker | Site marker and direct action to the interactive site map |
+| `CalculationFeedback` | Confirms a saved actual has recalculated the plan | Short result animation, disabled by reduced-motion preference |
 | `Panel` | Editors and confirmations | `--drawer-width` over a scrim, closes on Escape |
 | `Callout` | A state the user must act on or account for | Kinds: info, warn, danger, assumed |
 | `MapCanvas` | Exceedance choropleth and selection surface | Canvas, `--heat-*` ramp, quantile classes, crew markers are clickable |
@@ -138,8 +138,8 @@ These map onto lint rules. A violation fails the build.
 9. **Every worker view shows the counterfactual**, and shows it as a *relationship*:
    what the calendar allows, what the model allows, and the signed gap between them.
    Two adjacent numbers with a strikethrough is not a relationship; it is a puzzle.
-10. **The adaptation state never appears on a collapsed row.** The foreman gets minutes.
-    `A = 0.34` appears only in the drawer, when he opens it asking why.
+10. **Readiness never appears on a collapsed row.** The supervisor gets minutes.
+    Worker detail may show readiness as a percentage; raw state decimals stay internal.
 11. **Projected data is never visually confusable with observed data.** Past solid,
     future dashed at `--projected-alpha`. Honesty requirement, not stylistic.
 12. **Colour encodes mismatch rather than temperature, and intensity encodes magnitude.**
@@ -163,7 +163,7 @@ These map onto lint rules. A violation fails the build.
 13. **A restricted worker must say why**, and name the lever that would recover the
     hours, priced in minutes. "0 min" with no explanation is not an instruction.
 
-    The **diagnosis** is read off the binding hour (when this worker crosses his own
+    The **diagnosis** is read off the most restrictive hour (when this worker crosses his own
     limit, and by how much at the worst hour), so two workers cannot produce the same
     sentence unless they are genuinely in the same situation. The **action** is the
     largest lever an employer can actually pull, priced in minutes.
@@ -300,8 +300,8 @@ figure.
 
 ## Anti-patterns: the specific things not to build
 
-Named explicitly because these are the defaults an AI coding tool falls back into, and
-naming the attractor is the only reliable way to avoid it.
+Named explicitly because these are common dashboard defaults, and naming the attractor
+is the most reliable way to avoid it.
 
 - A grid of rounded white cards with drop shadows
 - A large number with a small grey label under it, repeated four across the top

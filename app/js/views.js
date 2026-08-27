@@ -12,6 +12,7 @@ import * as compute from './compute.js';
 import * as forms from './forms.js';
 import { hasConfiguredKey } from './liveweather.js';
 import { startSiteBackfill } from './siteweather.js';
+import { sitePoint } from './leaflet.js';
 import {
   el, icon, chip, tag, detailsList, breadcrumb, commandBar, panel,
   dismissPanel, toast, confirmDialog, pageHeader,
@@ -23,10 +24,9 @@ const STATUS_TEXT = {
 };
 
 /* --- Sparkline ---------------------------------------------------------------
-   The compact form of the ramp strip: 14 days in 86px. Bar height is peak WBGT
-   on a fixed 22-36 degC scale so two workers are comparable; fill is the
-   prescription band. The large strip lives in worker detail, where there is
-   room for it to mean something. */
+   Compact roster history: 14 days in 86px. Bar height is peak WBGT on a fixed
+   22-36 degC scale so two workers are comparable; fill is the prescription band.
+   Worker detail carries the larger, fully labelled decision charts. */
 
 const SPARK_FLOOR = 22;
 const SPARK_CEIL = 36;
@@ -69,112 +69,373 @@ function describeSpark(records) {
     : 'No history.';
 }
 
-/* --- Full ramp strip (worker detail only) ------------------------------------- */
-
-function rampStrip(records) {
+/* Work capacity and thermal load use separate panels and axes. Mixing minutes,
+   temperature, and readiness on one scale makes comparison needlessly hard. */
+function svgNode(name, attrs = {}, text = null) {
   const ns = 'http://www.w3.org/2000/svg';
-  const WIDTH = 960;
-  const HEIGHT = 208;
-  const LEFT = 44;
-  const RIGHT = 12;
-  const TOP = 18;
-  const BOTTOM = 38;
-  const PLOT_HEIGHT = HEIGHT - TOP - BOTTOM;
-  const CELL = (WIDTH - LEFT - RIGHT) / Math.max(1, records.length);
+  const node = document.createElementNS(ns, name);
+  Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
+  if (text !== null) node.textContent = text;
+  return node;
+}
 
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', `0 0 ${WIDTH} ${HEIGHT}`);
-  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-  svg.setAttribute('class', 'ramp');
-  svg.setAttribute('role', 'img');
-  svg.setAttribute('aria-label',
-    `Work schedule across ${records.length} days.`);
+function pointsFor(records, start, xAt, yAt, read) {
+  return records.map((record, index) => `${xAt(start + index)},${yAt(read(record))}`).join(' ');
+}
 
-  const make = (name, attrs) => {
-    const node = document.createElementNS(ns, name);
-    Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, String(v)));
-    return node;
-  };
+function chartKey(className, label) {
+  const item = el('span', 'chart-legend-item');
+  item.append(el('span', `chart-key ${className}`), el('span', null, label));
+  return item;
+}
+
+function historyChart(records) {
+  const WIDTH = 1000;
+  const HEIGHT = 354;
+  const LEFT = 62;
+  const RIGHT = 24;
+  const PLOT_WIDTH = WIDTH - LEFT - RIGHT;
+  const CAP_TOP = 40;
+  const CAP_HEIGHT = 112;
+  const HEAT_TOP = 218;
+  const HEAT_HEIGHT = 94;
+  const seam = records.filter((record) => !record.projected).length;
+  const xAt = (index) => LEFT + (records.length === 1
+    ? PLOT_WIDTH / 2 : (index / (records.length - 1)) * PLOT_WIDTH);
+  const capY = (value) => CAP_TOP + CAP_HEIGHT
+    - (Math.max(0, Math.min(480, value)) / 480) * CAP_HEIGHT;
+  const heatY = (value) => HEAT_TOP + HEAT_HEIGHT
+    - ((Math.max(SPARK_FLOOR, Math.min(SPARK_CEIL, value)) - SPARK_FLOOR)
+      / (SPARK_CEIL - SPARK_FLOOR)) * HEAT_HEIGHT;
+
+  const svg = svgNode('svg', {
+    viewBox: `0 0 ${WIDTH} ${HEIGHT}`, preserveAspectRatio: 'xMidYMid meet',
+    class: 'worker-trend', role: 'img',
+    'aria-label': `Work capacity and heat exposure across ${records.length} days.`,
+  });
+
+  svg.append(
+    svgNode('text', { class: 'chart-panel-title', x: LEFT, y: 20 }, 'Work capacity'),
+    svgNode('text', { class: 'chart-panel-title', x: LEFT, y: 198 }, 'Thermal load'));
+
+  [[0, 0], [240, 0.5], [480, 1]].forEach(([value, ratio]) => {
+    const y = CAP_TOP + CAP_HEIGHT - ratio * CAP_HEIGHT;
+    svg.append(
+      svgNode('line', { class: 'chart-grid', x1: LEFT, y1: y, x2: WIDTH - RIGHT, y2: y }),
+      svgNode('text', {
+        class: 'axis-label', x: LEFT - 10, y: y + 4, 'text-anchor': 'end',
+      }, `${value}`));
+  });
+  svg.appendChild(svgNode('text', {
+    class: 'axis-unit', x: LEFT - 10, y: CAP_TOP - 10, 'text-anchor': 'end',
+  }, 'min'));
 
   [22, 29, 36].forEach((value) => {
-    const y = TOP + PLOT_HEIGHT
-      - ((value - SPARK_FLOOR) / (SPARK_CEIL - SPARK_FLOOR)) * PLOT_HEIGHT;
-    svg.appendChild(make('line', {
-      class: 'chart-grid', x1: LEFT, y1: y, x2: WIDTH - RIGHT, y2: y,
-    }));
-    const label = make('text', {
-      class: 'axis-label', x: LEFT - 8, y: y + 4, 'text-anchor': 'end',
-    });
-    label.textContent = `${value}°`;
-    svg.appendChild(label);
+    const y = heatY(value);
+    svg.append(
+      svgNode('line', { class: 'chart-grid', x1: LEFT, y1: y, x2: WIDTH - RIGHT, y2: y }),
+      svgNode('text', {
+        class: 'axis-label', x: LEFT - 10, y: y + 4, 'text-anchor': 'end',
+      }, `${value}°`));
   });
+  svg.appendChild(svgNode('text', {
+    class: 'axis-unit', x: LEFT - 10, y: HEAT_TOP - 10, 'text-anchor': 'end',
+  }, 'WBGT'));
 
-  records.forEach((record, index) => {
-    const x = LEFT + index * CELL;
-    svg.appendChild(make('rect', {
-      class: record.projected ? 'cell cell-proj' : 'cell',
-      x: x + 1, y: TOP, width: CELL - 2, height: PLOT_HEIGHT,
-    }));
-    const peak = record.peakWbgt;
-    if (peak !== null && peak !== undefined) {
-      const clamped = Math.max(SPARK_FLOOR, Math.min(SPARK_CEIL, peak));
-      const h = Math.max(2,
-        ((clamped - SPARK_FLOOR) / (SPARK_CEIL - SPARK_FLOOR)) * PLOT_HEIGHT);
-      const bar = make('rect', {
-        class: record.projected ? 'bar bar-proj' : 'bar',
-        x: x + 6, y: TOP + PLOT_HEIGHT - h,
-        width: Math.max(8, CELL - 12), height: h,
-      });
-      bar.setAttribute('data-status', record.status);
-      const title = document.createElementNS(ns, 'title');
-      title.textContent = `${record.date}, ${record.prescribedMinutes} min prescribed`
-        + `${record.assumed ? ' (not logged)' : `, ${record.actualMinutes} logged`}`
-        + `, peak ${peak.toFixed(1)} °C`;
-      bar.appendChild(title);
-      svg.appendChild(bar);
-    }
-    if (record.unprescribedWork) {
-      svg.appendChild(make('circle', {
-        class: 'flag-unprescribed', cx: x + CELL / 2, cy: TOP + 8, r: 4,
+  if (seam < records.length) {
+    const seamX = (xAt(Math.max(0, seam - 1)) + xAt(seam)) / 2;
+    svg.append(
+      svgNode('rect', {
+        class: 'forecast-region', x: seamX, y: CAP_TOP,
+        width: WIDTH - RIGHT - seamX, height: HEAT_TOP + HEAT_HEIGHT - CAP_TOP,
+      }),
+      svgNode('line', {
+        class: 'forecast-seam', x1: seamX, y1: CAP_TOP,
+        x2: seamX, y2: HEAT_TOP + HEAT_HEIGHT,
+      }),
+      svgNode('text', {
+        class: 'forecast-label', x: seamX + 10, y: CAP_TOP + 16,
+      }, 'Forecast'));
+  }
+
+  const addSeries = (read, yAt, className) => {
+    if (seam) {
+      svg.appendChild(svgNode('polyline', {
+        class: className,
+        points: pointsFor(records.slice(0, seam), 0, xAt, yAt, read),
       }));
     }
-    const tick = make('text', {
-      class: 'tick', x: x + CELL / 2, y: HEIGHT - 4, 'text-anchor': 'middle',
+    if (seam < records.length) {
+      const from = Math.max(0, seam - 1);
+      svg.appendChild(svgNode('polyline', {
+        class: `${className} projected-line`,
+        points: pointsFor(records.slice(from), from, xAt, yAt, read),
+      }));
+    }
+  };
+
+  addSeries((record) => record.prescribedMinutes, capY, 'capacity-line');
+  addSeries((record) => record.peakWbgt ?? SPARK_FLOOR, heatY, 'heat-line');
+  addSeries((record) => record.limit, heatY, 'limit-line');
+
+  records.forEach((record, index) => {
+    const x = xAt(index);
+    const capacity = svgNode('circle', {
+      class: record.projected ? 'capacity-point projected-point' : 'capacity-point',
+      cx: x, cy: capY(record.prescribedMinutes), r: 4,
     });
-    tick.textContent = record.date.slice(5);
-    svg.appendChild(tick);
+    capacity.appendChild(svgNode('title', {},
+      `${record.date}: ${record.prescribedMinutes} prescribed minutes`));
+    svg.appendChild(capacity);
+
+    if (!record.projected && !record.assumed) {
+      const actual = svgNode('circle', {
+        class: 'actual-point', cx: x, cy: capY(record.actualMinutes), r: 4,
+      });
+      actual.appendChild(svgNode('title', {},
+        `${record.date}: ${record.actualMinutes} actual minutes`));
+      svg.appendChild(actual);
+    }
+
+    if (record.peakWbgt !== null && record.peakWbgt !== undefined) {
+      const peak = svgNode('circle', {
+        class: record.projected ? 'heat-point projected-point' : 'heat-point',
+        cx: x, cy: heatY(record.peakWbgt), r: 3.5,
+      });
+      peak.appendChild(svgNode('title', {},
+        `${record.date}: peak ${record.peakWbgt.toFixed(1)} °C, limit ${record.limit.toFixed(1)} °C`));
+      svg.appendChild(peak);
+    }
+
+    const interval = Math.max(1, Math.ceil(records.length / 7));
+    if (index % interval === 0 || index === records.length - 1) {
+      svg.appendChild(svgNode('text', {
+        class: 'tick', x, y: HEIGHT - 8, 'text-anchor': 'middle',
+      }, record.date.slice(5)));
+    }
   });
 
-  const seam = records.filter((r) => !r.projected).length;
-  const point = (r, i) => `${LEFT + i * CELL + CELL / 2},${TOP + PLOT_HEIGHT - 4 - r.adaptationStart * (PLOT_HEIGHT - 10)}`;
-  if (seam > 1) {
-    svg.appendChild(make('polyline', {
-      class: 'adapt', points: records.slice(0, seam).map(point).join(' '),
-    }));
-  }
-  if (seam < records.length) {
-    const seamX = LEFT + seam * CELL;
-    svg.appendChild(make('line', {
-      class: 'forecast-seam', x1: seamX, y1: TOP,
-      x2: seamX, y2: TOP + PLOT_HEIGHT,
-    }));
-    const from = Math.max(seam - 1, 0);
-    svg.appendChild(make('polyline', {
-      class: 'adapt adapt-proj',
-      points: records.slice(from).map((r, i) => point(r, from + i)).join(' '),
-    }));
-  }
   const legend = el('div', 'chart-legend');
-  [['chart-key chart-key-bar', 'Peak WBGT'],
-   ['chart-key chart-key-line', 'Adaptation'],
-   ['chart-key chart-key-forecast', 'Forecast']].forEach(([className, label]) => {
-    const item = el('span', 'chart-legend-item');
-    item.append(el('span', className), el('span', null, label));
-    legend.appendChild(item);
-  });
+  legend.append(
+    chartKey('chart-key-capacity', 'Prescribed minutes'),
+    chartKey('chart-key-actual', 'Actual minutes'),
+    chartKey('chart-key-heat', 'Peak WBGT'),
+    chartKey('chart-key-limit', 'Personal limit'),
+    chartKey('chart-key-forecast', 'Forecast'));
+
   const wrap = el('div', 'history-chart');
   wrap.append(legend, svg);
   return wrap;
+}
+
+function hourlyChart(hours) {
+  const WIDTH = 1000;
+  const HEIGHT = 300;
+  const LEFT = 62;
+  const RIGHT = 24;
+  const TOP = 38;
+  const TEMP_HEIGHT = 132;
+  const WORK_TOP = 218;
+  const WORK_HEIGHT = 42;
+  const PLOT_WIDTH = WIDTH - LEFT - RIGHT;
+  const values = hours.flatMap((hour) => [hour.wbgt, hour.limit]);
+  const low = Math.floor(Math.min(...values) - 1);
+  const high = Math.ceil(Math.max(...values) + 1);
+  const span = Math.max(1, high - low);
+  const cell = PLOT_WIDTH / Math.max(1, hours.length);
+  const xAt = (index) => LEFT + cell * index + cell / 2;
+  const tempY = (value) => TOP + TEMP_HEIGHT - ((value - low) / span) * TEMP_HEIGHT;
+  const fewest = Math.min(...hours.map((hour) => hour.minutes));
+  const bindingIndex = hours.findIndex((hour) => hour.minutes === fewest);
+
+  const svg = svgNode('svg', {
+    viewBox: `0 0 ${WIDTH} ${HEIGHT}`, preserveAspectRatio: 'xMidYMid meet',
+    class: 'shift-chart', role: 'img',
+    'aria-label': 'Hourly WBGT, personal limit, and recommended work minutes.',
+  });
+
+  for (let index = 0; index < 3; index += 1) {
+    const value = low + (span * index) / 2;
+    const y = tempY(value);
+    svg.append(
+      svgNode('line', { class: 'chart-grid', x1: LEFT, y1: y, x2: WIDTH - RIGHT, y2: y }),
+      svgNode('text', {
+        class: 'axis-label', x: LEFT - 10, y: y + 4, 'text-anchor': 'end',
+      }, `${value.toFixed(0)}°`));
+  }
+  svg.append(
+    svgNode('text', { class: 'chart-panel-title', x: LEFT, y: 20 }, 'WBGT and personal limit'),
+    svgNode('text', { class: 'chart-panel-title', x: LEFT, y: WORK_TOP - 12 },
+      'Recommended work each hour'));
+
+  hours.forEach((hour, index) => {
+    const x = LEFT + index * cell;
+    if (hour.stop) {
+      svg.appendChild(svgNode('rect', {
+        class: 'shift-risk', x: x + 2, y: TOP, width: Math.max(1, cell - 4), height: TEMP_HEIGHT,
+      }));
+    }
+    const barHeight = (hour.minutes / 60) * WORK_HEIGHT;
+    svg.appendChild(svgNode('rect', {
+      class: hour.minutes ? 'work-bar' : 'work-bar no-work-bar',
+      x: x + Math.max(5, cell * 0.18), y: WORK_TOP + WORK_HEIGHT - barHeight,
+      width: Math.max(8, cell * 0.64), height: Math.max(2, barHeight), rx: 2,
+    }));
+    svg.append(
+      svgNode('text', {
+        class: 'work-label', x: xAt(index), y: WORK_TOP + WORK_HEIGHT + 15,
+        'text-anchor': 'middle',
+      }, `${hour.minutes}`),
+      svgNode('text', {
+        class: 'tick', x: xAt(index), y: HEIGHT - 8, 'text-anchor': 'middle',
+      }, `${pad(hour.hour)}:00`));
+  });
+
+  svg.append(
+    svgNode('polyline', {
+      class: 'heat-line', points: pointsFor(hours, 0, xAt, tempY, (hour) => hour.wbgt),
+    }),
+    svgNode('polyline', {
+      class: 'limit-line', points: pointsFor(hours, 0, xAt, tempY, (hour) => hour.limit),
+    }));
+
+  hours.forEach((hour, index) => {
+    const point = svgNode('circle', {
+      class: index === bindingIndex ? 'heat-point binding-point' : 'heat-point',
+      cx: xAt(index), cy: tempY(hour.wbgt), r: index === bindingIndex ? 5 : 3.5,
+    });
+    point.appendChild(svgNode('title', {},
+      `${pad(hour.hour)}:00: ${hour.wbgt.toFixed(1)} °C WBGT, ${hour.minutes} work minutes`));
+    svg.appendChild(point);
+  });
+
+  const legend = el('div', 'chart-legend');
+  legend.append(
+    chartKey('chart-key-heat', 'WBGT'),
+    chartKey('chart-key-limit', 'Personal limit'),
+    chartKey('chart-key-work', 'Work minutes'),
+    chartKey('chart-key-stop', 'No heat work'));
+  const wrap = el('div', 'shift-chart-wrap');
+  wrap.append(legend, svg);
+  return wrap;
+}
+
+function workWindow(hours) {
+  const planned = hours.filter((hour) => hour.minutes > 0);
+  if (!planned.length) return 'No heat work planned';
+  const first = planned[0];
+  const last = planned[planned.length - 1];
+  return `${pad(first.hour)}:00 to ${pad(last.hour + 1)}:00`;
+}
+
+function supervisorPlan(current) {
+  const hours = current.hours;
+  const hottest = hours.reduce((best, hour) => (!best || hour.wbgt > best.wbgt ? hour : best), null);
+  const recovery = hours.reduce((total, hour) => total + (60 - hour.minutes), 0);
+  const card = el('section', 'decision-card supervisor-card');
+  card.appendChild(el('h3', 'decision-title', 'Supervisor plan'));
+
+  const metrics = el('div', 'decision-metrics');
+  [
+    [workWindow(hours), 'planned work window'],
+    [`${recovery} min`, 'recovery time'],
+    [hottest ? `${hottest.wbgt.toFixed(1)} °C` : 'Not available',
+      hottest ? `highest WBGT at ${pad(hottest.hour)}:00` : 'highest WBGT'],
+  ].forEach(([value, label]) => {
+    const metric = el('div', 'decision-metric');
+    metric.append(el('strong', 'num', value), el('span', null, label));
+    metrics.appendChild(metric);
+  });
+  card.appendChild(metrics);
+
+  const list = el('ul', 'action-list');
+  const statusAction = {
+    stop: 'Move heat work to a cooler task or time and confirm the plan before the shift.',
+    restricted: 'Keep heat work inside the planned minutes and use the coolest hours first.',
+    reduced: 'Use the planned work window and protect the recovery periods.',
+    cleared: 'Keep the normal heat controls active as conditions change.',
+  }[current.status] || 'Confirm the work plan before the shift.';
+  [
+    statusAction,
+    'Keep drinking water and a shaded or cooled recovery area close to the work.',
+    'Log actual minutes after the shift so the next plan reflects the completed work.',
+  ].forEach((text) => list.appendChild(el('li', null, text)));
+  card.appendChild(list);
+  return card;
+}
+
+const ARIZONA_OUTLINE = [
+  [-114.82, 31.33], [-114.47, 32.49], [-114.48, 34.72], [-114.12, 35.0],
+  [-114.13, 37.0], [-109.04, 37.0], [-109.04, 31.33],
+];
+
+function workerLocationCard(site, ctx) {
+  const card = el('section', 'decision-card location-card');
+  card.appendChild(el('h3', 'decision-title', 'Work location'));
+  const point = sitePoint(site);
+  const map = svgNode('svg', {
+    viewBox: '0 0 320 174', class: 'worker-location-map', role: 'img',
+    'aria-label': point ? `${site.name} location in Arizona` : 'Site location is not set',
+  });
+  map.appendChild(svgNode('rect', { class: 'locator-bg', x: 0, y: 0, width: 320, height: 174 }));
+
+  const project = ([lng, lat]) => [
+    24 + ((lng + 115.2) / (115.2 - 108.65)) * 272,
+    154 - ((lat - 30.8) / (37.25 - 30.8)) * 134,
+  ];
+  const outline = ARIZONA_OUTLINE.map((pair, index) => {
+    const [x, y] = project(pair);
+    return `${index ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  map.appendChild(svgNode('path', { class: 'locator-state', d: `${outline} Z` }));
+  [0.33, 0.66].forEach((ratio) => {
+    map.append(
+      svgNode('line', {
+        class: 'locator-grid', x1: 24, y1: 20 + ratio * 134, x2: 296, y2: 20 + ratio * 134,
+      }),
+      svgNode('line', {
+        class: 'locator-grid', x1: 24 + ratio * 272, y1: 20, x2: 24 + ratio * 272, y2: 154,
+      }));
+  });
+
+  if (point) {
+    const [x, y] = project([point.lng ?? point.lon, point.lat]);
+    map.append(
+      svgNode('circle', { class: 'locator-halo', cx: x, cy: y, r: 10 }),
+      svgNode('circle', { class: 'locator-pin', cx: x, cy: y, r: 5 }));
+  } else {
+    map.appendChild(svgNode('text', {
+      class: 'locator-empty', x: 160, y: 90, 'text-anchor': 'middle',
+    }, 'Location not set'));
+  }
+  card.appendChild(map);
+
+  const footer = el('div', 'location-footer');
+  const copy = el('div', 'location-copy');
+  copy.append(
+    el('strong', null, site ? site.name : 'No site'),
+    el('span', 'muted', point
+      ? `${point.lat.toFixed(3)}, ${(point.lng ?? point.lon).toFixed(3)}`
+      : 'Add a location from the site editor'));
+  const open = el('button', 'btn btn-link', 'Open site map');
+  open.type = 'button';
+  open.addEventListener('click', () => ctx.go('#/map'));
+  footer.append(copy, open);
+  card.appendChild(footer);
+  return card;
+}
+
+function recentRecalculation(workerId) {
+  try {
+    const raw = sessionStorage.getItem('sunup:last-recalculation');
+    if (!raw) return null;
+    const value = JSON.parse(raw);
+    sessionStorage.removeItem('sunup:last-recalculation');
+    if (value.workerId === workerId && Date.now() - value.at < 10000) return value;
+  } catch (_) {
+    return null;
+  }
+  return null;
 }
 
 /* --- Shared cells --------------------------------------------------------------- */
@@ -543,6 +804,8 @@ export function workerView(ctx, siteId, crewId, workerId) {
   }
 
   const current = result.current;
+  const recalculation = recentRecalculation(workerId);
+  if (recalculation) root.classList.add('is-recalculated');
 
   const head = el('div', 'wk-head');
   const metric = el('div', 'wk-metric');
@@ -553,12 +816,24 @@ export function workerView(ctx, siteId, crewId, workerId) {
     fact('Trade', worker.trade),
     fact('Intensity', result.workClass
       + (worker.workClassOverride ? ' (override)' : '')),
-    fact('Shift', `${pad(worker.shiftStart)}:00, ${pad(worker.shiftEnd)}:00`),
+    fact('Shift', `${pad(worker.shiftStart)}:00 to ${pad(worker.shiftEnd)}:00`),
     fact('Clothing', worker.clothing.replace(/_/g, ' ')),
     fact('Day on job', String(current.dayOnJob)),
     fact('Calendar', `${current.calendarMinutes} min`));
   head.append(metric, facts, chip(current.status, STATUS_TEXT[current.status]));
   root.appendChild(head);
+
+  if (recalculation) {
+    const feedback = el('div', 'calculation-feedback');
+    feedback.setAttribute('role', 'status');
+    const check = el('span', 'calculation-check');
+    check.appendChild(icon('check'));
+    feedback.append(
+      check,
+      el('strong', null, 'Plan recalculated'),
+      el('span', null, `Actual minutes for ${recalculation.date} are now reflected below.`));
+    root.appendChild(feedback);
+  }
 
   if (result.assumedRun > 0) {
     const missingTitle = result.assumedRun === 1
@@ -573,10 +848,14 @@ export function workerView(ctx, siteId, crewId, workerId) {
       'Review the flagged days in the log.'));
   }
 
+  const briefing = el('div', 'worker-briefing');
+  briefing.append(supervisorPlan(current), workerLocationCard(site, ctx));
+  root.appendChild(briefing);
+
   const historyLabel = result.projected.length
     ? `${result.observed.length} observed days and ${result.projected.length} forecast days`
     : `${result.observed.length} observed days`;
-  const history = section('Work capacity history', rampStrip(result.records));
+  const history = section('Work capacity history', historyChart(result.records));
   history.classList.add('worker-history');
   history.insertBefore(el('p', 'section-description', historyLabel), history.children[1]);
   root.appendChild(history);
@@ -585,11 +864,11 @@ export function workerView(ctx, siteId, crewId, workerId) {
   const logRows = result.observed.slice().reverse();
   root.appendChild(section('Day log', detailsList({
     columns: [
-      { label: 'Date', width: '108px', render: (r) => r.date },
-      { label: 'Day', width: '54px', numeric: true, render: (r) => String(r.dayOnJob) },
-      { label: 'Prescribed', width: '92px', numeric: true,
+      { label: 'Date', width: '1.3fr', render: (r) => r.date },
+      { label: 'Job day', width: '80px', numeric: true, render: (r) => String(r.dayOnJob) },
+      { label: 'Prescribed (min)', width: '130px', numeric: true,
         render: (r) => String(r.prescribedMinutes) },
-      { label: 'Actual', width: '92px', numeric: true,
+      { label: 'Actual (min)', width: '120px', numeric: true,
         render: (r) => {
           if (r.assumed) {
             const node = el('span', 'muted', 'not logged');
@@ -600,12 +879,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
           if (r.actualMinutes > r.prescribedMinutes) node.classList.add('danger');
           return node;
         } },
-      { label: 'Rule', width: '96px',
-        render: (r) => r.assumed ? el('span', 'muted', 'Assumed')
-          : el('span', 'muted', r.allocationRule) },
-      { label: 'Adapt. after', width: '96px', numeric: true,
-        render: (r) => r.adaptationEnd.toFixed(3) },
-      { label: 'Flags', width: '150px',
+      { label: 'Flags', width: '1.3fr',
         render: (r) => {
           const wrap = el('span', 'loggedcell');
           if (r.unprescribedWork) {
@@ -618,7 +892,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
           }
           return wrap;
         } },
-      { label: 'Peak', width: '76px', numeric: true,
+      { label: 'Peak WBGT', width: '110px', numeric: true,
         render: (r) => r.peakWbgt === null ? '' : r.peakWbgt.toFixed(1) },
     ],
     rows: logRows,
@@ -639,7 +913,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
     const table = el('table', 'hours');
     const thead = el('thead');
     const hr = el('tr');
-    ['Hour', 'WBGT', 'Limit', 'Over', 'Work'].forEach((label, i) => {
+    ['Hour', 'WBGT', 'Limit', 'Difference', 'Work (min)'].forEach((label, i) => {
       const th = el('th', i ? 'num' : null, label);
       hr.appendChild(th);
     });
@@ -649,45 +923,48 @@ export function workerView(ctx, siteId, crewId, workerId) {
       const tr = el('tr');
       tr.setAttribute('data-stop', String(hour.stop));
       tr.setAttribute('data-binding', String(hour === binding));
+      const difference = hour.overLimit > 0
+        ? `${hour.overLimit.toFixed(1)} above`
+        : (hour.overLimit < 0 ? `${Math.abs(hour.overLimit).toFixed(1)} below` : 'At limit');
       [[`${pad(hour.hour)}:00`, ''], [hour.wbgt.toFixed(1), 'num'],
        [hour.limit.toFixed(1), 'num'],
-       [`${hour.overLimit > 0 ? '+' : ''}${hour.overLimit.toFixed(1)}`, 'num'],
+       [difference, 'num'],
        [String(hour.minutes), 'num']].forEach(([text, cls]) => {
         tr.appendChild(el('td', cls || null, text));
       });
       tbody.appendChild(tr);
     }
     table.append(thead, tbody);
-    const why = binding ? el('p', 'muted',
-      `Binding hour ${pad(binding.hour)}:00, `
+    const why = binding ? el('p', 'binding-note',
+      `Most restrictive hour ${pad(binding.hour)}:00. `
       + (binding.overLimit > 0
-        ? `${binding.overLimit.toFixed(1)} °C above this worker’s limit.`
-        : 'within limit.')) : null;
-    const wrap = el('div', 'stack');
+        ? `WBGT is ${binding.overLimit.toFixed(1)} °C above this worker's limit.`
+        : 'WBGT remains within this worker\'s limit.')) : null;
+    const exact = el('details', 'hourly-values');
+    exact.append(el('summary', null, 'View hourly values'), table);
+    const wrap = el('div', 'shift-plan');
     if (why) wrap.appendChild(why);
-    wrap.appendChild(table);
-    root.appendChild(section(`Hour by hour, ${current.date}`, wrap));
+    wrap.append(hourlyChart(current.hours), exact);
+    const shiftSection = section(`Shift plan for ${current.date}`, wrap);
+    shiftSection.classList.add('shift-section');
+    root.appendChild(shiftSection);
   }
 
   /* State --------------------------------------------------------------------- */
-  const state = el('dl', 'kv');
+  const state = el('dl', 'readiness-grid');
   const weatherLabel = site.seeded
-    ? `cached demo history through ${current.date}`
+    ? `Cached through ${current.date}`
     : `${site.weatherSource}${site.seriesKey ? `, ${site.seriesKey}` : ''}`;
   state.append(
-    el('dt', null, 'Adaptation before work'),
-    el('dd', 'num', current.adaptationStart.toFixed(3)),
-    el('dt', null, current.assumed ? 'Adaptation after assumed work' : 'Adaptation after actual'),
-    el('dd', 'num', current.adaptationEnd.toFixed(3)),
-    el('dt', null, 'Personal limit'), el('dd', 'num', `${current.limit.toFixed(2)} °C-WBGT`),
-    el('dt', null, 'Overexposure'), el('dd', 'num',
-      `${result.cumulativeOverexposure.toFixed(2)} °C·h`),
-    el('dt', null, 'Weather'), el('dd', null, weatherLabel));
-  const stateWrap = el('div', 'stack');
-  stateWrap.append(state, el('p', 'muted',
-    'Actual minutes affect adaptation after their date. Only later dates can receive '
-    + 'a different prescription.'));
-  root.appendChild(section(`Readiness details for ${current.date}`, stateWrap));
+    definition('Readiness at shift start', `${Math.round(current.adaptationStart * 100)}%`, true),
+    definition(current.assumed ? 'After planned work' : 'After logged work',
+      `${Math.round(current.adaptationEnd * 100)}%`, true),
+    definition('Personal limit', `${current.limit.toFixed(2)} °C-WBGT`, true),
+    definition('Overexposure', `${result.cumulativeOverexposure.toFixed(2)} °C·h`, true),
+    definition('Weather', weatherLabel));
+  const readiness = section(`Heat readiness for ${current.date}`, state);
+  readiness.classList.add('readiness-section');
+  root.appendChild(readiness);
 
   return root;
 }
@@ -718,6 +995,12 @@ function banner(kind, title, detail) {
 function derivedBanner(site) {
   return banner('warn', 'Derived weather',
     site.derivedNote || 'A measured source site was used.');
+}
+
+function definition(label, value, numeric = false) {
+  const item = el('div', 'readiness-item');
+  item.append(el('dt', null, label), el('dd', numeric ? 'num' : null, value));
+  return item;
 }
 
 function weatherFreshness(site) {
@@ -816,4 +1099,4 @@ function sortRows(rows, sort, accessors) {
   });
 }
 
-export { STATUS_TEXT, rampStrip, banner, section, fact };
+export { STATUS_TEXT, banner, section, fact };

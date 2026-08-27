@@ -422,6 +422,16 @@ export function editWorker(workerId, defaultCrewId, after) {
    to the prescription, marked assumed. Zero is a measurement.
    ------------------------------------------------------------------------------ */
 
+function markRecalculation(workerId, date) {
+  try {
+    sessionStorage.setItem('sunup:last-recalculation', JSON.stringify({
+      workerId, date, at: Date.now(),
+    }));
+  } catch (_) {
+    /* The recalculation still works when browser storage is unavailable. */
+  }
+}
+
 export function editDayLog(workerId, date, after) {
   const worker = store.worker(workerId);
   const logs = store.logsFor(workerId);
@@ -465,6 +475,7 @@ export function editDayLog(workerId, date, after) {
       store.setDayLog(workerId, date, null);
       dismissPanel();
       compute.invalidate();
+      markRecalculation(workerId, date);
       toast('Actual removed. Later prescriptions recalculated.');
       if (after) after();
     });
@@ -475,6 +486,7 @@ export function editDayLog(workerId, date, after) {
     store.setDayLog(workerId, date, raw === '' ? null : Number(raw), note.value);
     dismissPanel();
     compute.invalidate();
+    markRecalculation(workerId, date);
     toast('Actual saved. Later prescriptions recalculated.');
     if (after) after();
   }

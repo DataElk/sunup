@@ -47,6 +47,7 @@ const PATHS = {
   close: 'M4 4l8 8M12 4l-8 8',
   chevron: 'M6 4l4 4-4 4',
   download: 'M8 2v8M5 7.5L8 10.5l3-3M3 13h10',
+  check: 'M3 8.5l3 3 7-7',
 };
 
 export function icon(name, size = 16) {
