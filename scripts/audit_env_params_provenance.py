@@ -33,8 +33,8 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from acclimate.sources.fixtures import FixtureStore  # noqa: E402
-from acclimate.sources.fortyguard import parse_env_params  # noqa: E402
+from sunup.sources.fixtures import FixtureStore  # noqa: E402
+from sunup.sources.fortyguard import parse_env_params  # noqa: E402
 
 LAT, LON, DATE = 33.4484, -112.0740, "2024-07-15"
 

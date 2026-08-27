@@ -38,8 +38,8 @@ import urllib.request
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from acclimate import siteselection as ss  # noqa: E402
-from acclimate.sources.fixtures import FixtureStore  # noqa: E402
+from sunup import siteselection as ss  # noqa: E402
+from sunup.sources.fixtures import FixtureStore  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RAW = os.path.join(HERE, "..", "data", "osm_basemap_raw.json")
@@ -77,7 +77,7 @@ def fetch(west, south, east, north) -> dict:
     body = urllib.parse.urlencode({"data": query(west, south, east, north)})
     request = urllib.request.Request(
         OVERPASS, data=body.encode("utf-8"),
-        headers={"User-Agent": "acclimate-basemap/1.0 (hackathon build script)"})
+        headers={"User-Agent": "sunup-basemap/1.0 (hackathon build script)"})
     with urllib.request.urlopen(request, timeout=180) as response:
         return json.load(response)
 

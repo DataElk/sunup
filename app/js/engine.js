@@ -8,7 +8,7 @@
    it.
 
    WHAT THIS IS NOT. It is not a second source of truth. Every constant comes
-   from window.ACCLIMATE_CONSTANTS, generated from src/acclimate/constants.py by
+   from window.SUNUP_CONSTANTS, generated from src/sunup/constants.py by
    scripts/build_js_constants.py. Nothing numeric is typed into this file.
 
    HOW IT IS KEPT HONEST. tests/test_js_engine.py runs this module under Node
@@ -21,12 +21,12 @@
      prescribe_hours, daily_stimulus, advance_adaptation, simulate
    ========================================================================== */
 
-const K = (typeof window !== 'undefined' && window.ACCLIMATE_CONSTANTS)
-  || (typeof globalThis !== 'undefined' && globalThis.ACCLIMATE_CONSTANTS);
+const K = (typeof window !== 'undefined' && window.SUNUP_CONSTANTS)
+  || (typeof globalThis !== 'undefined' && globalThis.SUNUP_CONSTANTS);
 
 if (!K) {
   throw new Error(
-    'ACCLIMATE_CONSTANTS missing. Run scripts/build_js_constants.py and load '
+    'SUNUP_CONSTANTS missing. Run scripts/build_js_constants.py and load '
     + 'app/data/constants.js before this module.');
 }
 

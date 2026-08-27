@@ -20,9 +20,9 @@ import datetime as dt
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from acclimate import constants as C
-from acclimate.errors import ImplausibleValue
-from acclimate.sources.fixtures import unwrap_result
+from sunup import constants as C
+from sunup.errors import ImplausibleValue
+from sunup.sources.fixtures import unwrap_result
 
 # FortyGuard documents this field as octas (0-8). The captured payload returns
 # 0-100. See FORTYGUARD_API_CONTRACT.md section 6, trap 4.

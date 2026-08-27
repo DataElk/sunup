@@ -29,9 +29,9 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from acclimate import constants as C
-from acclimate.errors import ConvergenceError
-from acclimate.physics import psychrometrics as psy
+from sunup import constants as C
+from sunup.errors import ConvergenceError
+from sunup.physics import psychrometrics as psy
 
 _BISECTION_TOL_K = 1e-6
 _BISECTION_MAX_ITER = 200

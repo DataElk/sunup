@@ -183,7 +183,7 @@ function copyRecord(crewId) {
   const crew = store.crew(crewId);
   const site = store.site(crew.siteId);
   const lines = [];
-  lines.push('ACCLIMATE - HEAT EXPOSURE COMPLIANCE RECORD');
+  lines.push('SUNUP - HEAT EXPOSURE COMPLIANCE RECORD');
   lines.push(`Date: ${compute.currentDateForCrew(crewId)}`);
   lines.push(`Site: ${site.name}   Crew: ${crew.name}`);
   lines.push(`Weather source: ${site.weatherSource}`);
@@ -270,7 +270,7 @@ function treeFor(current) {
 }
 
 function statusFor(current) {
-  const weather = window.ACCLIMATE_WEATHER;
+  const weather = window.SUNUP_WEATHER;
   const state = store.getState();
   statusHost.replaceChildren();
   const add = (label, value, title) => {

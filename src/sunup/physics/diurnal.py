@@ -22,8 +22,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Sequence, Tuple
 
-from acclimate import constants as C
-from acclimate.errors import ImplausibleValue
+from sunup import constants as C
+from sunup.errors import ImplausibleValue
 
 
 @dataclass(frozen=True)

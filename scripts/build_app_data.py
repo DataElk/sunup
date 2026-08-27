@@ -36,11 +36,11 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from acclimate import acclimatization as ac  # noqa: E402
-from acclimate import backfill as bf  # noqa: E402
-from acclimate import constants as C  # noqa: E402
-from acclimate import wbgt  # noqa: E402
-from acclimate.sources.fixtures import FixtureStore  # noqa: E402
+from sunup import acclimatization as ac  # noqa: E402
+from sunup import backfill as bf  # noqa: E402
+from sunup import constants as C  # noqa: E402
+from sunup import wbgt  # noqa: E402
+from sunup.sources.fixtures import FixtureStore  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 WEATHER_OUT = os.path.join(HERE, "..", "app", "data", "weather.js")
@@ -111,7 +111,7 @@ def main():
         },
     }
 
-    write(WEATHER_OUT, "window.ACCLIMATE_WEATHER", weather, "build_app_data.py")
+    write(WEATHER_OUT, "window.SUNUP_WEATHER", weather, "build_app_data.py")
 
     # ---- seed roster ---------------------------------------------------
     sites = [
@@ -148,7 +148,7 @@ def main():
         "workers": workers,
         "dayLogs": day_logs,
     }
-    write(SEED_OUT, "window.ACCLIMATE_SEED", seed, "build_app_data.py")
+    write(SEED_OUT, "window.SUNUP_SEED", seed, "build_app_data.py")
 
     logged = sum(len(v) for v in day_logs.values())
     print("  %d sites, %d crews, %d workers, %d logged days"

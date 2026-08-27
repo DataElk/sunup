@@ -28,10 +28,10 @@ from __future__ import annotations
 
 import pytest
 
-from acclimate import acclimatization as ac
-from acclimate import constants as C
-from acclimate import scenarios, wbgt
-from acclimate.errors import ForbiddenInput, ImplausibleValue
+from sunup import acclimatization as ac
+from sunup import constants as C
+from sunup import scenarios, wbgt
+from sunup.errors import ForbiddenInput, ImplausibleValue
 
 NORM = C.DEGREE_HOURS_FULL_STIMULUS      # 6.0, UNCHANGED
 MODELS = (wbgt.NWB_PSYCHROMETRIC, wbgt.NWB_ISO_ANNEX_D)

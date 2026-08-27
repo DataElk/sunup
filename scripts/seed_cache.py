@@ -16,9 +16,9 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from acclimate.sources.cache import DiskCache  # noqa: E402
-from acclimate.sources.fixtures import FixtureStore  # noqa: E402
-from acclimate.sources.seed import seed_cache  # noqa: E402
+from sunup.sources.cache import DiskCache  # noqa: E402
+from sunup.sources.fixtures import FixtureStore  # noqa: E402
+from sunup.sources.seed import seed_cache  # noqa: E402
 
 
 def main():

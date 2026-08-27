@@ -1,4 +1,4 @@
-# Acclimate
+# Sunup
 
 **Per-worker heat acclimatization state for construction crews, built on FortyGuard's
 temperature API.**
@@ -9,7 +9,7 @@ those days, what hours the worker was rostered, or how hard the trade is. Two me
 same crew, same trade, same day of employment get the identical instruction whether one
 worked dawn-to-noon in 31 °C or the other worked noon-to-evening in 39 °C.
 
-Acclimate estimates each worker's physiological adaptation state from what they were
+Sunup estimates each worker's physiological adaptation state from what they were
 actually exposed to, converts it into a personal exposure limit in °C-WBGT, and
 prescribes minutes per hour against that limit instead of against the calendar.
 

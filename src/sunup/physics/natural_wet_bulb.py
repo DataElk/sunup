@@ -43,9 +43,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from acclimate import constants as C
-from acclimate.errors import ConvergenceError
-from acclimate.physics import psychrometrics as psy
+from sunup import constants as C
+from sunup.errors import ConvergenceError
+from sunup.physics import psychrometrics as psy
 
 _TOL_C = 1e-7
 _MAX_ITER = 200

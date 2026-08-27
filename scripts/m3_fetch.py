@@ -29,14 +29,14 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from acclimate import constants as C  # noqa: E402
-from acclimate import siteselection as ss  # noqa: E402
-from acclimate.sources.cache import DiskCache  # noqa: E402
-from acclimate.sources.client import FortyGuardClient  # noqa: E402
-from acclimate.sources.fixtures import FixtureStore  # noqa: E402
-from acclimate.sources.fortyguard import parse_analysis_grid  # noqa: E402
-from acclimate.sources.fortyguard import parse_temperature_grid  # noqa: E402
-from acclimate.sources.transport import RequestsTransport  # noqa: E402
+from sunup import constants as C  # noqa: E402
+from sunup import siteselection as ss  # noqa: E402
+from sunup.sources.cache import DiskCache  # noqa: E402
+from sunup.sources.client import FortyGuardClient  # noqa: E402
+from sunup.sources.fixtures import FixtureStore  # noqa: E402
+from sunup.sources.fortyguard import parse_analysis_grid  # noqa: E402
+from sunup.sources.fortyguard import parse_temperature_grid  # noqa: E402
+from sunup.sources.transport import RequestsTransport  # noqa: E402
 
 # fixtures/MANIFEST.md, the metro AOI used for the 40 degC exceedance run.
 METRO_AOI = {

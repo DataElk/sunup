@@ -1,5 +1,5 @@
 """
-Acclimate, physical, physiological and regulatory constants.
+Sunup, physical, physiological and regulatory constants.
 
 RULES FOR THIS FILE (read before editing):
 

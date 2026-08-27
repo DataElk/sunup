@@ -10,10 +10,10 @@ import datetime as dt
 
 import pytest
 
-from acclimate import acclimatization as ac
-from acclimate import backfill as bf
-from acclimate import constants as C
-from acclimate import wbgt
+from sunup import acclimatization as ac
+from sunup import backfill as bf
+from sunup import constants as C
+from sunup import wbgt
 
 NORM = C.DEGREE_HOURS_FULL_STIMULUS
 

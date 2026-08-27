@@ -30,9 +30,9 @@ import math
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Mapping, Sequence, Tuple
 
-from acclimate import constants as C
-from acclimate.errors import ImplausibleValue
-from acclimate.sources.fortyguard import AnalysisCell, AnalysisGrid
+from sunup import constants as C
+from sunup.errors import ImplausibleValue
+from sunup.sources.fortyguard import AnalysisCell, AnalysisGrid
 
 LonLat = Tuple[float, float]
 

@@ -6,15 +6,15 @@ inference and move on.
 """
 
 
-class AcclimateError(Exception):
+class SunupError(Exception):
     """Base class."""
 
 
-class FixtureNotFound(AcclimateError):
+class FixtureNotFound(SunupError):
     """A required raw payload is not on disk and live calls are disabled."""
 
 
-class OfflineDataUnavailable(AcclimateError):
+class OfflineDataUnavailable(SunupError):
     """A data source exists in the design but has no cached payload yet.
 
     Raised instead of substituting a guess. The message must name the exact
@@ -22,15 +22,15 @@ class OfflineDataUnavailable(AcclimateError):
     """
 
 
-class ImplausibleValue(AcclimateError):
+class ImplausibleValue(SunupError):
     """A computed value fell outside its physical sanity band, a bug, not weather."""
 
 
-class ConvergenceError(AcclimateError):
+class ConvergenceError(SunupError):
     """An iterative solve failed to bracket or converge."""
 
 
-class CacheMiss(AcclimateError):
+class CacheMiss(SunupError):
     """No cached response for this exact request.
 
     Not necessarily fatal: the client catches it and goes live when a live
@@ -39,7 +39,7 @@ class CacheMiss(AcclimateError):
     """
 
 
-class LiveCallBlocked(AcclimateError):
+class LiveCallBlocked(SunupError):
     """A live call was attempted while the offline transport was installed.
 
     SPEC.md hard constraint 6. Better a loud failure naming the missing fixture
@@ -47,11 +47,11 @@ class LiveCallBlocked(AcclimateError):
     """
 
 
-class ActivityFailed(AcclimateError):
+class ActivityFailed(SunupError):
     """The API reported terminal status `Failed`. Failed tasks are free."""
 
 
-class PollTimeout(AcclimateError):
+class PollTimeout(SunupError):
     """An activity never reached a terminal status inside the poll budget.
 
     The activity_id is included: a submitted activity has already been paid for,
@@ -59,7 +59,7 @@ class PollTimeout(AcclimateError):
     """
 
 
-class ForbiddenInput(AcclimateError):
+class ForbiddenInput(SunupError):
     """An input constants.py section 7 forbids was offered to the model.
 
     Age, sex, BMI, fitness, medical history, hydration, residence. The reason is

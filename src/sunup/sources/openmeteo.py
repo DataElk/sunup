@@ -23,8 +23,8 @@ import datetime as dt
 from dataclasses import dataclass
 from typing import Optional, Sequence, Tuple
 
-from acclimate.errors import OfflineDataUnavailable
-from acclimate.sources.fixtures import FixtureStore
+from sunup.errors import OfflineDataUnavailable
+from sunup.sources.fixtures import FixtureStore
 
 ARCHIVE_HOURLY_FIELDS = (
     "temperature_2m",
@@ -155,6 +155,6 @@ def try_load_day(
 
 def hourly_wind_at_globe(day: OpenMeteoDay) -> Sequence[float]:
     """10 m wind converted to globe height. See physics.psychrometrics."""
-    from acclimate.physics.psychrometrics import wind_at_height
+    from sunup.physics.psychrometrics import wind_at_height
 
     return tuple(wind_at_height(v) for v in day.wind_speed_10m_m_s)

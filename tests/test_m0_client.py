@@ -21,24 +21,24 @@ import re
 
 import pytest
 
-from acclimate import constants as C
-from acclimate.errors import (
+from sunup import constants as C
+from sunup.errors import (
     ActivityFailed,
     ImplausibleValue,
     LiveCallBlocked,
     PollTimeout,
 )
-from acclimate.sources import seed
-from acclimate.sources.cache import DiskCache, cache_key, canonical
-from acclimate.sources.client import FortyGuardClient, build_heatmap_payload
-from acclimate.sources.fixtures import FixtureStore
-from acclimate.sources.fortyguard import (
+from sunup.sources import seed
+from sunup.sources.cache import DiskCache, cache_key, canonical
+from sunup.sources.client import FortyGuardClient, build_heatmap_payload
+from sunup.sources.fixtures import FixtureStore
+from sunup.sources.fortyguard import (
     clamp_exceedance_hours,
     parse_analysis_grid,
     parse_env_params,
     parse_temperature_grid,
 )
-from acclimate.sources.transport import (
+from sunup.sources.transport import (
     OfflineTransport,
     RecordingTransport,
     Transport,
@@ -224,7 +224,7 @@ def test_analysis_list_order_changes_the_key():
     """Deliberate. The API may or may not treat order as meaningful, and the
     cache must not claim two different requests are the same one."""
     base = dict(latitude=1.0, longitude=2.0, temperature=3.0, start_date="2024-07-15")
-    from acclimate.sources.client import build_env_params_payload
+    from sunup.sources.client import build_env_params_payload
 
     one = build_env_params_payload(analysis=["a", "b"], **base)
     two = build_env_params_payload(analysis=["b", "a"], **base)
@@ -460,7 +460,7 @@ def test_networking_is_quarantined_to_exactly_one_module():
     provably offline.
     """
     package = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "src", "acclimate"))
+        os.path.join(os.path.dirname(__file__), "..", "src", "sunup"))
     offenders = []
     for root, _dirs, files in os.walk(package):
         for name in sorted(files):
@@ -481,7 +481,7 @@ def test_the_quarantined_module_is_not_imported_by_default():
 
     code = (
         "import sys; sys.path.insert(0, 'src');"
-        "import acclimate.reference, acclimate.wbgt;"
+        "import sunup.reference, sunup.wbgt;"
         "print('requests' in sys.modules)"
     )
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,

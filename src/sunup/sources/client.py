@@ -37,11 +37,11 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence
 
-from acclimate import constants as C
-from acclimate.errors import ActivityFailed, CacheMiss, PollTimeout
-from acclimate.sources.cache import DiskCache
-from acclimate.sources.fixtures import unwrap_result
-from acclimate.sources.transport import OfflineTransport, Transport
+from sunup import constants as C
+from sunup.errors import ActivityFailed, CacheMiss, PollTimeout
+from sunup.sources.cache import DiskCache
+from sunup.sources.fixtures import unwrap_result
+from sunup.sources.transport import OfflineTransport, Transport
 
 HEATMAP = "/v1/heatmap"
 ENV_PARAMS = "/v1/env_params"
@@ -124,7 +124,7 @@ class FortyGuardClient:
 
     def _cached_or_live(self, endpoint: str, payload: Dict[str, Any]) -> Any:
         """The single choke point. Nothing reaches the transport around this."""
-        from acclimate.sources.cache import cache_key
+        from sunup.sources.cache import cache_key
 
         key = cache_key(endpoint, payload)
         if not self.refresh:

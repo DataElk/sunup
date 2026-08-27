@@ -6,7 +6,7 @@
    `hasConfiguredKey()` before it submits work.
    ========================================================================== */
 
-const KEY_STORAGE = 'acclimate.weather.access.v1';
+const KEY_STORAGE = 'sunup.weather.access.v1';
 
 function readKey() {
   try {

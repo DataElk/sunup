@@ -16,9 +16,9 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from acclimate import constants as C  # noqa: E402
-from acclimate import reference, wbgt  # noqa: E402
-from acclimate.physics import diurnal  # noqa: E402
+from sunup import constants as C  # noqa: E402
+from sunup import reference, wbgt  # noqa: E402
+from sunup.physics import diurnal  # noqa: E402
 
 RULE = "=" * 78
 THIN = "-" * 78

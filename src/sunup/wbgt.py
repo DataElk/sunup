@@ -33,13 +33,13 @@ import datetime as dt
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Sequence, Tuple
 
-from acclimate import constants as C
-from acclimate.errors import ImplausibleValue
-from acclimate.physics import diurnal, globe, solar
-from acclimate.physics import natural_wet_bulb as nwb
-from acclimate.physics import psychrometrics as psy
-from acclimate.sources.fortyguard import EnvParamsDay, TemperatureGrid
-from acclimate.sources.openmeteo import OpenMeteoDay
+from sunup import constants as C
+from sunup.errors import ImplausibleValue
+from sunup.physics import diurnal, globe, solar
+from sunup.physics import natural_wet_bulb as nwb
+from sunup.physics import psychrometrics as psy
+from sunup.sources.fortyguard import EnvParamsDay, TemperatureGrid
+from sunup.sources.openmeteo import OpenMeteoDay
 
 # --- natural wet bulb models ------------------------------------------------
 # "psychrometric": use FortyGuard's psychrometric value as if it were the

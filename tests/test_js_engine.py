@@ -77,7 +77,7 @@ def test_no_exposure_limit_is_hand_typed_into_the_engine():
                     "4.0", "14.0", "6.0"):
         assert literal not in body, (
             "%s appears literally in engine.js; it must come from "
-            "ACCLIMATE_CONSTANTS" % literal)
+            "SUNUP_CONSTANTS" % literal)
 
 
 def test_the_forbidden_inputs_reach_the_browser():

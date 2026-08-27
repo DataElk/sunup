@@ -10,10 +10,10 @@ import subprocess
 
 import pytest
 
-from acclimate import wbgt
-from acclimate.sources import openmeteo
-from acclimate.sources.fixtures import FixtureStore
-from acclimate.sources.fortyguard import parse_temperature_grid
+from sunup import wbgt
+from sunup.sources import openmeteo
+from sunup.sources.fixtures import FixtureStore
+from sunup.sources.fortyguard import parse_temperature_grid
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 

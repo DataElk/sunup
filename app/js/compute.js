@@ -12,7 +12,7 @@
 import { simulate, shiftHours, workClassOf, statusFor } from './engine.js';
 import * as store from './store.js';
 
-const W = () => window.ACCLIMATE_WEATHER;
+const W = () => window.SUNUP_WEATHER;
 
 let cache = new Map();
 export function invalidate() { cache = new Map(); }

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import math
 
-from acclimate import constants as C
+from sunup import constants as C
 
 ZERO_CELSIUS_K = 273.15
 

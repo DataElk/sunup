@@ -29,9 +29,9 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import List, Optional, Sequence, Tuple
 
-from acclimate import acclimatization as ac
-from acclimate import constants as C
-from acclimate.wbgt import WBGTDay
+from sunup import acclimatization as ac
+from sunup import constants as C
+from sunup.wbgt import WBGTDay
 
 
 def offset_day(day: WBGTDay, delta_c: float) -> WBGTDay:

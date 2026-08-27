@@ -1,4 +1,4 @@
-# Acclimate: Design System
+# Sunup: Design System
 
 The visual direction, the component inventory, and the rules that keep them intact.
 `web/tokens.css` holds the values. `scripts/check-design.mjs` enforces them.

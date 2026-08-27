@@ -12,10 +12,10 @@ from __future__ import annotations
 
 import pytest
 
-from acclimate import acclimatization as ac
-from acclimate import backfill as bf
-from acclimate import constants as C
-from acclimate import scenarios, wbgt
+from sunup import acclimatization as ac
+from sunup import backfill as bf
+from sunup import constants as C
+from sunup import scenarios, wbgt
 
 NORM = C.DEGREE_HOURS_FULL_STIMULUS
 MODELS = (wbgt.NWB_PSYCHROMETRIC, wbgt.NWB_ISO_ANNEX_D)
@@ -76,7 +76,7 @@ def test_every_backfilled_day_is_real_retrieved_data(cache, shared):
 def test_the_backfill_reads_back_with_the_network_disconnected(cache, shared):
     """The client is constructed with an OfflineTransport, so a day that was
     never fetched raises rather than silently going live during a demo."""
-    from acclimate.sources.transport import OfflineTransport
+    from sunup.sources.transport import OfflineTransport
 
     assert isinstance(cache.client.transport, OfflineTransport)
     assert cache.client.live_calls == 0

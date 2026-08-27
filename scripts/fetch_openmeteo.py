@@ -28,8 +28,8 @@ import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from acclimate.sources.fixtures import FixtureStore  # noqa: E402
-from acclimate.sources.openmeteo import ARCHIVE_HOURLY_FIELDS, fixture_key  # noqa: E402
+from sunup.sources.fixtures import FixtureStore  # noqa: E402
+from sunup.sources.openmeteo import ARCHIVE_HOURLY_FIELDS, fixture_key  # noqa: E402
 
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 

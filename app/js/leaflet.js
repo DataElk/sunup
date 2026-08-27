@@ -40,7 +40,7 @@ export function isWithinArizona(point) {
 
 export function sitePoint(site) {
   if (site && site.location) return site.location;
-  const meta = window.ACCLIMATE_WEATHER && window.ACCLIMATE_WEATHER.siteMeta;
+  const meta = window.SUNUP_WEATHER && window.SUNUP_WEATHER.siteMeta;
   return (site && meta && meta[site.seriesKey]) || null;
 }
 

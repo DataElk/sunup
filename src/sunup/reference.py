@@ -18,11 +18,11 @@ import datetime as dt
 from dataclasses import dataclass
 from typing import Optional
 
-from acclimate import constants as C
-from acclimate import wbgt
-from acclimate.sources import openmeteo
-from acclimate.sources.fixtures import FixtureStore
-from acclimate.sources.fortyguard import (
+from sunup import constants as C
+from sunup import wbgt
+from sunup.sources import openmeteo
+from sunup.sources.fixtures import FixtureStore
+from sunup.sources.fortyguard import (
     EnvParamsDay,
     TemperatureGrid,
     parse_env_params,

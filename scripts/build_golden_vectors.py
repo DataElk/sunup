@@ -2,7 +2,7 @@
 
     python scripts/build_golden_vectors.py
 
-The per-worker maths now exists twice, in src/acclimate/acclimatization.py and
+The per-worker maths now exists twice, in src/sunup/acclimatization.py and
 in app/js/engine.js. Two implementations of the thing that decides whether a
 worker is told to stop WILL drift. This emits the Python engine's answers over a
 deliberately awkward set of inputs; tests/test_js_engine.py replays them through
@@ -32,10 +32,10 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from acclimate import acclimatization as ac  # noqa: E402
-from acclimate import backfill as bf  # noqa: E402
-from acclimate import constants as C  # noqa: E402
-from acclimate import wbgt  # noqa: E402
+from sunup import acclimatization as ac  # noqa: E402
+from sunup import backfill as bf  # noqa: E402
+from sunup import constants as C  # noqa: E402
+from sunup import wbgt  # noqa: E402
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
                    "tests", "fixtures", "golden_vectors.json")

@@ -15,20 +15,20 @@ if SRC not in sys.path:
 
 @pytest.fixture(scope="session")
 def store():
-    from acclimate.sources.fixtures import FixtureStore
+    from sunup.sources.fixtures import FixtureStore
 
     return FixtureStore()
 
 
 @pytest.fixture(scope="session")
 def reference_day():
-    from acclimate import reference
+    from sunup import reference
 
     return reference.build()
 
 
 @pytest.fixture(scope="session")
 def reference_inputs(store):
-    from acclimate import reference
+    from sunup import reference
 
     return reference.load_inputs(store=store)

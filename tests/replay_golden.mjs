@@ -113,7 +113,7 @@ for (const sim of vectors.simulations) {
 process.stdout.write(JSON.stringify({
   ok: failures.length === 0,
   checked,
-  sourceHash: globalThis.ACCLIMATE_CONSTANTS.sourceHash,
+  sourceHash: globalThis.SUNUP_CONSTANTS.sourceHash,
   failures: failures.slice(0, 25),
   totalFailures: failures.length,
 }));

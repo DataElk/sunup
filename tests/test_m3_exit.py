@@ -17,11 +17,11 @@ import json
 
 import pytest
 
-from acclimate import constants as C
-from acclimate import siteselection as ss
-from acclimate.errors import ImplausibleValue
-from acclimate.sources.fixtures import FixtureStore
-from acclimate.sources.fortyguard import AnalysisCell, AnalysisGrid
+from sunup import constants as C
+from sunup import siteselection as ss
+from sunup.errors import ImplausibleValue
+from sunup.sources.fixtures import FixtureStore
+from sunup.sources.fortyguard import AnalysisCell, AnalysisGrid
 
 SELECTION = "site_selection/phoenix_40c_selection.json"
 

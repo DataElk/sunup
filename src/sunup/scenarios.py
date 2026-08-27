@@ -27,12 +27,12 @@ import datetime as dt
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
-from acclimate import constants as C
-from acclimate import wbgt
-from acclimate.errors import ImplausibleValue
-from acclimate.sources import openmeteo
-from acclimate.sources.fixtures import FixtureStore
-from acclimate.sources.fortyguard import parse_temperature_grid
+from sunup import constants as C
+from sunup import wbgt
+from sunup.errors import ImplausibleValue
+from sunup.sources import openmeteo
+from sunup.sources.fixtures import FixtureStore
+from sunup.sources.fortyguard import parse_temperature_grid
 
 SITE_ID = "phoenix-downtown-parcel"
 LATITUDE = C.WBGT_REFERENCE_SITE["latitude"]
@@ -211,7 +211,7 @@ def build_ramps(
     what they accumulated beforehand, which is the model's entire claim, and the
     only way to demonstrate it without contaminating the result.
     """
-    from acclimate import acclimatization as ac
+    from sunup import acclimatization as ac
 
     def ramp(worker_id, dates, shift):
         history_worker = ac.Worker(
@@ -318,7 +318,7 @@ def build_site_ramps(scenario: "SiteScenario", backfill_cache, model: str, tau,
     """(cool-site ramp, hot-site ramp) with a shared comparison day."""
     import datetime as _dt
 
-    from acclimate import acclimatization as ac
+    from sunup import acclimatization as ac
 
     def ramp(site_name):
         worker = ac.Worker(

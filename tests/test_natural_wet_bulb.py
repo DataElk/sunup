@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import pytest
 
-from acclimate import constants as C
-from acclimate.errors import ConvergenceError
-from acclimate.physics import natural_wet_bulb as nwb
-from acclimate.physics import psychrometrics as psy
+from sunup import constants as C
+from sunup.errors import ConvergenceError
+from sunup.physics import natural_wet_bulb as nwb
+from sunup.physics import psychrometrics as psy
 
 # (t_a, t_g, v_a, RH%, t_nw, WBGT)
 TABLE_D1 = [

@@ -11,13 +11,13 @@ import datetime as dt
 
 import pytest
 
-from acclimate import constants as C
-from acclimate import wbgt
-from acclimate.errors import FixtureNotFound, ImplausibleValue, OfflineDataUnavailable
-from acclimate.reference import M1_REFERENCE
-from acclimate.sources import openmeteo
-from acclimate.sources.fixtures import FixtureStore, unwrap_result
-from acclimate.sources.fortyguard import parse_env_params, parse_temperature_grid
+from sunup import constants as C
+from sunup import wbgt
+from sunup.errors import FixtureNotFound, ImplausibleValue, OfflineDataUnavailable
+from sunup.reference import M1_REFERENCE
+from sunup.sources import openmeteo
+from sunup.sources.fixtures import FixtureStore, unwrap_result
+from sunup.sources.fortyguard import parse_env_params, parse_temperature_grid
 
 
 # ---------------------------------------------------------------------------

@@ -17,10 +17,10 @@ import re
 
 import pytest
 
-from acclimate import constants as C
-from acclimate import reference, wbgt
-from acclimate.physics import diurnal
-from acclimate.sources import openmeteo
+from sunup import constants as C
+from sunup import reference, wbgt
+from sunup.physics import diurnal
+from sunup.sources import openmeteo
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +183,7 @@ def test_no_pipeline_module_can_open_a_socket():
     bypassed by a code path the tests happen not to exercise.
     """
     package = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "src", "acclimate"))
+        os.path.join(os.path.dirname(__file__), "..", "src", "sunup"))
     offenders = []
     for relative in PIPELINE_MODULES:
         path = os.path.join(package, relative)

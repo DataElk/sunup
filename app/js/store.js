@@ -17,8 +17,8 @@
 
 import { CONSTANTS } from './engine.js';
 
-const STORE_KEY = 'acclimate.store.v1';
-const SEED_KEY = 'acclimate.seedVersion';
+const STORE_KEY = 'sunup.store.v1';
+const SEED_KEY = 'sunup.seedVersion';
 
 const listeners = new Set();
 
@@ -67,7 +67,7 @@ function writeRaw(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
     return true;
   } catch (error) {
-    console.warn('acclimate: could not persist', key, error);
+    console.warn('sunup: could not persist', key, error);
     return false;
   }
 }
@@ -91,7 +91,7 @@ export async function initStore() {
     return state;
   }
 
-  const seed = window.ACCLIMATE_SEED;
+  const seed = window.SUNUP_SEED;
   if (!seed) {
     state = { ...EMPTY };
     writeRaw(STORE_KEY, state);
@@ -117,10 +117,10 @@ function applySeed(seed) {
 
 /** Settings action. Discards day logs, so the caller must confirm first. */
 export function resetToSeed() {
-  const seed = window.ACCLIMATE_SEED;
+  const seed = window.SUNUP_SEED;
   if (!seed) throw new Error('seed data not loaded');
   for (const key of Object.keys(state.weatherSeries || {})) {
-    delete window.ACCLIMATE_WEATHER.series[key];
+    delete window.SUNUP_WEATHER.series[key];
   }
   state = applySeed(seed);
   emit();
@@ -167,7 +167,7 @@ export function logsFor(workerId) {
 }
 
 function hydrateWeatherSeries() {
-  const registry = window.ACCLIMATE_WEATHER && window.ACCLIMATE_WEATHER.series;
+  const registry = window.SUNUP_WEATHER && window.SUNUP_WEATHER.series;
   if (!registry) return;
   for (const [key, series] of Object.entries(state.weatherSeries || {})) {
     registry[key] = series;
@@ -177,15 +177,15 @@ function hydrateWeatherSeries() {
 function dropWeatherSeries(key) {
   if (!key || !state.weatherSeries || !state.weatherSeries[key]) return;
   delete state.weatherSeries[key];
-  if (window.ACCLIMATE_WEATHER && window.ACCLIMATE_WEATHER.series) {
-    delete window.ACCLIMATE_WEATHER.series[key];
+  if (window.SUNUP_WEATHER && window.SUNUP_WEATHER.series) {
+    delete window.SUNUP_WEATHER.series[key];
   }
 }
 
 export function saveWeatherSeries(key, series) {
   const saved = JSON.parse(JSON.stringify(series || {}));
   state.weatherSeries[key] = saved;
-  window.ACCLIMATE_WEATHER.series[key] = saved;
+  window.SUNUP_WEATHER.series[key] = saved;
   emit();
   return saved;
 }

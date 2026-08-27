@@ -10,10 +10,10 @@ from __future__ import annotations
 
 import pytest
 
-from acclimate import acclimatization as ac
-from acclimate import constants as C
-from acclimate import diagnostics as dg
-from acclimate import scenarios, wbgt
+from sunup import acclimatization as ac
+from sunup import constants as C
+from sunup import diagnostics as dg
+from sunup import scenarios, wbgt
 
 
 @pytest.fixture(scope="module")

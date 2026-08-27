@@ -13,7 +13,7 @@ import json
 import os
 from typing import Any, Dict, Optional
 
-from acclimate.errors import FixtureNotFound
+from sunup.errors import FixtureNotFound
 
 _THIS = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_FIXTURE_ROOT = os.path.abspath(os.path.join(_THIS, "..", "..", "..", "fixtures"))

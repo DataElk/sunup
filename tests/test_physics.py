@@ -11,10 +11,10 @@ import math
 
 import pytest
 
-from acclimate import constants as C
-from acclimate.errors import ImplausibleValue
-from acclimate.physics import diurnal, globe, solar
-from acclimate.physics import psychrometrics as psy
+from sunup import constants as C
+from sunup.errors import ImplausibleValue
+from sunup.physics import diurnal, globe, solar
+from sunup.physics import psychrometrics as psy
 
 PHOENIX_LAT = 33.4484
 PHOENIX_LON = -112.0740

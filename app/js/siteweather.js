@@ -14,7 +14,7 @@ const FIRST_DAYS = 5;
 const FORECAST_DAYS = 6;
 const inflight = new Set();
 
-function weather() { return window.ACCLIMATE_WEATHER; }
+function weather() { return window.SUNUP_WEATHER; }
 
 function phoenixToday() {
   const parts = new Intl.DateTimeFormat('en-US', {

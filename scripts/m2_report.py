@@ -18,9 +18,9 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from acclimate import acclimatization as ac  # noqa: E402
-from acclimate import constants as C  # noqa: E402
-from acclimate import scenarios, wbgt  # noqa: E402
+from sunup import acclimatization as ac  # noqa: E402
+from sunup import constants as C  # noqa: E402
+from sunup import scenarios, wbgt  # noqa: E402
 
 RULE = "=" * 78
 THIN = "-" * 78

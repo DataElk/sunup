@@ -29,7 +29,7 @@ const HORIZON = 5;
 function backtest(worker) {
   const site = compute.siteOf(worker);
   if (!site || !site.seriesKey) return null;
-  const series = window.ACCLIMATE_WEATHER.series[site.seriesKey];
+  const series = window.SUNUP_WEATHER.series[site.seriesKey];
   const dates = compute.observedDatesForSite(site)
     .filter((d) => series[d] && (!worker.hireDate || d >= worker.hireDate));
   if (dates.length < HORIZON + 2) return null;

@@ -1,5 +1,5 @@
 {
-  "name": "acclimate",
+  "name": "sunup",
   "private": true,
   "version": "0.1.0",
   "description": "Per-worker heat acclimatization state estimator. The interface is a static app with no build step, so the demo runs from file:// with zero network access.",

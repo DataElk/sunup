@@ -265,7 +265,7 @@ async function mountSitePicker(host, initial, initialPolygon, initialMode, onCha
 export function estimateWeather(siteId, after) {
   const site = store.site(siteId);
   const measured = compute.measuredSeriesKeys();
-  const meta = window.ACCLIMATE_WEATHER.siteMeta;
+  const meta = window.SUNUP_WEATHER.siteMeta;
 
   const source = select(measured[0], measured.map((k) => ({
     value: k,

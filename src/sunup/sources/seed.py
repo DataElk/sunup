@@ -23,15 +23,15 @@ import os
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from acclimate.sources.cache import DiskCache, cache_key
-from acclimate.sources.client import (
+from sunup.sources.cache import DiskCache, cache_key
+from sunup.sources.client import (
     ENV_PARAMS,
     HEATMAP,
     SATELLITE,
     build_env_params_payload,
     build_heatmap_payload,
 )
-from acclimate.sources.fixtures import FixtureStore
+from sunup.sources.fixtures import FixtureStore
 
 INDEX_FILE = "INDEX.json"
 

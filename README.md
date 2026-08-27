@@ -1,14 +1,14 @@
-# Acclimate
+# Sunup
 
-*Repository `sunup`; the product is **Acclimate**. Only the repository name differs;
-everything in the code, documents and interface says Acclimate.*
+*Repository `sunup`; the product is **Sunup**. Only the repository name differs;
+everything in the code, documents and interface says Sunup.*
 
 Per-worker heat acclimatization state for construction crews, built on FortyGuard's
 temperature API. FortyGuard Hackathon '26.
 
 The OSHA heat rule ramps a new worker in on a calendar: 20% of a shift on day one, up to
 100% on day five. It does not know what the weather was on those days or what hours the
-worker was rostered. Acclimate estimates each worker's adaptation state from actual
+worker was rostered. Sunup estimates each worker's adaptation state from actual
 exposure, turns it into a personal limit in °C-WBGT, and prescribes minutes against that
 limit instead.
 
@@ -119,7 +119,7 @@ python scripts/build_overlay_data.py
 ## Layout
 
 ```
-src/acclimate/     engine: wbgt, globe, solar, psychrometrics, acclimatization
+src/sunup/     engine: wbgt, globe, solar, psychrometrics, acclimatization
   constants.py     every constant, sourced and confidence-tagged; §0b is the triage
 scripts/           fetch, build, report, and the four audits
 app/               static interface: roster, map, forecast, settings

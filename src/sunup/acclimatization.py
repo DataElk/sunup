@@ -36,9 +36,9 @@ import datetime as dt
 from dataclasses import dataclass, replace
 from typing import Iterable, Mapping, Optional, Sequence, Tuple
 
-from acclimate import constants as C
-from acclimate.errors import ForbiddenInput, ImplausibleValue
-from acclimate.wbgt import WBGTDay
+from sunup import constants as C
+from sunup.errors import ForbiddenInput, ImplausibleValue
+from sunup.wbgt import WBGTDay
 
 
 # ---------------------------------------------------------------------------

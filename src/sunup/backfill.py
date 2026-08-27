@@ -17,16 +17,16 @@ import datetime as dt
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from acclimate import constants as C
-from acclimate import siteselection as ss
-from acclimate import wbgt
-from acclimate.errors import CacheMiss, LiveCallBlocked
-from acclimate.sources import openmeteo
-from acclimate.sources.cache import DiskCache
-from acclimate.sources.client import FortyGuardClient
-from acclimate.sources.fixtures import FixtureStore
-from acclimate.sources.fortyguard import parse_temperature_grid
-from acclimate.sources.transport import OfflineTransport
+from sunup import constants as C
+from sunup import siteselection as ss
+from sunup import wbgt
+from sunup.errors import CacheMiss, LiveCallBlocked
+from sunup.sources import openmeteo
+from sunup.sources.cache import DiskCache
+from sunup.sources.client import FortyGuardClient
+from sunup.sources.fixtures import FixtureStore
+from sunup.sources.fortyguard import parse_temperature_grid
+from sunup.sources.transport import OfflineTransport
 
 SELECTION_FILE = "site_selection/phoenix_40c_selection.json"
 SITE_NAMES = ("cool_site", "hot_site")

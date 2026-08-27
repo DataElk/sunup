@@ -21,7 +21,7 @@ import math
 from dataclasses import dataclass
 from typing import Optional, Sequence, Tuple
 
-from acclimate import constants as C
+from sunup import constants as C
 
 HOURS = tuple(range(24))
 

@@ -42,10 +42,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "src"))
 sys.path.insert(0, HERE)
 
-from acclimate import acclimatization as ac  # noqa: E402
-from acclimate import backfill as bf  # noqa: E402
-from acclimate import constants as C  # noqa: E402
-from acclimate import wbgt  # noqa: E402
+from sunup import acclimatization as ac  # noqa: E402
+from sunup import backfill as bf  # noqa: E402
+from sunup import constants as C  # noqa: E402
+from sunup import wbgt  # noqa: E402
 
 MODEL = wbgt.NWB_PSYCHROMETRIC
 NORM = C.DEGREE_HOURS_FULL_STIMULUS

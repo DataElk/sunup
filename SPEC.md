@@ -1,4 +1,4 @@
-# Acclimate
+# Sunup
 
 A per-worker heat acclimatization state estimator for construction workforces,
 built on FortyGuard's temperature API. Submission for FortyGuard Hackathon'26.

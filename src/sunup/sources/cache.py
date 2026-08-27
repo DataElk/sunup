@@ -22,7 +22,7 @@ import os
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
-from acclimate.errors import CacheMiss
+from sunup.errors import CacheMiss
 
 _THIS = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CACHE_ROOT = os.path.abspath(os.path.join(_THIS, "..", "..", "..", "data", "cache"))

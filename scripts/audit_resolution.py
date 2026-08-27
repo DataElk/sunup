@@ -217,7 +217,7 @@ def main():
                     blur_m=300.0)
 
     if os.path.exists(SNAPSHOT_RAW):
-        from acclimate.sources.fortyguard import parse_temperature_grid  # noqa: E402
+        from sunup.sources.fortyguard import parse_temperature_grid  # noqa: E402
         print()
         print("  METRO-EXTENT SINGLE INSTANT (filter_type=1, 14:00)")
         with open(SNAPSHOT_RAW, "r", encoding="utf-8") as fh:
@@ -235,7 +235,7 @@ def main():
         print("  Fetch with `python scripts/m3_fetch.py --metro-snapshot`.")
 
     if os.path.exists(EXCEEDANCE_RAW):
-        from acclimate.sources.fortyguard import parse_analysis_grid  # noqa: E402
+        from sunup.sources.fortyguard import parse_analysis_grid  # noqa: E402
         print("\n  14-DAY EXCEEDANCE COUNT (the layer the map renders)")
         with open(EXCEEDANCE_RAW, "r", encoding="utf-8") as fh:
             analysis = parse_analysis_grid(json.load(fh), 336.0)
