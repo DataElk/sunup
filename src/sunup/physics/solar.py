@@ -2,8 +2,8 @@
 
 Why this module exists: FortyGuard returns ONE clear-sky daily mean for solar
 (FORTYGUARD_API_CONTRACT.md section 6, trap 1) and the globe-temperature balance
-needs 24 values. Open-Meteo has the hourly field but no fixture is cached, and
-this build makes no live calls.
+needs 24 values. Open-Meteo has the hourly field. The offline Python pipeline
+loads it from fixtures, while the browser live-site pipeline retrieves it.
 
 So the SHAPE comes from astronomy, exact, free, offline, and the LEVEL comes
 from FortyGuard: the clear-sky GHI curve is scaled by one factor so its own

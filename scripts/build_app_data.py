@@ -18,8 +18,9 @@ into an empty localStorage store on first load and is thereafter ordinary
 editable data, rename it, re-trade it, delete it, or put it back from Settings.
 Every seeded record carries `seeded: true` so the interface can mark it.
 
-Shipped as a script tag rather than JSON so the app still runs from file:// with
-no server and no fetch. Same content, same purpose.
+Shipped as a script tag rather than JSON so loading the cached example does not
+need a runtime data request. JavaScript modules still require the app to be served
+over HTTP.
 
 THE DAY LOGS ARE DELIBERATELY IMPERFECT. They include a worker who exceeded his
 prescription, a worker who logged work on a stop-work day, and several days with

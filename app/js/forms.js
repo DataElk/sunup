@@ -435,7 +435,7 @@ export function editDayLog(workerId, date, after) {
     facts.append(
       el('dt', null, 'Prescribed'), el('dd', 'num', `${record.prescribedMinutes} min`),
       el('dt', null, 'Peak WBGT'), el('dd', 'num',
-        record.peakWbgt === null ? '—' : `${record.peakWbgt.toFixed(1)} °C`),
+        record.peakWbgt === null ? 'Not available' : `${record.peakWbgt.toFixed(1)} °C`),
       el('dt', null, 'Personal limit'), el('dd', 'num', `${record.limit.toFixed(2)} °C`));
     body.appendChild(facts);
   }

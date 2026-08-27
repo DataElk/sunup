@@ -9,7 +9,7 @@ in the browser.
 Kept from the old files, because they were never about the old architecture:
 rule 10 (adaptation is a detail-view number), the calendar counterfactual,
 projected data being visually distinct, colour encoding prescription rather than
-temperature, text alternatives, zero network calls, generated-not-hand-edited
+temperature, text alternatives, opt-in network calls, generated-not-hand-edited
 data, the forbidden-input guard, the map's quantile classing and its resolution
 caveat, and the refusal to bank a forecast score that cannot be wrong.
 

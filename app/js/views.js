@@ -263,10 +263,10 @@ export function todayView(ctx) {
         render: (row) => `${pad(row.worker.shiftStart)}:00-${pad(row.worker.shiftEnd)}:00` },
       { label: 'Prescribed (min)', width: '136px', numeric: true,
         render: (row) => row.result.unavailable
-          ? '—' : String(row.result.current.prescribedMinutes) },
+          ? '' : String(row.result.current.prescribedMinutes) },
       { label: 'Calendar (min)', width: '104px', numeric: true,
         render: (row) => row.result.unavailable
-          ? '—' : String(row.result.current.calendarMinutes) },
+          ? '' : String(row.result.current.calendarMinutes) },
       { label: 'Status', width: '110px',
         render: (row) => row.result.unavailable
           ? el('span', 'muted', 'Unavailable')
@@ -313,9 +313,9 @@ export function sitesView(ctx) {
       { label: 'Workers', width: '80px', numeric: true, sortKey: 'workers',
         render: (r) => String(r.workers) },
       { label: 'Model (min)', width: '104px', numeric: true, sortKey: 'model',
-        render: (r) => r.site.weatherSource === 'none' ? '—' : `${r.modelMinutes}` },
+        render: (r) => r.site.weatherSource === 'none' ? '' : `${r.modelMinutes}` },
       { label: 'Calendar (min)', width: '112px', numeric: true,
-        render: (r) => r.site.weatherSource === 'none' ? '—' : `${r.calendarMinutes}` },
+        render: (r) => r.site.weatherSource === 'none' ? '' : `${r.calendarMinutes}` },
       { label: 'Status', width: '110px',
         render: (r) => r.site.weatherSource === 'none'
           ? el('span', 'muted', 'unavailable')
@@ -440,10 +440,10 @@ export function crewView(ctx, siteId, crewId) {
           return node;
         } },
       { label: 'Status', width: '104px', sortKey: 'status',
-        render: (r) => r.unavailable ? el('span', 'muted', '—')
+        render: (r) => r.unavailable ? el('span', 'muted', 'Unavailable')
           : chip(r.current.status, STATUS_TEXT[r.current.status]) },
-      { label: 'Today (min)', width: '88px', numeric: true, sortKey: 'minutes',
-        render: (r) => r.unavailable ? '—' : String(r.current.prescribedMinutes) },
+      { label: 'Plan (min)', width: '88px', numeric: true, sortKey: 'minutes',
+        render: (r) => r.unavailable ? '' : String(r.current.prescribedMinutes) },
       { label: 'vs cal.', width: '70px', numeric: true, sortKey: 'divergence',
         render: (r) => r.unavailable ? '' : divergenceCell(r.current) },
       { label: 'Overexp.', width: '80px', numeric: true, sortKey: 'over',
@@ -492,8 +492,8 @@ export function workerView(ctx, siteId, crewId, workerId) {
   const root = el('div', 'view view-worker');
   root.appendChild(breadcrumb([
     { label: 'Sites', href: '#/sites' },
-    { label: site ? site.name : '—', href: `#/site/${siteId}` },
-    { label: crew ? crew.name : '—', href: `#/site/${siteId}/crew/${crewId}` },
+    { label: site ? site.name : 'Missing site', href: `#/site/${siteId}` },
+    { label: crew ? crew.name : 'Missing crew', href: `#/site/${siteId}/crew/${crewId}` },
     { label: worker.name },
   ]));
 
@@ -558,7 +558,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
           return node;
         } },
       { label: 'Rule', width: '96px',
-        render: (r) => r.assumed ? el('span', 'muted', '—')
+        render: (r) => r.assumed ? el('span', 'muted', 'Assumed')
           : el('span', 'muted', r.allocationRule) },
       { label: 'Flags', width: '150px',
         render: (r) => {

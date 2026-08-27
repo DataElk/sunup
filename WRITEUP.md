@@ -17,8 +17,8 @@ prescribes minutes per hour against that limit instead of against the calendar.
 
 ## The finding
 
-Two workers. Same site, same trade, same day of employment. One rostered 05:00–13:00,
-the other 10:00–18:00. That is the only difference.
+Two workers. Same site, same trade, same day of employment. One rostered 05:00-13:00,
+the other 10:00-18:00. That is the only difference.
 
 | day | model's separation | the calendar says |
 | --- | --- | --- |
@@ -99,7 +99,7 @@ km) against the metro grid (25 × 19 km) using lag-1 roughness *as a percentage 
 layer's own range*. Single instants scored ~15× rougher, and we concluded that the
 14-day exceedance count was manufacturing the smoothness.
 
-That was wrong. The absolute neighbour difference is ~0.004–0.006 °C in **both**; only
+That was wrong. The absolute neighbour difference is ~0.004-0.006 °C in **both**; only
 the denominator moved, because a 0.8 km window spans 0.09 °C and a 25 km window spans
 1.02 °C. We retrieved a metro-extent single-hour grid to settle it. Over the identical
 250 × 186 lattice a single instant and the fortnight-long count are equally smooth:
@@ -142,7 +142,7 @@ and why the map prints its own effective resolution (~2 km) instead of implying 
 precision. It is also the physical reason site assignment fails as a lever: there is no
 fine-grained spatial structure to exploit.
 
-### Validation: forecast vs actual
+### Validation: held-out persistence baseline
 
 The 14-day backfill is split at 2026-08-01. The ramp is built from the days before it and
 projected 7 days forward; the days after are then read as ground truth. The model did not
@@ -164,7 +164,7 @@ unrepresentative in exactly the band that decides a prescription:
 | | copied day vs held-out mean |
 | --- | --- |
 | peak hour | **−0.39 °C** (cooler), and decides nothing, already zero minutes |
-| 08:00–09:00 | **+0.41 °C** (hotter), where the ladder is actually read |
+| 08:00-09:00 | **+0.41 °C** (hotter), where the ladder is actually read |
 
 The peak is a red herring: those hours are prescribed zero for everyone. The prescription
 is decided mid-morning, and because the ladder quantises in 15-minute steps, half a degree
@@ -178,7 +178,7 @@ because M4 needed a projection before that was wired, not because it is right.
 
 ### Sensitivity
 
-**τ (adaptation time constants).** Swept gain 3–6 days × decay 10–21 days, 84 pairs. The
+**τ (adaptation time constants).** Swept gain 3-6 days × decay 10-21 days, 84 pairs. The
 headline survives all 84 under both wet-bulb methods.
 
 **The work/rest ladder.** Our construction, so it is sensitivity-tested rather than merely
@@ -246,7 +246,7 @@ field.
 ## Running it
 
 ```bash
-python -m pytest tests -q          # 336 tests
+python -m pytest                   # complete Python and JavaScript verification
 node scripts/check-design.mjs      # design lint
 python scripts/m3_report.py        # the evidence, section 6 is the headline
 python scripts/audit_ladder.py     # the ladder sensitivity
@@ -254,6 +254,7 @@ python scripts/audit_resolution.py # what the API actually resolves
 python scripts/audit_constants.py  # which constants can move a prescription
 ```
 
-The interface is static: open `app/index.html`. **It makes zero network calls.** Every
-input is a cached fixture emitted as a JavaScript module, including the OpenStreetMap
-locator layer. The demo cannot fail on stage because of an API.
+Serve the static interface over HTTP with `python -m http.server 8777`, then open
+`http://localhost:8777/app/index.html`. A cold browser uses the cached two-site example.
+When a key is saved in Settings, new sites fetch live FortyGuard history and Open-Meteo
+hourly drivers. The Leaflet map retrieves OpenStreetMap tiles when opened.

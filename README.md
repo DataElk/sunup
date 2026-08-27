@@ -1,141 +1,215 @@
 # Sunup
 
-*Repository `sunup`; the product is **Sunup**. Only the repository name differs;
-everything in the code, documents and interface says Sunup.*
+Sunup turns site weather and actual minutes worked into a daily heat work plan for
+each worker. It was built for the FortyGuard Hackathon 2026, with Model Designing as
+the primary track and Industrial and Enterprise as the application track.
 
-Per-worker heat acclimatization state for construction crews, built on FortyGuard's
-temperature API. FortyGuard Hackathon '26.
+Live application: https://dataelk.github.io/sunup/
 
-The OSHA heat rule ramps a new worker in on a calendar: 20% of a shift on day one, up to
-100% on day five. It does not know what the weather was on those days or what hours the
-worker was rostered. Sunup estimates each worker's adaptation state from actual
-exposure, turns it into a personal limit in °C-WBGT, and prescribes minutes against that
-limit instead.
+Sunup addresses a specific gap in calendar acclimatization schedules. Two workers can
+be on the same employment day while having very different heat exposure histories.
+Sunup estimates adaptation from environmental exposure, interpolates a personal limit
+between the published NIOSH unacclimatized and acclimatized curves, and returns an
+hourly work and rest plan.
 
----
+This is a hackathon prototype. It is not validated for operational safety decisions.
 
-## Read this first
+## What is implemented
 
-**This is a hackathon prototype. Do not use it to make real decisions about real workers.**
+- Editable sites, crews, workers, shifts, trades, clothing, and actual-minutes logs.
+- A start-of-shift plan with each worker's model prescription and calendar comparison.
+- Point and polygon site selection on an Arizona-constrained Leaflet map.
+- Live FortyGuard `filter_type=3` calls for each site's daily cell minimum, mean, and
+  maximum temperature.
+- A 1 km request buffer, a 500 m edge discard, nearest safe-cell selection for points,
+  and median interior-cell aggregation for boundaries.
+- Hourly dry-bulb reconstruction fitted to the selected FortyGuard cell's minimum,
+  mean, and maximum.
+- Hourly humidity, wet bulb, shortwave radiation, cloud, and wind from Open-Meteo.
+- The same black-globe and WBGT composition in Python and JavaScript, checked against
+  a 24-hour cross-language regression fixture.
+- Five live history days before the first prescription, followed by nine background
+  backfill days.
+- Six Open-Meteo forecast days for live sites. Today's FortyGuard request uses the
+  endpoint's available current forecast window.
+- Browser persistence, cascading deletes, JSON export, and reset to the cached example.
+- A cached two-site example that works when no FortyGuard key is configured.
 
-- **The work/rest ladder, the thing that decides whether a worker is told to stop, is
-  our own construction, not a standard.** We went to verify it against "the NIOSH
-  work/rest schedule table" and found that no such table exists. It is sensitivity-tested
-  (`scripts/audit_ladder.py`) but it is not validated.
-- **The single most prescription-sensitive constant is one we set ourselves.** ISO 7243
-  gives only the longwave globe coefficient; we set shortwave absorptivity equal to it.
-  ±0.05 moves a prescription by 30 minutes.
-- **The OSHA heat standard is PROPOSED, not law.** Nothing here is a compliance claim.
-- **Forecast accuracy is a 7-day backtest at one site**, and one of its two subjects is
-  degenerate. Not a performance figure.
-- **16 constants remain unverified** against paywalled standards. `constants.py` section
-  0b says which ones can actually move an answer (two) and which cannot (ten).
+## Run locally
 
-Full list in [WRITEUP.md](WRITEUP.md) under *Caveats, stated plainly*.
-
-**Never accepted, by design:** age, sex, gender, BMI, weight, height, fitness, medical
-history, medication, hydration, home address, ethnicity. Every input is environmental or
-job-assigned. The engine raises `ForbiddenInput` rather than ignoring such a field.
-
----
-
-## The result
-
-Two workers, same site, same trade, same day of employment, differing only in shift:
-
-| day | model's separation | the calendar says |
-| --- | --- | --- |
-| 4 | **+1.07 °C** | 80% to both |
-| 5 | +1.33 °C | **100% to both** |
-| 14 | **+2.75 °C** | 100% to both |
-
-84/84 τ pairs, both wet-bulb methods, from day 3 onward. **The calendar's error compounds:**
-from day 5 it is saturated and says the same thing about both men forever, while the
-physiological gap between them more than doubles again.
-
-Site assignment, by contrast, does not survive: 0/84. A 1.284× exceedance ratio
-becomes 1.118× in worked dose, and `correlation(peak WBGT, worked dose) = +0.13`.
-Temperature barely predicts adaptation; scheduling does.
-
----
-
-## Run it
+Python 3.9 or newer and Node.js are required for the verification suite.
 
 ```bash
-pip install -r requirements.txt
-python -m pytest tests -q
-```
-
-The interface is static and **makes zero network calls**:
-
-```bash
+python -m pip install -r requirements.txt
+python -m pytest
+node scripts/check-design.mjs
 python -m http.server 8777
 ```
 
-Then open `http://localhost:8777/app/index.html`. Four workspaces: roster, exposure map,
-forecast vs actual. Every input is a cached fixture emitted as a JS module, so it also
-works from `file://` and cannot fail on stage because of an API.
+Open `http://localhost:8777/app/index.html`.
 
-### The evidence
+The application uses JavaScript modules, so serve it over HTTP. Opening the file
+directly with `file://` is not supported.
+
+## Configure live weather
+
+1. Open Settings.
+2. Enter a FortyGuard API key and select Save key.
+3. Use Test key to confirm authentication.
+4. Create a site from Sites and crews or by clicking the site map.
+5. Choose Set point or Draw boundary, finish the geometry, enter a name, and create it.
+
+The key is stored only in that browser's local storage. It is not included in source
+files, served assets, store exports, screenshots, or reset data. Do not add a key or a
+`.env` file to Git.
+
+Without a key, the cached example remains available and no FortyGuard request is made.
+The site map still retrieves OpenStreetMap tiles when opened.
+
+## Live data flow
+
+For a new site, Sunup creates a buffered request around the selected point or boundary.
+Each observed day follows this path:
+
+1. Submit a FortyGuard `filter_type=3` heatmap request for the buffered area.
+2. Poll the returned activity until it completes.
+3. Remove cells close to the request boundary.
+4. Select the nearest safe cell for a point, or the median of cells inside a boundary.
+5. Fit Open-Meteo's hourly temperature shape to that FortyGuard cell's daily minimum,
+   mean, and maximum.
+6. Compose hourly WBGT with wet bulb, solar radiation, cloud, wind, and a modeled globe
+   temperature.
+7. Recompute every worker prescription attached to that site.
+
+The first five observed days are requested synchronously. The remaining nine continue
+in the background. Paid activity IDs are persisted so an interrupted poll can resume
+without submitting the same FortyGuard task again.
+
+## FortyGuard request and response
+
+The browser submits this shape to `POST https://api.fortyguard.com/v1/heatmap` with the
+key in the `api-key` header:
+
+```json
+{
+  "polygon_aoi": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[
+            [-112.08, 33.44],
+            [-112.06, 33.44],
+            [-112.06, 33.46],
+            [-112.08, 33.46],
+            [-112.08, 33.44]
+          ]]
+        }
+      }
+    ]
+  },
+  "date_time": {
+    "start_date": "2026-08-27",
+    "filter_type": 3
+  },
+  "granularity": 100
+}
+```
+
+Submission returns an activity ID:
+
+```json
+{
+  "data": {
+    "activity_id": "example-activity-id"
+  }
+}
+```
+
+Sunup then polls `GET /v1/status/{activity_id}`. A completed response contains
+`data.result.map_data.features`. Each selected feature provides the temporal daily
+values used by the reconstruction:
+
+```json
+{
+  "properties": {
+    "min_temperature": 30.1,
+    "average_temperature": 35.7,
+    "max_temperature": 41.4
+  }
+}
+```
+
+See [FORTYGUARD_API_CONTRACT.md](FORTYGUARD_API_CONTRACT.md) for the tested schemas,
+failure behavior, polling rules, and field traps.
+
+## Model summary
+
+1. Determine the worker's workload class from the assigned trade or explicit job
+   override.
+2. Compute daily heat stimulus from effective WBGT above the unacclimatized limit,
+   weighted by actual minutes worked.
+3. Advance a bounded adaptation state with separate gain and decay time constants.
+4. Interpolate the worker's personal limit between the NIOSH RAL and REL curves.
+5. Read the project's four-rung work and rest ladder at that personal limit.
+6. Report the calendar schedule beside every prescription as the counterfactual.
+
+Actual minutes are not decorative. Logging them changes the adaptation state and the
+next day's prescription. Work beyond the prescription is also recorded as cumulative
+overexposure.
+
+Age, sex, BMI, fitness, medical history, hydration, medication, ethnicity, residence,
+and home address are forbidden inputs. The store and model reject them.
+
+## Evidence and verification
 
 ```bash
-python scripts/m3_report.py        # section 6 is the headline trajectory
-python scripts/audit_ladder.py     # ladder sensitivity, incl. the no-rung variant
-python scripts/audit_resolution.py # what the API actually resolves spatially
-python scripts/audit_constants.py  # which constants can move a prescription
-node scripts/check-design.mjs      # design lint (blocks the build, not advisory)
+python -m pytest
+node scripts/check-design.mjs
+python scripts/m3_report.py
+python scripts/audit_ladder.py
+python scripts/audit_resolution.py
+python scripts/audit_constants.py
 ```
 
-### Rebuilding the data (needs an API key)
+The test suite includes Python model tests, JavaScript golden-vector replay, source
+contract tests, spatial boundary tests, CRUD interface guards, and a complete browser
+environmental composition comparison against Python.
 
-Not required, because derived data is committed. `FORTYGUARD_API_KEY` goes in `.env`.
+## Important limitations
 
-```bash
-python scripts/m3_fetch.py --probe           # one cheap call, check the API answers
-python scripts/m3_fetch.py --exceedance      # metro grid for site selection
-python scripts/m3_fetch.py --backfill        # 14 days x 2 sites
-python scripts/m3_fetch.py --metro-snapshot  # single-hour metro grid for the audit
-python scripts/build_roster_data.py
-python scripts/build_map_data.py
-python scripts/build_basemap.py --fetch      # OpenStreetMap locator layer
-python scripts/build_overlay_data.py
+- The work and rest ladder is this project's construction, not a NIOSH table.
+- The OSHA heat rule discussed by the project is proposed, not law.
+- The default WBGT path uses psychrometric wet bulb as the natural wet bulb. The tested
+  direction of that approximation can under-read WBGT.
+- The temperature endpoint emits 100 m tiles, but the measured Phoenix field is much
+  smoother. The project reports an effective spatial scale closer to 2 km and does not
+  claim street-feature resolution.
+- The current hackathon key is limited to Arizona.
+- Creating one fully backfilled site uses 14 asynchronous FortyGuard tasks and can take
+  many minutes. Completed tasks consume credits.
+- Future days beyond FortyGuard's current window use Open-Meteo forecasts.
+- Data is stored in one browser. There is no shared account, backend, or team sync.
+- The cached example is a replay dated 2026-08-08. Live sites use the current Arizona
+  date, and the Today table displays each site's active weather date.
+
+The full method, findings, self-corrections, and caveats are in
+[WRITEUP.md](WRITEUP.md).
+
+## Repository layout
+
+```text
+src/sunup/       Python model, physics, data sources, and site selection
+app/             Static browser application and live environmental pipeline
+scripts/         Data builders, reports, and audits
+fixtures/        Raw and derived regression evidence
+tests/           Python, JavaScript, contract, and interface verification
+SPEC.md          Model and data specification
+WRITEUP.md       Submission narrative and findings
+DESIGN_SYSTEM.md Interface rules and rationale
 ```
 
----
-
-## How it works
-
-1. **WBGT** from FortyGuard tiles + Open-Meteo hourly. Black-globe temperature by
-   radiative-convective energy balance (ISO 7243:2017 Annex B globe spec); natural wet
-   bulb psychrometric, cross-checked against ISO 7243 Annex D.
-2. **Daily stimulus** = degree-hours above the *fixed* RAL for the trade's workload class,
-   counting only hours actually worked, weighted by the prescribed duty cycle. Integrating
-   above the *moving* personal limit would be circular: an adapted worker would accrue
-   less dose for identical weather.
-3. **Adaptation state** `A(t+1) = A + s·(1−A)/τ_gain − (1−s)·A/τ_decay`, A ∈ [0,1].
-4. **Personal limit** = `RAL + A·(REL − RAL)`, NIOSH 2016-106 Figures 8-1/8-2.
-5. **Work/rest** read off the ladder at that limit. *Our construction; see caveats.*
-
-## Layout
-
-```
-src/sunup/     engine: wbgt, globe, solar, psychrometrics, acclimatization
-  constants.py     every constant, sourced and confidence-tagged; §0b is the triage
-scripts/           fetch, build, report, and the four audits
-app/               static interface: roster, map, forecast, settings
-fixtures/          cached API responses; MANIFEST.md explains each
-tests/             336 tests, including a per-milestone exit test
-SPEC.md            the plan and the evidence
-WRITEUP.md         the full account, including three self-corrections
-DESIGN_SYSTEM.md   the interface rules and why each exists
-```
-
-## Provenance
-
-FortyGuard supplies the tile temperature field and the exceedance analytics. Open-Meteo
-supplies hourly wind, radiation and the diurnal shape. The map's locator layer is
-OpenStreetMap data, © OpenStreetMap contributors, ODbL 1.0, fetched once at build time and
-cached, so no tile server is contacted at render time.
-
-`env_params` is not independent of Open-Meteo (14 of 15 parameters match to rounding),
-so agreement between them is never presented as corroboration.
+OpenStreetMap data is used under ODbL with attribution shown on each live map.

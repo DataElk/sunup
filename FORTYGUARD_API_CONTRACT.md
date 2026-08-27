@@ -151,8 +151,8 @@ Do not do this; see the reconstruction strategy in `CLAUDE.md`.
 
 | Type | Cell value | Units | Extra params |
 | --- | --- | --- | --- |
-| `tcm` | snapshot temperature | °C | — |
-| `time_of_measure` | **UTC hour-of-day** of peak | hour | — |
+| `tcm` | snapshot temperature | °C |  -  |
+| `time_of_measure` | **UTC hour-of-day** of peak | hour |  -  |
 | `exceedance` | **count of hours** past `threshold` | hour | `threshold` (°C), `direction` |
 | `persistence` | longest continuous run of such hours | hour | `threshold` (°C), `direction` |
 
@@ -294,7 +294,7 @@ Use `apparent_temperature_celsius` for the real diurnal cycle.
 One call per metro per day is sufficient. Do not call it per site.
 
 **4. `cloud_cover_octas` returns PERCENT, not octas.**
-The field name says octas (0–8). The captured payload runs 0–100, with a maximum of
+The field name says octas (0-8). The captured payload runs 0-100, with a maximum of
 exactly 100.0 on 2024-07-15. Dividing by 8 would put cloud fraction at 12.5x and
 black out the solar term. Divide by 100.
 
@@ -326,8 +326,8 @@ the temperature anchor you supply, and which trap 2 already says not to use.
 | `aqi_us_co` | `us_aqi_carbon_monoxide` | same to rounding (±0.5) |
 | `apparent_temperature_celsius` | `apparent_temperature` | 15/24 exact, worst 0.1 °C |
 | **`wet_bulb_temperature_celsius`** | **`wet_bulb_temperature_2m`** | **15/24 exact, worst 0.1 °C** |
-| `heat_index_celsius` | — | genuinely different (and an artifact) |
-| `methane_ppb`, `co2_ppm` | — | all-null both sides |
+| `heat_index_celsius` |  -  | genuinely different (and an artifact) |
+| `methane_ppb`, `co2_ppm` |  -  | all-null both sides |
 
 It is **not a verbatim re-serve**: FortyGuard reports 0.1 precision where Open-Meteo's
 ERA5 archive reports integers on several fields, so FortyGuard is not simply copying
@@ -347,7 +347,7 @@ Three consequences that change what the project may claim and how it should be b
    max of them, exactly as the US AQI is defined. If credits ever get tight, this
    endpoint is the first thing to replace.
 
-**What IS genuinely FortyGuard:** `/v1/heatmap`, with its 60–100 m tiles, the per-cell
+**What IS genuinely FortyGuard:** `/v1/heatmap`, with its 60-100 m tiles, the per-cell
 temporal min/mean/max, the exceedance and persistence fields. Those have no Open-Meteo
 equivalent at any price, and the entire product rests on them. This audit strengthens
 rather than weakens the case for the architecture in `CLAUDE.md`: it is right to take
@@ -483,7 +483,7 @@ Hackathon plan, 2 000 000 credits, cycle 2026-08-23 → 2026-09-27.
 Heatmap cost scales with cell count: an 81-cell parcel call is far cheaper than a
 38 569-cell metro call. Budget the metro exceedance calls carefully; parcel calls are cheap.
 
-**Estimated full build: 200–300k credits with caching.** Roughly 6× headroom. There is no
+**Estimated full build: 200-300k credits with caching.** Roughly 6× headroom. There is no
 need to work around the quota.
 
 ---

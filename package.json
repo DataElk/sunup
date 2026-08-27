@@ -2,7 +2,7 @@
   "name": "sunup",
   "private": true,
   "version": "0.1.0",
-  "description": "Per-worker heat acclimatization state estimator. The interface is a static app with no build step, so the demo runs from file:// with zero network access.",
+  "description": "Per-worker heat acclimatization state and heat work planning with live FortyGuard site weather.",
   "scripts": {
     "check:design": "node scripts/check-design.mjs",
     "prebuild": "npm run check:design",

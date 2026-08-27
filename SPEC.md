@@ -78,11 +78,11 @@ effect look like a fixed one, and happened to quote it near the weak end of the 
 
 | lever | survives | limit gap (day 4) | at day 14 |
 | --- | --- | --- | --- |
-| **shift timing** 05:00–13:00 vs 10:00–18:00 | **84/84 both methods** | **+1.07 °C** | **+2.75 °C** |
-| shift timing 05:00–13:00 vs 08:00–16:00 | 84/84 both methods | +0.99 °C | +2.15 °C |
-| day selection, ranked by worked dose | 84/84 both methods | +0.63 °C | — |
-| day selection, ranked by peak temperature | 36/84 and 54/84 | +0.27 °C | — |
-| site assignment, p5 vs p95 | **0/84 both methods** | +0.23 °C | — |
+| **shift timing** 05:00-13:00 vs 10:00-18:00 | **84/84 both methods** | **+1.07 °C** | **+2.75 °C** |
+| shift timing 05:00-13:00 vs 08:00-16:00 | 84/84 both methods | +0.99 °C | +2.15 °C |
+| day selection, ranked by worked dose | 84/84 both methods | +0.63 °C |  -  |
+| day selection, ranked by peak temperature | 36/84 and 54/84 | +0.27 °C |  -  |
+| site assignment, p5 vs p95 | **0/84 both methods** | +0.23 °C |  -  |
 
 **The shift-timing result is not an artifact of our work/rest ladder.** The ladder is
 our construction, not a standard (constants.py §2), so it was sensitivity-tested the way
@@ -106,7 +106,7 @@ The honest split: **the comparative claim does not depend on the ladder. The abs
 prescription is only as good as the ladder, and the ladder is ours.**
 
 **The demo in one screen:** two workers, same crew, same trade, both on day four,
-both given 80% by the calendar. One was rostered 05:00–13:00, the other 10:00–18:00.
+both given 80% by the calendar. One was rostered 05:00-13:00, the other 10:00-18:00.
 They differ by **1.07 °C of personal limit**, a different written instruction, and
 the calendar has no term that could ever tell them apart. Left on those rosters the gap
 reaches 2.75 °C by day 14.
@@ -151,7 +151,7 @@ lever that actually matters.
 
 ### The inversion, and where it holds
 
-A worker rostered 10:00–18:00 in Phoenix is prescribed **zero minutes in every hour**.
+A worker rostered 10:00-18:00 in Phoenix is prescribed **zero minutes in every hour**.
 He accumulates no dose and **never acclimatizes at all**. Protection, applied without
 regard to timing, is self-defeating.
 
@@ -240,7 +240,7 @@ Environment  ->  WBGT  ->  daily stimulus s  ->  adaptation state A  ->  work/re
    FortyGuard-specific data, and never present FortyGuard/Open-Meteo agreement as
    corroboration. It is circular.
 
-   What IS uniquely FortyGuard is `/v1/heatmap`: the 60–100 m tiles, the per-cell
+   What IS uniquely FortyGuard is `/v1/heatmap`: the 60-100 m tiles, the per-cell
    diurnal min/mean/max, and the exceedance field. That is the whole basis of the
    product, and it is enough. The architecture already takes amplitude and offset
    from the tiles and everything else from wherever is cheapest. This finding
@@ -274,7 +274,7 @@ definition, which is exactly when a model trained on history fails.
 Say this out loud in the writeup. It reads as engineering maturity.
 
 **One place ML genuinely earns its seat.** FortyGuard forecasts 12 hours; the ramp
-projection needs 3–5 days. Open-Meteo forecasts a week but only regionally. So learn
+projection needs 3-5 days. Open-Meteo forecasts a week but only regionally. So learn
 the local anomaly:
 
 ```
@@ -312,7 +312,7 @@ control on 2024-07-15. The one-call-per-site-day reconstruction is confirmed.
 
 Known bias: recent dates are smoother than the archive, with diurnal range roughly
 40% narrower, parcel-scale spatial spread ~10× smaller (0.04 °C vs 0.36 °C). Real
-Phoenix August swings 12–14 °C, so both are compressed and 2026 more so. This
+Phoenix August swings 12-14 °C, so both are compressed and 2026 more so. This
 under-estimates peak WBGT, hence stimulus, hence adaptation rate, a conservative
 bias, but a bias. M1 must compare FortyGuard's daily amplitude against
 Open-Meteo's for the same site-day and record the discrepancy. State it as a
@@ -460,7 +460,7 @@ Volunteering these is worth more than any feature. Each pre-empts a question tha
 would otherwise land as a weakness.
 
 - **"2 metres" is a measurement height, not a horizontal resolution.** Tiles are
-  60–100 m. Say so.
+  60-100 m. Say so.
 - **Snapshot temperature is nearly flat below city scale** (~0.9 °C across a 1.2 km²
   parcel; 0.04 °C across our downtown test polygon). Exposure *duration* is what
   discriminates, hence the exceedance layer. This is why the architecture is what it is.

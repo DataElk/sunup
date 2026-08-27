@@ -4,10 +4,9 @@ constants.py section 5 records the gap this fills: wind is available from
 NEITHER FortyGuard endpoint, and hourly solar is available from neither either.
 Open-Meteo has both.
 
-No Open-Meteo payload is cached yet, and this build makes no live calls, so
-every accessor here raises OfflineDataUnavailable with the exact request that
-would fill the gap. Nothing guesses. The pipeline degrades to an explicitly
-tagged assumption (see WindProvenance) rather than to a silent one.
+The offline Python pipeline reads committed Open-Meteo fixtures and raises
+OfflineDataUnavailable with the exact request that would fill a missing day.
+Nothing guesses. The browser has a separate live request path for new sites.
 
 Expected fixture layout, matching how FortyGuard fixtures are keyed:
 

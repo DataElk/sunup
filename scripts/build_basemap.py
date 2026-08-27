@@ -9,12 +9,12 @@ The exceedance choropleth was two dots 20 km apart on a field of red. Nobody
 who knows Phoenix could locate either site, which makes the site-selection
 claim unauditable: you cannot check a spatial result you cannot place.
 
-WHY IT IS STILL OFFLINE
------------------------
-This is a BUILD-time fetch, cached to a static JS module, exactly like every
-other fixture in this project. The demo itself makes zero network calls
-(SPEC.md hard constraint 6). No tile server is contacted at render time --
-there are no tiles, only ~2 000 simplified polylines drawn on the same canvas.
+WHY IT IS STILL KEPT
+--------------------
+This build-time artifact supports the spatial audit and the earlier static map.
+The shipped application now uses Leaflet and retrieves OpenStreetMap tiles at
+render time, while FortyGuard data supplies the site weather rather than the
+locator layer.
 
 WHAT IS DELIBERATELY OMITTED
 ----------------------------

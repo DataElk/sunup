@@ -282,7 +282,7 @@ property of the field, not of the aggregation.
 
 **Compare only at matched extent.** An earlier draft of this page reported the opposite,
 because it compared parcel fixtures (0.8 × 1.1 km) against the metro grid and read the
-"% of range" column across them. Absolute neighbour differences are ~0.004–0.006 °C in
+"% of range" column across them. Absolute neighbour differences are ~0.004-0.006 °C in
 both; only the denominator moved, because a 0.8 km window spans 0.09 °C and a 25 km
 window spans 1.02 °C. Normalise by a window-dependent quantity and you measure your
 window. `scripts/audit_resolution.py` now prints the absolute column first for that
@@ -290,7 +290,7 @@ reason.
 
 **Then say what it means, with a yardstick you can reproduce.** At 14:00 on a day above
 40 °C the entire Phoenix metro spans 1.02 °C. The same API's daily min/max product puts
-the diurnal range at a *single point* at 5.8–11.4 °C. One location changes about eight
+the diurnal range at a *single point* at 5.8-11.4 °C. One location changes about eight
 times more over a day than the whole metro varies at any instant. That is why the locator
 basemap is drawn from OpenStreetMap rather than inferred from the data. The data does not
 contain the roads. Take the comparison from your own fixtures, never from a remembered

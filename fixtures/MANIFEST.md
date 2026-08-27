@@ -41,11 +41,11 @@ Metro AOI where noted:
 | `filter3_properties_2026-08-09.json` | 2026-08-09 | 8.22 °C | 2026 dates carry diurnal range |
 | `filter3_properties_2026-08-05.json` | 2026-08-05 | 5.81 °C | ” |
 | `filter3_properties_2026-07-26.json` | 2026-07-26 | 6.66 °C | ”, first day of the demo backfill window |
-| `temporal_range_verdict.json` | — | — | Summary of the four above. **PASS** — the one-call-per-site-day strategy is confirmed. |
+| `temporal_range_verdict.json` |  -  |  -  | Summary of the four above. **PASS**  -  the one-call-per-site-day strategy is confirmed. |
 
 > **Known bias, recorded here because it affects M1.** Recent dates are smoother than
 > the archive: diurnal range ~40% narrower, parcel-scale spatial spread ~10× smaller
-> (0.04 °C vs 0.36 °C). Real Phoenix August swings 12–14 °C, so both are compressed
+> (0.04 °C vs 0.36 °C). Real Phoenix August swings 12-14 °C, so both are compressed
 > and 2026 more so. This under-estimates peak WBGT → stimulus → adaptation rate. The
 > bias is conservative (under-clears rather than over-clears) but it is a bias.
 > M1 must compare FortyGuard's amplitude against Open-Meteo's for the same site-day.
@@ -54,7 +54,7 @@ Metro AOI where noted:
 
 | File | Call | Proves |
 | --- | --- | --- |
-| `phoenix_threshold_sweep_summary.json` | Metro AOI, 2024-07-01→07, thresholds 34/36/38/40/42 °C | **Threshold selection.** 30 °C and 34 °C are saturated (92–99% of window); 42 °C is at the floor (2.9%). **40 °C is optimal**: mean 31% of window, best relative spread (0.50). Also captures the `min = -0.3176` at 42 °C that proves the field is interpolated, not counted. |
+| `phoenix_threshold_sweep_summary.json` | Metro AOI, 2024-07-01→07, thresholds 34/36/38/40/42 °C | **Threshold selection.** 30 °C and 34 °C are saturated (92-99% of window); 42 °C is at the floor (2.9%). **40 °C is optimal**: mean 31% of window, best relative spread (0.50). Also captures the `min = -0.3176` at 42 °C that proves the field is interpolated, not counted. |
 | `phoenix_40c_exceedance_sites.json` | Metro AOI, 2026-07-26→08-08, threshold 40 °C | **Core evidence, and the source of the project's most-corrected number.** Mean 95.6 h of 336. Raw hottest cell 7.63 h/day above 40 °C against coolest 4.14, a ~~1.84×~~ ratio that is a **boundary artifact**: the top/bottom 5 cells all sit within 460 m of the west edge or 80 m of the north edge. After buffering and the 500 m edge discard the defensible figure is **1.28×** (see the site selection entry below). **Quote 1.28×, never 1.84×.** |
 | `phoenix_5day_daily_stats.json` | Parcel, 2026-08-05→09, `filter_type=3` × 5 | Day-to-day variation in daily mean: 36.65 → 37.09 → 37.40 → 37.69 → 38.85 (**2.2 °C over five days**). This is the temporal signal the stimulus term feeds on. **NOTE:** this file contains only `stats_data`, which is the SPATIAL axis; the temporal ranges are in the `filter3_properties_*` files above. |
 
@@ -70,7 +70,7 @@ Fetched 2026-08-24 by `scripts/fetch_openmeteo.py --refresh`. Free, no key requi
 | File | Call | Proves |
 | --- | --- | --- |
 | `33.4484_-112.0740_2024-07-15.json` | Point 33.4484/-112.0740, `hourly=temperature_2m,relative_humidity_2m,wet_bulb_temperature_2m,shortwave_radiation,wind_speed_10m,cloud_cover`, `timezone=auto`, `wind_speed_unit=ms` | The two things no FortyGuard endpoint returns: **hourly wind** and **hourly shortwave**. Also the independent temperature series the amplitude comparison needs. Timezone resolves to America/Phoenix (UTC−7), elevation 333 m, matching `env_params` exactly. |
-| `33.4484_-112.0740_2026-07-26.json` | same fields, 2026-07-26 | M2 site-day. Hottest of the four by measured dose (37.62 °C·h above RAL over the 05:00–13:00 shift). |
+| `33.4484_-112.0740_2026-07-26.json` | same fields, 2026-07-26 | M2 site-day. Hottest of the four by measured dose (37.62 °C·h above RAL over the 05:00-13:00 shift). |
 | `33.4484_-112.0740_2026-08-05.json` | same fields, 2026-08-05 | M2 site-day. |
 | `33.4484_-112.0740_2026-08-09.json` | same fields, 2026-08-09 | M2 site-day. Highest WBGT peak (33.01 °C). |
 
@@ -90,7 +90,7 @@ write the fixture if the reported units are not the expected ones.
 
 **What it gave us:**
 
-- **Wind** 0.81–7.19 m/s at 10 m → 0.53–4.68 m/s at 2 m after the log-profile
+- **Wind** 0.81-7.19 m/s at 10 m → 0.53-4.68 m/s at 2 m after the log-profile
   conversion, mean **2.81 m/s**. The assumed constant had been 3.0 m/s, so the
   assumption was sound: swapping it for the measured series moves WBGT at 14:00 by
   0.07 °C.
@@ -133,7 +133,7 @@ on the personal limit in °C-WBGT across all 84 τ pairs:
 
 | lever | psychrometric | ISO Annex D | gap |
 | --- | --- | --- | --- |
-| **shift assignment** 05–13 vs 10–18 | **84/84** | **84/84** | +1.07 °C at day 4, +2.75 by day 14 |
+| **shift assignment** 05-13 vs 10-18 | **84/84** | **84/84** | +1.07 °C at day 4, +2.75 by day 14 |
 | **mild vs hot by worked dose** | **84/84** | **84/84** | +0.63 °C |
 | mild vs hot by peak temperature | 36/84 | 54/84 | +0.27 °C |
 | **site assignment** p5 vs p95 | **0/84** | **0/84** | +0.23 °C |
@@ -155,7 +155,7 @@ Three findings worth carrying into the writeup:
 
 | File | Call | Proves |
 | --- | --- | --- |
-| `phoenix_env_params_raw.json` | Point 33.4484/-112.0740, 2024-07-15, `filter_type=3`, `analysis=[wet_bulb, solar_irradiance, relative_humidity]` | Response schema. **24 hourly values** for every parameter EXCEPT `solar_irradiance`, which is a single daily clear-sky mean (`ghi/dni/dhi`). Wet bulb 22.0–23.8 °C, RH 19–49% across the day. Also demonstrates the `heat_index_celsius` artifact: it peaks at 52.9 °C at 06:00 and bottoms at 38.4 °C mid-afternoon, because the endpoint holds the input `temperature` anchor fixed and varies only humidity. **Do not use `heat_index_celsius`.** |
+| `phoenix_env_params_raw.json` | Point 33.4484/-112.0740, 2024-07-15, `filter_type=3`, `analysis=[wet_bulb, solar_irradiance, relative_humidity]` | Response schema. **24 hourly values** for every parameter EXCEPT `solar_irradiance`, which is a single daily clear-sky mean (`ghi/dni/dhi`). Wet bulb 22.0-23.8 °C, RH 19-49% across the day. Also demonstrates the `heat_index_celsius` artifact: it peaks at 52.9 °C at 06:00 and bottoms at 38.4 °C mid-afternoon, because the endpoint holds the input `temperature` anchor fixed and varies only humidity. **Do not use `heat_index_celsius`.** |
 
 **M1 regression target, derived from this file:**
 downtown Phoenix 2024-07-15 → WBGT ≈ **31 °C at 14:00**, ≈ **24.8 °C at 06:00**.
