@@ -391,6 +391,21 @@ def test_today_is_the_default_start_of_shift_view():
     assert "Log previous day" in today
 
 
+def test_a_whole_crew_can_be_closed_out_without_selecting_workers():
+    app = strip_comments(read("js", "app.js"))
+    crew_commands = app[app.index("if (current.view === 'crew')"):
+                        app.index("if (current.view === 'worker')")]
+    assert "label: 'Log crew'" in crew_commands
+    assert "forms.editCrewDayLog(current.crewId" in crew_commands
+    forms = strip_comments(read("js", "forms.js"))
+    bulk = forms[forms.index("export function editCrewDayLog"):
+                 forms.index("export function confirmRemove")]
+    assert "worker.active !== false" in bulk
+    assert "Absent" in bulk
+    assert "store.setDayLog" in bulk
+    assert "footer('Save crew'" in bulk
+
+
 def test_settings_imports_every_control_it_renders():
     source = strip_comments(read("js", "extraviews.js"))
     imports = source[:source.index("const HORIZON")]

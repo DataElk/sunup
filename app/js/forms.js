@@ -443,6 +443,90 @@ export function editDayLog(workerId, date, after) {
   });
 }
 
+/* --- Crew day log -------------------------------------------------------------
+   A shift closeout is one crew action. Blank remains unrecorded; Absent stores
+   zero actual minutes and an attendance note without changing model inputs.
+   ------------------------------------------------------------------------------ */
+
+export function editCrewDayLog(crewId, date, after) {
+  const crew = store.crew(crewId);
+  if (!crew) return null;
+  const workers = store.workers(crewId).filter((worker) => worker.active !== false);
+  const body = el('div', 'panel-stack');
+  const help = el('p', 'muted',
+    'Enter actual heat-exposed minutes. Leave blank if the day is not recorded.');
+  body.appendChild(help);
+
+  const list = el('div', 'bulk-log');
+  const controls = workers.map((worker) => {
+    const entry = store.logsFor(worker.id)[date];
+    const result = compute.forWorker(worker.id);
+    const record = result && !result.unavailable
+      ? result.records.find((item) => item.date === date) : null;
+    const isAbsent = Boolean(entry && entry.minutes === 0 && entry.note === 'Absent');
+    const minutes = input(isAbsent ? '0' : (entry ? entry.minutes : ''), {
+      type: 'number', min: '0', max: '1440', step: '5',
+      placeholder: 'Not recorded',
+      'aria-label': `Actual minutes for ${worker.name}`,
+    });
+    const absent = input('', { type: 'checkbox', 'aria-label': `${worker.name} absent` });
+    absent.checked = isAbsent;
+    minutes.disabled = isAbsent;
+    let remembered = isAbsent ? '' : minutes.value;
+
+    const row = el('div', 'bulk-log-row');
+    const heading = el('div', 'bulk-log-head');
+    heading.append(
+      el('strong', null, worker.name),
+      el('span', 'muted num', record ? `${record.prescribedMinutes} min prescribed` : 'No prescription'));
+    const rowControls = el('div', 'bulk-log-controls');
+    const absentLabel = el('label', 'bulk-log-absent');
+    absentLabel.append(absent, el('span', null, 'Absent'));
+    rowControls.append(field('Actual minutes', minutes), absentLabel);
+    row.append(heading, rowControls);
+    list.appendChild(row);
+
+    absent.addEventListener('change', () => {
+      if (absent.checked) {
+        remembered = minutes.value;
+        minutes.value = '0';
+        minutes.disabled = true;
+      } else {
+        minutes.disabled = false;
+        minutes.value = remembered;
+        minutes.focus();
+      }
+    });
+    return { worker, entry, minutes, absent };
+  });
+
+  if (workers.length) body.appendChild(list);
+  else body.appendChild(el('p', 'muted', 'This crew has no active workers.'));
+
+  function save() {
+    for (const control of controls) {
+      const raw = control.minutes.value.trim();
+      const note = control.absent.checked
+        ? 'Absent' : (control.entry && control.entry.note !== 'Absent' ? control.entry.note : '');
+      store.setDayLog(control.worker.id, date,
+        control.absent.checked ? 0 : (raw === '' ? null : Number(raw)), note);
+    }
+    dismissPanel();
+    compute.invalidate();
+    toast(`Saved ${workers.length} crew logs`);
+    if (after) after();
+  }
+
+  return panel({
+    title: 'Log crew',
+    subtitle: `${crew.name}, ${date}`,
+    body,
+    footer: workers.length
+      ? footer('Save crew', save)
+      : footer('Close', () => dismissPanel()),
+  });
+}
+
 /* --- Deletes -------------------------------------------------------------------- */
 
 export function confirmRemove(kind, items, after) {
