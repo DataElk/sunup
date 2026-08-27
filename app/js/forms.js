@@ -243,19 +243,14 @@ export function estimateWeather(siteId, after) {
   const body = el('div', 'panel-stack');
   const warn = el('div', 'callout callout-warn');
   warn.append(
-    el('strong', null, 'This produces derived data, not a measurement.'),
-    el('p', null,
-      'There is no hourly weather for this site. Estimating scales a measured '
-      + 'site’s hourly curve by a fixed ratio. The site, every worker row '
-      + 'under it, and the compliance record will all be tagged "derived", and '
-      + 'the record will state the method.'));
+    el('strong', null, 'This site will use derived weather.'),
+    el('p', null, 'Choose a source site and adjustment.'));
   body.appendChild(warn);
 
   const fields = form(save);
   fields.append(
-    field('Scale from', source),
-    field('Ratio', ratio, 'Multiplies every hourly WBGT value. 1.00 copies the '
-      + 'source site exactly.'));
+    field('Source site', source),
+    field('Adjustment', ratio, 'Allowed range: 0.50 to 1.50.'));
   body.appendChild(fields);
 
   function save() {
@@ -265,12 +260,11 @@ export function estimateWeather(siteId, after) {
     store.updateSite(site.id, {
       seriesKey: key,
       weatherSource: 'derived',
-      derivedNote: `Scaled from ${source.value} by ${factor.toFixed(2)}x. `
-        + 'Estimated, not measured.',
+      derivedNote: `Source: ${source.value}. Adjustment: ${factor.toFixed(2)}.`,
     });
     dismissPanel();
     compute.invalidate();
-    toast('Weather estimated, this site is now marked derived');
+    toast('Weather estimate saved');
     if (after) after();
   }
 
@@ -341,15 +335,12 @@ export function editWorker(workerId, defaultCrewId, after) {
   fields.append(
     field('Name', name),
     field('Crew', crew),
-    field('Trade', trade, 'Sets the work intensity unless overridden below.'),
-    field('Work intensity', override,
-      'An override is marked wherever this worker appears, so it can never be '
-      + 'mistaken for the trade’s own intensity.'),
-    field('Clothing', clothing, 'ISO 7243 Clause 7 adjustment, added to WBGT.'),
+    field('Trade', trade),
+    field('Work intensity', override),
+    field('Clothing', clothing),
     field('Shift start', start),
     field('Shift end', end),
-    field('First day on job', hire, 'Only ever used as "day N". No other '
-      + 'personal detail is stored, by design.'));
+    field('First day on job', hire));
 
   function save() {
     const s = Number(start.value);
@@ -374,7 +365,7 @@ export function editWorker(workerId, defaultCrewId, after) {
 
   panel({
     title: existing ? 'Edit worker' : 'New worker',
-    subtitle: existing ? existing.name : 'Job facts only',
+    subtitle: existing ? existing.name : 'New crew member',
     body: fields,
     footer: footer(existing ? 'Save' : 'Create', save),
   });
@@ -413,17 +404,9 @@ export function editDayLog(workerId, date, after) {
   const fields = form(save);
   fields.append(
     field('Minutes actually worked', minutes,
-      'Leave blank if not recorded, the day then falls back to the '
-      + 'prescription and is marked assumed. Zero means present but not working.'),
+      'Leave blank if not recorded. Enter 0 if no work occurred.'),
     field('Note', note));
   body.appendChild(fields);
-
-  const hint = el('div', 'callout');
-  hint.append(el('p', null,
-    'The state update uses what you enter here, not what was prescribed. A '
-    + 'worker who went over adapted faster and took more strain; both show on '
-    + 'his record.'));
-  body.appendChild(hint);
 
   let clear = null;
   if (entry) {

@@ -222,11 +222,11 @@ def test_the_seed_is_data_and_is_resettable_and_deletable():
     assert "Delete everything" in settings
 
 
-def test_seeded_records_are_marked_as_seed_data():
+def test_seeded_records_are_stored_without_demo_badges():
     store = strip_comments(read("js", "store.js"))
     assert "seeded: true" in store
-    views = read("js", "views.js")
-    assert "'seed'" in views
+    views = strip_comments(read("js", "views.js"))
+    assert "tag('seed'" not in views
 
 
 def test_the_generated_data_says_it_is_generated():
@@ -288,6 +288,24 @@ def test_an_unlogged_day_falls_back_and_is_marked_assumed():
     views = read("js", "views.js")
     assert "assumed" in views
     assert "assumedRun" in views
+
+
+def test_interface_copy_reports_state_without_explaining_methodology():
+    app = strip_comments(read("js", "app.js"))
+    for phrase in ("REGULATORY POSITION", "unvalidated assumption",
+                   "natural wet bulb", "Cached seed", "seed data"):
+        assert phrase not in app
+    forms = strip_comments(read("js", "forms.js"))
+    for phrase in ("ISO 7243", "by design", "feedback loop"):
+        assert phrase not in forms
+    views = strip_comments(read("js", "views.js"))
+    for phrase in ("projection rather than a measurement",
+                   "raised his adaptation", "tag('seed'"):
+        assert phrase not in views
+    settings = strip_comments(read("js", "extraviews.js"))
+    for phrase in ("excluded as degenerate", "no skill shown", "Seed version",
+                   "seed roster"):
+        assert phrase not in settings
 
 
 def test_unprescribed_work_is_surfaced_not_just_recorded():
@@ -469,8 +487,8 @@ def test_the_backtest_declares_itself_and_refuses_a_score_that_cannot_be_wrong()
     source = read("js", "extraviews.js")
     assert "Not a live forecast" not in source
     assert "degenerate" in source
-    assert "no skill shown" in source
-    assert "excluded as degenerate" in source
+    assert "not counted" in source
+    assert "workers without variation" in source
 
 
 def test_forecast_has_no_decorative_selection_controls():

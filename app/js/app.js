@@ -172,14 +172,7 @@ function copyRecord(crewId) {
   lines.push('ACCLIMATE - HEAT EXPOSURE COMPLIANCE RECORD');
   lines.push(`Date: ${compute.today()}`);
   lines.push(`Site: ${site.name}   Crew: ${crew.name}`);
-  lines.push(`Weather source: ${site.weatherSource}`
-    + (site.derivedNote ? ` (${site.derivedNote})` : ''));
-  lines.push('');
-  lines.push('REGULATORY POSITION');
-  lines.push('  The federal OSHA heat standard is PROPOSED and not finalised.');
-  lines.push('  Exposure limits are NIOSH 2016-106 Figures 8-1 / 8-2.');
-  lines.push('  The work/rest ladder is this product\'s own construction, not a');
-  lines.push('  published table. It is the largest unvalidated assumption here.');
+  lines.push(`Weather source: ${site.weatherSource}`);
   lines.push('');
   lines.push('PRESCRIPTIONS');
   lines.push('  worker           trade       start  day  model  cal.  logged');
@@ -195,16 +188,10 @@ function copyRecord(crewId) {
       + `${String(c.dayOnJob).padStart(4)} `
       + `${String(c.prescribedMinutes).padStart(6)} `
       + `${String(c.calendarMinutes).padStart(5)}  `
-      + (c.assumed ? 'assumed' : String(c.actualMinutes))
+      + (c.assumed ? 'not logged' : String(c.actualMinutes))
       + (row.cumulativeOverexposure > 0
         ? `  OVEREXPOSURE ${row.cumulativeOverexposure.toFixed(2)} degC-h` : ''));
   }
-  lines.push('');
-  lines.push('EXCLUDED INPUTS');
-  lines.push('  No age, sex, BMI, fitness, medical history, hydration or');
-  lines.push('  residence data is used. Every input is environmental or');
-  lines.push('  job-assigned.');
-
   const text = lines.join('\n');
   navigator.clipboard.writeText(text)
     .then(() => toast('Compliance record copied'))
@@ -279,14 +266,8 @@ function statusFor(current) {
     statusHost.appendChild(wrap);
   };
   add('Date', weather.today);
-  add('Source', hasConfiguredKey() ? 'Live weather enabled' : 'Cached seed, no live calls');
-  add('Model', `assumes natural wet bulb = ${weather.model}`);
-  add('Store', `${state.workers.length} workers, local only`,
-    'Everything lives in this browser. There is no backend and nothing is sent anywhere.');
-  statusHost.appendChild(el('span', 'sb-spacer'));
-  const seeded = el('span', 'sb sb-seed', state.seeded === null
-    ? 'unseeded' : 'seed data, editable and resettable');
-  statusHost.appendChild(seeded);
+  add('Source', hasConfiguredKey() ? 'Live weather' : 'Cached weather');
+  add('Store', `${state.workers.length} workers, browser storage`);
 }
 
 /* --- Render ---------------------------------------------------------------------- */

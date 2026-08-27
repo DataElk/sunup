@@ -425,7 +425,6 @@ body {
   line-height: 16px;
   white-space: nowrap;
 }
-.tag[data-kind="seed"] { background: var(--accent-subtle); color: var(--accent); }
 .tag[data-kind="warn"] { background: var(--mismatch-over-bg); color: var(--mismatch-over); }
 .tag[data-kind="danger"] { background: var(--status-stop-bg); color: var(--status-stop); }
 .tag[data-kind="assumed"] { background: var(--surface-sunken); color: var(--ink-secondary); }
@@ -706,8 +705,6 @@ body {
 .sb { display: inline-flex; gap: var(--space-1); white-space: nowrap; flex: none; }
 .sb-l { color: var(--ink-tertiary); }
 .sb-v { font-weight: var(--weight-semibold); }
-.sb-spacer { flex: 1; }
-.sb-seed { color: var(--accent-border); }
 
 .toast {
   position: fixed;

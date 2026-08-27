@@ -85,7 +85,7 @@ function rampStrip(records) {
   svg.setAttribute('class', 'ramp');
   svg.setAttribute('role', 'img');
   svg.setAttribute('aria-label',
-    `Exposure and adaptation across ${records.length} days.`);
+    `Work schedule across ${records.length} days.`);
 
   const make = (name, attrs) => {
     const node = document.createElementNS(ns, name);
@@ -111,7 +111,7 @@ function rampStrip(records) {
       bar.setAttribute('data-status', record.status);
       const title = document.createElementNS(ns, 'title');
       title.textContent = `${record.date}, ${record.prescribedMinutes} min prescribed`
-        + `${record.assumed ? ' (assumed)' : `, ${record.actualMinutes} logged`}`
+        + `${record.assumed ? ' (not logged)' : `, ${record.actualMinutes} logged`}`
         + `, peak ${peak.toFixed(1)} °C`;
       bar.appendChild(title);
       svg.appendChild(bar);
@@ -151,7 +151,6 @@ function workerNameCell(result) {
   const wrap = el('div', 'cellstack');
   const line = el('div', 'cellline');
   line.appendChild(el('span', 'nm', result.worker.name));
-  if (result.worker.seeded) line.appendChild(tag('seed', 'seed'));
   if (result.worker.workClassOverride) line.appendChild(tag('override', 'warn'));
   if (result.site && result.site.weatherSource === 'derived') {
     line.appendChild(tag('derived', 'warn'));
@@ -177,9 +176,8 @@ function divergenceCell(record) {
 function loggedCell(result) {
   const wrap = el('span', 'loggedcell');
   if (result.assumedRun > 0) {
-    const t = tag(`${result.assumedRun}d assumed`, 'assumed');
-    t.title = 'Most recent days have no logged actual, so the state is a '
-      + 'projection rather than a measurement.';
+    const t = tag(`${result.assumedRun}d unlogged`, 'assumed');
+    t.title = 'Recent days are missing actual minutes.';
     wrap.appendChild(t);
   } else {
     wrap.appendChild(el('span', 'num ok', 'logged'));
@@ -205,7 +203,6 @@ export function sitesView(ctx) {
         render: (r) => {
           const wrap = el('div', 'cellline');
           wrap.appendChild(el('span', 'nm', r.site.name));
-          if (r.site.seeded) wrap.appendChild(tag('seed', 'seed'));
           if (r.site.weatherSource === 'derived') wrap.appendChild(tag('derived', 'warn'));
           if (r.site.weatherSource === 'none') wrap.appendChild(tag('no weather', 'danger'));
           return wrap;
@@ -266,7 +263,6 @@ export function siteView(ctx, siteId) {
         render: (r) => {
           const wrap = el('div', 'cellline');
           wrap.appendChild(el('span', 'nm', r.crew.name));
-          if (r.crew.seeded) wrap.appendChild(tag('seed', 'seed'));
           return wrap;
         } },
       { label: 'Workers', width: '80px', numeric: true, sortKey: 'workers',
@@ -420,19 +416,19 @@ export function workerView(ctx, siteId, crewId, workerId) {
   root.appendChild(head);
 
   if (result.assumedRun > 0) {
+    const missingTitle = result.assumedRun === 1
+      ? '1 recent day has no logged actual.'
+      : `${result.assumedRun} recent days have no logged actual.`;
     root.appendChild(banner('assumed',
-      `${result.assumedRun} of the most recent days have no logged actual.`,
-      'The state below is a projection from the prescription, not a measurement '
-      + 'of what happened. Log those days to make it a measurement.'));
+      missingTitle, 'Add actual minutes for these days.'));
   }
   if (result.cumulativeOverexposure > 0) {
     root.appendChild(banner('danger',
       `Overexposure ${result.cumulativeOverexposure.toFixed(2)} °C·h`,
-      'Time worked above this worker’s own limit beyond what was prescribed. '
-      + 'The same overwork raised his adaptation; both are on the record.'));
+      'Review the flagged days in the log.'));
   }
 
-  root.appendChild(section('Fourteen days, and six projected',
+  root.appendChild(section('Fourteen days and six upcoming',
     rampStrip(result.records)));
 
   /* Day log ------------------------------------------------------------------ */
@@ -446,8 +442,8 @@ export function workerView(ctx, siteId, crewId, workerId) {
       { label: 'Actual', width: '92px', numeric: true,
         render: (r) => {
           if (r.assumed) {
-            const node = el('span', 'muted', `${r.actualMinutes} assumed`);
-            node.title = 'No entry; the prescription was used.';
+            const node = el('span', 'muted', 'not logged');
+            node.title = 'No actual minutes recorded.';
             return node;
           }
           const node = el('span', 'num', String(r.actualMinutes));
@@ -462,8 +458,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
           const wrap = el('span', 'loggedcell');
           if (r.unprescribedWork) {
             const t = tag('unprescribed', 'danger');
-            t.title = 'Work logged on a day the model prescribed none. '
-              + 'Minutes were spread evenly across the shift.';
+            t.title = 'Work was logged on a day with no prescribed minutes.';
             wrap.appendChild(t);
           }
           if (r.overexposure > 0) {
@@ -561,8 +556,7 @@ function banner(kind, title, detail) {
 
 function derivedBanner(site) {
   return banner('warn', 'Derived weather',
-    site.derivedNote || 'This site’s hourly series was estimated from another '
-    + 'site, not measured. Every prescription under it inherits that.');
+    site.derivedNote || 'A measured source site was used.');
 }
 
 function noWeatherBanner(ctx, site) {

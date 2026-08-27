@@ -106,7 +106,7 @@ export function forecastView(ctx) {
         `bias, min, ${bias < 0 ? 'conservative' : (bias > 0 ? 'permissive' : 'none')}`,
         bias > 0 ? 'permissive' : 'safe'),
       metric(String(usable.length), 'workers with a usable comparison'),
-      metric(String(rows.length - usable.length), 'excluded as degenerate'));
+      metric(String(rows.length - usable.length), 'workers without variation'));
     root.appendChild(summary);
   }
 
@@ -117,9 +117,8 @@ export function forecastView(ctx) {
           const wrap = el('div', 'cellline');
           wrap.appendChild(el('span', 'nm', r.worker.name));
           if (r.degenerate) {
-            const t = tag('no skill shown', 'assumed');
-            t.title = 'Predicted and actual are identical on every day, so the '
-              + 'band cannot be wrong. Not counted in the summary.';
+            const t = tag('not counted', 'assumed');
+            t.title = 'No variation in the available days.';
             wrap.appendChild(t);
           }
           return wrap;
@@ -162,7 +161,7 @@ export function forecastView(ctx) {
     onSelectionChange: () => {},
     rowKey: (r) => r.worker.id,
     selectable: false,
-    empty: 'No worker has enough history for a backtest yet.',
+    empty: 'No worker has enough history for comparison yet.',
   }));
 
   return root;
@@ -252,9 +251,7 @@ export function settingsView(ctx) {
       el('dt', null, 'Crews'), el('dd', 'num', String(state.crews.length)),
       el('dt', null, 'Workers'), el('dd', 'num', String(state.workers.length)),
       el('dt', null, 'Logged days'), el('dd', 'num',
-        String(Object.values(state.dayLogs).reduce((s, m) => s + Object.keys(m).length, 0))),
-      el('dt', null, 'Seed version'), el('dd', 'num',
-        state.seeded === null ? 'not seeded' : String(state.seeded)));
+        String(Object.values(state.dayLogs).reduce((s, m) => s + Object.keys(m).length, 0))));
     wrap.appendChild(counts);
 
     const actions = el('div', 'callout-actions');
@@ -263,8 +260,8 @@ export function settingsView(ctx) {
     reset.type = 'button';
     reset.addEventListener('click', () => confirmDialog({
       title: 'Reset to demo data',
-      message: 'This replaces every site, crew and worker with the seed roster '
-        + 'and DISCARDS ALL DAY LOGS. It cannot be undone.',
+      message: 'This replaces all current data with the original sites, crews, '
+        + 'workers, and logs. It cannot be undone.',
       confirmLabel: 'Reset',
       danger: true,
       onConfirm: () => {
@@ -280,7 +277,7 @@ export function settingsView(ctx) {
     clear.addEventListener('click', () => confirmDialog({
       title: 'Delete everything',
       message: 'Removes every site, crew, worker and day log, leaving an empty '
-        + 'store. You can put the demo roster back afterwards.',
+        + 'store. Reset to demo data restores the original records.',
       confirmLabel: 'Delete all',
       danger: true,
       onConfirm: () => {
