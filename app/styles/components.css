@@ -341,6 +341,11 @@ body {
   font-weight: var(--weight-semibold);
   color: var(--ink-primary);
 }
+.section-description {
+  margin: calc(var(--space-2) * -1) 0 0;
+  color: var(--ink-secondary);
+  font-size: var(--text-caption);
+}
 .stack { display: flex; flex-direction: column; gap: var(--space-2); }
 
 /* ==========================================================================
@@ -633,19 +638,19 @@ body {
    ========================================================================== */
 
 .wk-head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-6);
-  flex-wrap: wrap;
-  padding: var(--space-3);
-  background: var(--surface-sunken);
+  display: grid;
+  grid-template-columns: minmax(180px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-7);
+  padding: var(--space-5) var(--space-6);
+  background: var(--surface-panel);
   border: var(--border-width) solid var(--line-default);
   border-radius: var(--radius-surface);
 }
 .wk-metric { display: flex; flex-direction: column; }
-.wk-minutes { font-size: var(--text-metric); font-weight: var(--weight-semibold); line-height: 1.05; }
+.wk-minutes { font-size: var(--text-metric); font-weight: var(--weight-bold); line-height: 1.05; }
 .wk-unit { font-size: var(--text-caption); color: var(--ink-secondary); }
-.wk-facts { display: flex; gap: var(--space-5); flex-wrap: wrap; flex: 1; }
+.wk-facts { display: grid; grid-template-columns: repeat(3, minmax(100px, 1fr)); gap: var(--space-3) var(--space-6); }
 .fact { display: flex; flex-direction: column; }
 .fact-l { font-size: var(--text-label); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--ink-tertiary); }
 .fact-v { font-size: var(--text-body); }
@@ -673,7 +678,27 @@ body {
 .sbar[data-status="stop"] { fill: var(--status-stop); }
 .sbar-proj { opacity: var(--projected-alpha); }
 
-.ramp { display: block; width: 100%; height: 132px; }
+.history-chart {
+  overflow: hidden;
+  padding: var(--space-4) var(--space-4) var(--space-2);
+  background: var(--surface-panel);
+  border: var(--border-width) solid var(--line-default);
+  border-radius: var(--radius-surface);
+}
+.chart-legend {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--ink-secondary);
+  font-size: var(--text-caption);
+}
+.chart-legend-item { display: inline-flex; align-items: center; gap: var(--space-2); }
+.chart-key { display: inline-block; width: var(--space-5); height: var(--space-2); }
+.chart-key-bar { background: var(--status-restricted); }
+.chart-key-line { height: var(--border-width); background: var(--adapt-line); }
+.chart-key-forecast { border-top: var(--border-width) dashed var(--projected-stroke); }
+.ramp { display: block; width: 100%; height: auto; max-height: 280px; }
 .ramp .cell { fill: var(--surface-panel); stroke: var(--line-default); stroke-width: 1; }
 .ramp .cell-proj { fill: var(--projected-fill); stroke: var(--projected-stroke); stroke-dasharray: 3 2; }
 .ramp .bar[data-status="cleared"] { fill: var(--status-cleared); }
@@ -685,6 +710,9 @@ body {
 .ramp .adapt-proj { stroke: var(--adapt-line-projected); stroke-dasharray: 4 3; }
 .ramp .flag-unprescribed { fill: var(--status-stop); }
 .ramp .tick { font-family: var(--font-data); font-size: var(--text-label); fill: var(--ink-tertiary); }
+.ramp .axis-label { font-family: var(--font-data); font-size: var(--text-label); fill: var(--ink-secondary); }
+.ramp .chart-grid { stroke: var(--line-default); stroke-width: 1; }
+.ramp .forecast-seam { stroke: var(--projected-stroke); stroke-width: 1; stroke-dasharray: 4 3; }
 
 /* ==========================================================================
    Map
@@ -717,15 +745,60 @@ body {
    Summary metrics
    ========================================================================== */
 
-.fc-summary { display: flex; gap: var(--space-6); flex-wrap: wrap; padding: var(--space-3); background: var(--surface-sunken); border: var(--border-width) solid var(--line-default); border-radius: var(--radius-surface); }
-.fc-metric { display: flex; flex-direction: column; }
-.fc-value { font-size: var(--text-subtitle); font-weight: var(--weight-semibold); }
+.fc-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  background: var(--surface-panel);
+  border: var(--border-width) solid var(--line-default);
+  border-radius: var(--radius-surface);
+  overflow: hidden;
+}
+.fc-metric {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 88px;
+  padding: var(--space-4) var(--space-5);
+  border-right: var(--border-width) solid var(--line-hairline);
+}
+.fc-metric:last-child { border-right: 0; }
+.fc-value { font-size: var(--text-subtitle); font-weight: var(--weight-bold); }
 .fc-value[data-kind="safe"] { color: var(--mismatch-under); }
 .fc-value[data-kind="permissive"] { color: var(--mismatch-over); }
 .fc-label { font-size: var(--text-caption); color: var(--ink-secondary); }
-.fc-days { display: inline-flex; gap: 3px; }
-.fc-dot { width: 10px; height: 10px; border-radius: var(--radius-control); background: var(--status-cleared); }
-.fc-dot[data-ok="false"] { background: var(--status-restricted); }
+.fc-days { display: inline-flex; gap: var(--space-1); }
+.fc-day {
+  min-width: 48px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-1);
+  border-radius: var(--radius-control);
+  background: var(--status-cleared-bg);
+  color: var(--status-cleared);
+  line-height: var(--leading-tight);
+}
+.fc-day[data-ok="false"] { background: var(--status-restricted-bg); color: var(--status-restricted); }
+.fc-day-date { font-size: var(--text-label); }
+.fc-day-value { font-size: var(--text-label); }
+
+/* ===========================================================================
+   Settings
+   ========================================================================== */
+
+.settings-grid {
+  width: min(1100px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
+  align-items: start;
+  gap: var(--space-5);
+}
+.settings-grid > .sect {
+  padding: var(--space-5);
+  background: var(--surface-panel);
+  border: var(--border-width) solid var(--line-default);
+  border-radius: var(--radius-surface);
+}
 
 /* ==========================================================================
    Status bar and toast
@@ -811,4 +884,7 @@ body {
   .statusbar { display: none; }
   .view-head { align-items: flex-start; flex-direction: column; gap: var(--space-1); }
   .view { padding: var(--space-5) var(--space-4) var(--space-7); }
+  .wk-head { grid-template-columns: 1fr; gap: var(--space-4); }
+  .wk-facts { grid-template-columns: repeat(2, minmax(100px, 1fr)); }
+  .settings-grid { grid-template-columns: 1fr; }
 }

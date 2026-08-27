@@ -73,15 +73,18 @@ function describeSpark(records) {
 
 function rampStrip(records) {
   const ns = 'http://www.w3.org/2000/svg';
-  const CELL = 30;
-  const HEAT = 78;
-  const TOP = 4;
-  const HEIGHT = TOP + HEAT + 16;
-  const width = records.length * CELL;
+  const WIDTH = 960;
+  const HEIGHT = 208;
+  const LEFT = 44;
+  const RIGHT = 12;
+  const TOP = 18;
+  const BOTTOM = 38;
+  const PLOT_HEIGHT = HEIGHT - TOP - BOTTOM;
+  const CELL = (WIDTH - LEFT - RIGHT) / Math.max(1, records.length);
 
   const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', `0 0 ${width} ${HEIGHT}`);
-  svg.setAttribute('preserveAspectRatio', 'xMinYMid meet');
+  svg.setAttribute('viewBox', `0 0 ${WIDTH} ${HEIGHT}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   svg.setAttribute('class', 'ramp');
   svg.setAttribute('role', 'img');
   svg.setAttribute('aria-label',
@@ -93,20 +96,34 @@ function rampStrip(records) {
     return node;
   };
 
+  [22, 29, 36].forEach((value) => {
+    const y = TOP + PLOT_HEIGHT
+      - ((value - SPARK_FLOOR) / (SPARK_CEIL - SPARK_FLOOR)) * PLOT_HEIGHT;
+    svg.appendChild(make('line', {
+      class: 'chart-grid', x1: LEFT, y1: y, x2: WIDTH - RIGHT, y2: y,
+    }));
+    const label = make('text', {
+      class: 'axis-label', x: LEFT - 8, y: y + 4, 'text-anchor': 'end',
+    });
+    label.textContent = `${value}°`;
+    svg.appendChild(label);
+  });
+
   records.forEach((record, index) => {
-    const x = index * CELL;
+    const x = LEFT + index * CELL;
     svg.appendChild(make('rect', {
       class: record.projected ? 'cell cell-proj' : 'cell',
-      x: x + 0.5, y: TOP, width: CELL - 1, height: HEAT,
+      x: x + 1, y: TOP, width: CELL - 2, height: PLOT_HEIGHT,
     }));
     const peak = record.peakWbgt;
     if (peak !== null && peak !== undefined) {
       const clamped = Math.max(SPARK_FLOOR, Math.min(SPARK_CEIL, peak));
       const h = Math.max(2,
-        ((clamped - SPARK_FLOOR) / (SPARK_CEIL - SPARK_FLOOR)) * HEAT);
+        ((clamped - SPARK_FLOOR) / (SPARK_CEIL - SPARK_FLOOR)) * PLOT_HEIGHT);
       const bar = make('rect', {
         class: record.projected ? 'bar bar-proj' : 'bar',
-        x: x + 3, y: TOP + HEAT - h, width: CELL - 6, height: h,
+        x: x + 6, y: TOP + PLOT_HEIGHT - h,
+        width: Math.max(8, CELL - 12), height: h,
       });
       bar.setAttribute('data-status', record.status);
       const title = document.createElementNS(ns, 'title');
@@ -118,31 +135,46 @@ function rampStrip(records) {
     }
     if (record.unprescribedWork) {
       svg.appendChild(make('circle', {
-        class: 'flag-unprescribed', cx: x + CELL / 2, cy: TOP + 6, r: 3.2,
+        class: 'flag-unprescribed', cx: x + CELL / 2, cy: TOP + 8, r: 4,
       }));
     }
     const tick = make('text', {
       class: 'tick', x: x + CELL / 2, y: HEIGHT - 4, 'text-anchor': 'middle',
     });
-    tick.textContent = record.date.slice(8);
+    tick.textContent = record.date.slice(5);
     svg.appendChild(tick);
   });
 
   const seam = records.filter((r) => !r.projected).length;
-  const point = (r, i) => `${i * CELL + CELL / 2},${TOP + HEAT - 2 - r.adaptationStart * (HEAT - 6)}`;
+  const point = (r, i) => `${LEFT + i * CELL + CELL / 2},${TOP + PLOT_HEIGHT - 4 - r.adaptationStart * (PLOT_HEIGHT - 10)}`;
   if (seam > 1) {
     svg.appendChild(make('polyline', {
       class: 'adapt', points: records.slice(0, seam).map(point).join(' '),
     }));
   }
   if (seam < records.length) {
+    const seamX = LEFT + seam * CELL;
+    svg.appendChild(make('line', {
+      class: 'forecast-seam', x1: seamX, y1: TOP,
+      x2: seamX, y2: TOP + PLOT_HEIGHT,
+    }));
     const from = Math.max(seam - 1, 0);
     svg.appendChild(make('polyline', {
       class: 'adapt adapt-proj',
       points: records.slice(from).map((r, i) => point(r, from + i)).join(' '),
     }));
   }
-  return svg;
+  const legend = el('div', 'chart-legend');
+  [['chart-key chart-key-bar', 'Peak WBGT'],
+   ['chart-key chart-key-line', 'Adaptation'],
+   ['chart-key chart-key-forecast', 'Forecast']].forEach(([className, label]) => {
+    const item = el('span', 'chart-legend-item');
+    item.append(el('span', className), el('span', null, label));
+    legend.appendChild(item);
+  });
+  const wrap = el('div', 'history-chart');
+  wrap.append(legend, svg);
+  return wrap;
 }
 
 /* --- Shared cells --------------------------------------------------------------- */
@@ -346,6 +378,9 @@ export function siteView(ctx, siteId) {
   root.appendChild(breadcrumb([
     { label: 'Sites', href: '#/sites' }, { label: site.name },
   ]));
+  const crewCount = store.crews(siteId).length;
+  root.appendChild(pageHeader(site.name,
+    `${crewCount} ${crewCount === 1 ? 'crew' : 'crews'} at this site`));
   const freshness = weatherFreshness(site);
   if (freshness) root.appendChild(freshness);
 
@@ -414,6 +449,9 @@ export function crewView(ctx, siteId, crewId) {
     { label: site.name, href: `#/site/${siteId}` },
     { label: crew.name },
   ]));
+  const crewWorkers = store.workers(crewId).length;
+  root.appendChild(pageHeader(crew.name,
+    `${site.name}. ${crewWorkers} ${crewWorkers === 1 ? 'worker' : 'workers'}`));
   const freshness = weatherFreshness(site);
   if (freshness) root.appendChild(freshness);
 
@@ -496,6 +534,8 @@ export function workerView(ctx, siteId, crewId, workerId) {
     { label: crew ? crew.name : 'Missing crew', href: `#/site/${siteId}/crew/${crewId}` },
     { label: worker.name },
   ]));
+  root.appendChild(pageHeader(worker.name,
+    `${crew ? crew.name : 'Worker'} crew at ${site ? site.name : 'this site'}`));
 
   if (result.unavailable) {
     root.appendChild(noWeatherBanner(ctx, site));
@@ -536,7 +576,10 @@ export function workerView(ctx, siteId, crewId, workerId) {
   const historyLabel = result.projected.length
     ? `${result.observed.length} observed days and ${result.projected.length} forecast days`
     : `${result.observed.length} observed days`;
-  root.appendChild(section(historyLabel, rampStrip(result.records)));
+  const history = section('Work capacity history', rampStrip(result.records));
+  history.classList.add('worker-history');
+  history.insertBefore(el('p', 'section-description', historyLabel), history.children[1]);
+  root.appendChild(history);
 
   /* Day log ------------------------------------------------------------------ */
   const logRows = result.observed.slice().reverse();

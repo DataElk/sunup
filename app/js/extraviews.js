@@ -143,15 +143,18 @@ export function performanceView(ctx) {
         } },
       { label: 'Mean error (min)', width: '120px', numeric: true,
         render: (r) => r.degenerate ? '' : String(r.meanAbs) },
-      { label: 'Days', width: '150px',
+      { label: 'Projected / actual', width: '280px',
         render: (r) => {
           const wrap = el('span', 'fc-days');
           for (const pair of r.pairs) {
-            const dot = el('span', 'fc-dot');
-            dot.setAttribute('data-ok', String(pair.bandMatched));
-            dot.title = `${pair.date}: projected ${pair.predicted}, `
+            const day = el('span', 'fc-day');
+            day.setAttribute('data-ok', String(pair.bandMatched));
+            day.title = `${pair.date}: projected ${pair.predicted}, `
               + `actual ${pair.actual}`;
-            wrap.appendChild(dot);
+            day.append(
+              el('span', 'fc-day-date', pair.date.slice(5)),
+              el('span', 'fc-day-value num', `${pair.predicted}/${pair.actual}`));
+            wrap.appendChild(day);
           }
           return wrap;
         } },
@@ -182,9 +185,11 @@ function metric(value, label, kind) {
 export function settingsView(ctx) {
   const root = el('div', 'view');
   const state = store.getState();
-  root.appendChild(pageHeader('Settings'));
+  root.appendChild(pageHeader('Settings', 'Weather access and browser data'));
+  const settingsGrid = el('div', 'settings-grid');
+  root.appendChild(settingsGrid);
 
-  root.appendChild(section('Live weather', (() => {
+  settingsGrid.appendChild(section('Live weather', (() => {
     const wrap = el('div', 'stack');
     const configured = liveWeather.hasConfiguredKey();
     const key = input('', {
@@ -202,10 +207,12 @@ export function settingsView(ctx) {
     save.type = 'button';
     test.type = 'button';
     clearKey.type = 'button';
+    save.disabled = true;
     test.disabled = !configured;
     clearKey.disabled = !configured;
     key.addEventListener('input', () => {
       const entered = Boolean(key.value.trim());
+      save.disabled = !entered;
       test.textContent = entered ? 'Save and test' : 'Test saved key';
       test.disabled = !entered && !liveWeather.hasConfiguredKey();
     });
@@ -215,6 +222,7 @@ export function settingsView(ctx) {
         liveWeather.saveKey(key.value);
         key.value = '';
         key.placeholder = 'Saved key is hidden';
+        save.disabled = true;
         keyStatus.textContent = 'A key is saved in this browser. Test it before creating a live site.';
         test.disabled = false;
         clearKey.disabled = false;
@@ -230,6 +238,7 @@ export function settingsView(ctx) {
           liveWeather.saveKey(key.value);
           key.value = '';
           key.placeholder = 'Saved key is hidden';
+          save.disabled = true;
           clearKey.disabled = false;
           keyStatus.textContent = 'The entered key was saved. Testing it now.';
         }
@@ -267,7 +276,7 @@ export function settingsView(ctx) {
     return wrap;
   })()));
 
-  root.appendChild(section('Data', (() => {
+  settingsGrid.appendChild(section('Browser data', (() => {
     const wrap = el('div', 'stack');
     const counts = el('dl', 'kv');
     counts.append(

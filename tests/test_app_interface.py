@@ -456,6 +456,19 @@ def test_today_is_the_default_start_of_shift_view():
     assert "Log previous day" in today
 
 
+def test_every_entity_route_has_a_real_page_heading():
+    views = strip_comments(read("js", "views.js"))
+    site = views[views.index("export function siteView"):
+                 views.index("export function crewView")]
+    crew = views[views.index("export function crewView"):
+                 views.index("export function workerView")]
+    worker = views[views.index("export function workerView"):
+                   views.index("function fact")]
+    assert "pageHeader(site.name" in site
+    assert "pageHeader(crew.name" in crew
+    assert "pageHeader(worker.name" in worker
+
+
 def test_a_whole_crew_can_be_closed_out_without_selecting_workers():
     app = strip_comments(read("js", "app.js"))
     crew_commands = app[app.index("if (current.view === 'crew')"):
@@ -637,6 +650,17 @@ def test_model_performance_has_no_decorative_selection_controls():
     block = performance[performance.index("export function performanceView"):
                         performance.index("function metric")]
     assert "selectable: false" in block
+    assert "Projected / actual" in block
+    assert "fc-day-value" in block
+    assert "fc-dot" not in block
+
+
+def test_settings_groups_weather_and_browser_data():
+    source = strip_comments(read("js", "extraviews.js"))
+    settings = source[source.index("export function settingsView"):]
+    assert "settings-grid" in settings
+    assert "Weather access and browser data" in settings
+    assert "save.disabled = !entered" in settings
 
 
 # ---------------------------------------------------------------------------
