@@ -432,7 +432,7 @@ export function editDayLog(workerId, date, after) {
 
   const minutes = input(entry ? entry.minutes : '', {
     type: 'number', min: '0', max: '1440', step: '5',
-    placeholder: 'blank = no entry',
+    placeholder: 'Not recorded',
   });
   const note = input(entry ? entry.note : '', { placeholder: 'Optional' });
 
