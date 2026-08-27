@@ -8,8 +8,8 @@ The visual direction, the component inventory, and the rules that keep them inta
 ## Direction
 
 **Microsoft Fluent.** Cool neutrals, Fluent communication blue as the single
-interactive accent, Segoe UI, hairline borders instead of shadows, near-zero radius,
-dense professional layout.
+interactive accent, Segoe UI, hairline borders instead of shadows, restrained radius,
+and readable professional density.
 
 This is a Microsoft-family enterprise tool and it should look like one. The user is a
 safety professional doing their job on a workstation, not a consumer being delighted.
@@ -34,20 +34,20 @@ things, and Fluent refuses them by default rather than by exception.
 
 ## The shell
 
-Three levels of master and detail, which is the arrangement Outlook, the Azure Portal
-and SharePoint admin all use. The frame is fixed so that a new view is a rail entry plus
-a content component, never a restructuring.
+One navigation surface combines primary destinations with the site and crew tree.
+This follows Fluent's guidance that high-level navigation can contain a tree in its
+flexible region, while keeping the content pane as the largest part of the screen.
 
 ```
-+----+----------------+-------------------------------------------+
-|    | nav pane 280px | command bar 40px, commands enable on       |
-|rail|                | selection                                  |
-|48px| sites          +-------------------------------------------+
-|    |   crews        | breadcrumb                                 |
-|    |                | content: DetailsList, or one worker        |
-+----+----------------+-------------------------------------------+
-|  status bar 24px: date / source / model / store                  |
-+------------------------------------------------------------------+
++-------------------+---------------------------------------------+
+| Sunup             | contextual command bar 48px                 |
+| primary nav       +---------------------------------------------+
+|                   | page title and context                      |
+| sites             |                                             |
+|   crews           | content: DetailsList, map, or worker        |
+|                   |                                             |
+| data status       |                                             |
++-------------------+---------------------------------------------+
 ```
 
 Rules the shell exists to enforce:
@@ -57,7 +57,7 @@ Rules the shell exists to enforce:
 2. Commands live in one bar and enable on selection. They do not appear and disappear,
    because a toolbar that reflows under the cursor cannot be learned.
 3. No ribbon. A ribbon is a command surface for an application with dozens of commands
-   over a large data canvas. This has a handful, so a 40px bar is the correct weight.
+   over a large data canvas. This has a handful, so a 48px contextual bar is the correct weight.
 4. Every level is addressable. `#/site/:id/crew/:id/worker/:id` survives a hard refresh,
    and the breadcrumb is the way back up.
 
@@ -93,12 +93,12 @@ variant into a screen. That is how a design system dies.
 
 | Component | Purpose | Notes |
 | --- | --- | --- |
-| `NavRail` | Left icon rail, one entry per workspace | `--rail-width`, drawn SVG icons, current item marked |
-| `NavPane` | Site and crew tree | 280px, 28px rows, twisty, icon, label, count, status dot |
-| `CommandBar` | Single command surface | 40px, 32px controls, icon and label, divider before destructive commands, overflow menu |
+| `SideNav` | Product identity, primary destinations, entity tree, and data status | 272px desktop, 64px compact, drawn SVG icons |
+| `NavTree` | Site and crew hierarchy within the side navigation | 36px rows, twisty, icon, label, count, status dot |
+| `CommandBar` | Single contextual command surface | 48px, 36px controls, icon and label, divider before destructive commands, overflow menu |
 | `Breadcrumb` | The way up from a nested view | Links every level except the current one |
-| `DetailsList` | The working grid | 32px sortable header with a caret, 28px check column, 36px rows |
-| `StatusChip` | Prescription severity | `--radius-control`, from the `--status-*` scale |
+| `DetailsList` | The working grid | 40px sortable header with a caret, 28px check column, 44px rows |
+| `StatusChip` | Prescription severity | Compact pill with a status dot, from the `--status-*` scale |
 | `Tag` | Provenance and state marks: seed, derived, override, assumed | `--font-data`, never carries severity |
 | `Sparkline` | 14 days in 86px, on a grid row | Height is peak WBGT, fill is the status band |
 | `RampStrip` | The signature. Day cells with the adaptation line | Worker detail only, where there is room to read it |
@@ -106,7 +106,7 @@ variant into a screen. That is how a design system dies.
 | `Callout` | A state the user must act on or account for | Kinds: info, warn, danger, assumed |
 | `MapCanvas` | Exceedance choropleth and selection surface | Canvas, `--heat-*` ramp, quantile classes, crew markers are clickable |
 | `MapBasemap` | Offline locator layer | `--map-road-*`, `--map-river`, `--map-park`. Build-time OSM fetch, cached |
-| `StatusBar` | Persistent bottom strip | Date, source, model assumptions, store size |
+| `DataStatus` | Persistent side navigation footer | Date, source, and browser store size |
 
 Retired with the demonstration screen it belonged to: `Drawer` as a permanent detail
 surface, `CrewStrip`, `Card`, `Counterfactual` as a standalone component, `ReasonTag`,
@@ -121,8 +121,8 @@ These map onto lint rules. A violation fails the build.
 
 1. **No literal colour anywhere but `tokens.css`.** No hex, no `rgb()`. If the colour
    you need does not exist, add it as a *role*, not a value.
-2. **No radius above 4px.** `--radius-control` (2px) for controls,
-   `--radius-surface` (4px) for surfaces. Nothing else exists.
+2. **No arbitrary radius.** `--radius-control` (2px) for controls,
+   `--radius-surface` (4px) for surfaces, and `--radius-pill` only for compact badges.
 3. **Shadows are Fluent depth tokens only**: `--elevation-card`, `--elevation-flyout`,
    `--elevation-dialog`. Inline elements use borders.
 4. **No gradients, no backdrop blur.**
@@ -202,8 +202,8 @@ The desktop safety-manager view and the field supervisor view are the same token
 same components and the same facts. Set `data-density="touch"` on the root; never write
 a second stylesheet.
 
-- Desktop: 14px body, 48px rail, 36px rows.
-- Field: 16px body, 56px rail, 44px rows, nothing tappable under 44px.
+- Desktop: 14px body, 272px side navigation, 44px rows.
+- Field: 16px body, 64px compact navigation, 64px rows, nothing tappable under 44px.
 
 A density changes the metrics of the grid. It does not change the grid into something
 else. An earlier draft of this page required a different layout at touch density, and

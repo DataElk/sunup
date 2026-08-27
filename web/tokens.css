@@ -160,11 +160,12 @@
   --space-8: 48px;
 
   /* ==========================================================================
-     10. RADIUS: Fluent: 2px controls, 4px surfaces. No more.
+     10. RADIUS: restrained surfaces, with a pill reserved for compact status.
      ====================================================================== */
   --radius-none:    0;
   --radius-control: 2px;
   --radius-surface: 4px;
+  --radius-pill: 999px;
 
   /* ==========================================================================
      11. ELEVATION: Fluent depth. Inline elements use borders, not shadows.
@@ -183,13 +184,13 @@
      12. SHELL: the layout frame, built so views can be added without
      restructuring. Each new view is a rail entry plus a content component.
      ====================================================================== */
-  --rail-width:       48px;   /* icon navigation rail, left edge             */
-  --rail-width-open: 200px;   /* expanded with labels                        */
-  --toolbar-height:   40px;   /* slim command bar, NOT a ribbon             */
-  --statusbar-height: 24px;
-  --drawer-width:    380px;   /* detail drawer, opens on demand only         */
+  --rail-width:       64px;   /* compact navigation at narrow widths         */
+  --rail-width-open: 272px;   /* one navigation surface, including tree      */
+  --toolbar-height:   48px;   /* compact action surface                      */
+  --statusbar-height: 64px;
+  --drawer-width:    440px;   /* editor with room for labels and maps        */
 
-  --control-height:     32px;
+  --control-height:     36px;
   --row-height:         44px;
   --row-height-relaxed: 56px;
   --border-width:        1px;

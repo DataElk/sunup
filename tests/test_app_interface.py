@@ -490,12 +490,12 @@ def test_the_shell_has_a_command_bar_a_tree_and_breadcrumbs():
     assert "export function detailsList" in ui
 
 
-def test_desktop_navigation_shows_labels_and_collapses_on_narrow_screens():
+def test_desktop_navigation_is_one_surface_and_collapses_on_narrow_screens():
     css = read("styles", "components.css")
-    assert "grid-template-columns: var(--rail-width-open)" in css
+    assert "grid-template-columns: var(--rail-width-open) minmax(0, 1fr)" in css
+    assert ".sidenav {" in css
     assert ".rail-label {" in css
     narrow = css[css.index("@media (max-width: 900px)"):]
-    assert '.shell[data-tree="false"]' in narrow
     assert "grid-template-columns: var(--rail-width)" in narrow
     assert ".rail-label { display: none; }" in narrow
 
@@ -520,15 +520,14 @@ def test_commands_enable_on_selection_rather_than_appearing():
     assert "enabled: () =>" in app
 
 
-def test_the_grid_rows_are_dense():
+def test_the_grid_rows_use_the_readable_row_token():
     css = read("styles", "components.css")
-    # The standalone rule, not the `.dl-head, .dl-row` block that shares layout.
     match = re.search(r"^\.dl-row \{(.*?)\}", css, flags=re.S | re.M)
     assert match, "no standalone .dl-row rule"
-    height = re.search(r"height:\s*(\d+)px", match.group(1))
-    assert height, match.group(1)
-    assert 32 <= int(height.group(1)) <= 40, height.group(1)
-    # Field density is allowed to be taller, but it is the same grid.
+    assert "height: var(--row-height)" in match.group(1)
+    with open(os.path.join(ROOT, "web", "tokens.css"), encoding="utf-8") as source:
+        tokens = source.read()
+    assert "--row-height:         44px" in tokens
     assert '[data-density="touch"] .dl-row' in css
 
 

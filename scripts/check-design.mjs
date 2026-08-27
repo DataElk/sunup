@@ -56,9 +56,8 @@ const RULES = [
     // whitespace INSIDE the lookahead removes the backtracking path. Verified:
     // correct token usage passes, literal radii are still caught.
     pattern: /border-radius\s*:(?!\s*(?:0|2px|4px|var\())|rounded-(?:lg|xl|2xl|3xl|full)/g,
-    why: 'Radius above 4px. Rounded cards are the strongest single tell of a ' +
-         'templated dashboard. Fluent allows --radius-control (2px) for controls ' +
-         'and --radius-surface (4px) for surfaces. Nothing else exists.',
+    why: 'Literal radius above 4px. Surfaces use restrained radius tokens; compact ' +
+         'status badges may use --radius-pill so their shape communicates their role.',
   },
   {
     id: 'no-ad-hoc-shadow',

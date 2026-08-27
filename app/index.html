@@ -11,14 +11,25 @@
 
 <div class="shell" id="shell">
 
-  <!-- Rail: one entry per workspace -------------------------------------- -->
-  <nav class="rail" id="rail" aria-label="Workspaces"></nav>
+  <!-- One navigation surface for the product, workspaces, and entity tree. -->
+  <aside class="sidenav">
+    <a class="brand" href="#/today" aria-label="Sunup home">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <span class="brand-copy">
+        <strong>Sunup</strong>
+        <span>Heat work planner</span>
+      </span>
+    </a>
 
-  <!-- Nav pane: sites and crews ------------------------------------------ -->
-  <div class="navpane">
-    <div class="navpane-head" id="tree-title">Sites and crews</div>
-    <div class="navpane-body" id="tree"></div>
-  </div>
+    <nav class="rail" id="rail" aria-label="Primary navigation"></nav>
+
+    <div class="navpane">
+      <div class="navpane-head" id="tree-title">Sites and crews</div>
+      <div class="navpane-body" id="tree"></div>
+    </div>
+
+    <footer class="statusbar" id="statusbar"></footer>
+  </aside>
 
   <!-- Main: command bar over content -------------------------------------- -->
   <main class="main">
@@ -26,8 +37,6 @@
     <div class="content" id="content"></div>
   </main>
 
-  <!-- Status bar ----------------------------------------------------------- -->
-  <footer class="statusbar" id="statusbar"></footer>
 </div>
 
 <script src="data/constants.js"></script>
