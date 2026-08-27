@@ -253,6 +253,9 @@ def test_key_test_distinguishes_rejection_from_service_failure():
     settings = strip_comments(read("js", "extraviews.js"))
     assert "A key is saved in this browser" in settings
     assert "Test saved key" in settings
+    assert "Save and test" in settings
+    assert "if (key.value.trim())" in settings
+    assert "liveWeather.saveKey(key.value)" in settings
 
 
 def test_today_is_the_real_arizona_date_not_the_fixture_date():

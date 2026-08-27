@@ -204,6 +204,11 @@ export function settingsView(ctx) {
     clearKey.type = 'button';
     test.disabled = !configured;
     clearKey.disabled = !configured;
+    key.addEventListener('input', () => {
+      const entered = Boolean(key.value.trim());
+      test.textContent = entered ? 'Save and test' : 'Test saved key';
+      test.disabled = !entered && !liveWeather.hasConfiguredKey();
+    });
 
     save.addEventListener('click', () => {
       try {
@@ -221,6 +226,13 @@ export function settingsView(ctx) {
     test.addEventListener('click', async () => {
       test.disabled = true;
       try {
+        if (key.value.trim()) {
+          liveWeather.saveKey(key.value);
+          key.value = '';
+          key.placeholder = 'Saved key is hidden';
+          clearKey.disabled = false;
+          keyStatus.textContent = 'The entered key was saved. Testing it now.';
+        }
         await liveWeather.testKey(compute.today());
         keyStatus.textContent = 'The saved key authenticated successfully.';
         toast('Key authenticated. Live weather is available.');
@@ -228,6 +240,7 @@ export function settingsView(ctx) {
         keyStatus.textContent = `The key test failed: ${error.message}`;
         toast(error.message);
       } finally {
+        test.textContent = 'Test saved key';
         test.disabled = false;
       }
     });
