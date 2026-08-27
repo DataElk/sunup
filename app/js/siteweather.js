@@ -233,7 +233,10 @@ export async function startSiteBackfill(siteId) {
   if (inflight.has(siteId)) return true;
   inflight.add(siteId);
 
-  const asOf = phoenixToday();
+  // FortyGuard heatmaps are historical. End observations on the last complete
+  // Arizona day, then begin the Open-Meteo forecast on today.
+  const today = phoenixToday();
+  const asOf = moveDate(today, -1);
   updateProgress(siteId, {
     weatherDates: observedDateWindow(asOf),
     weatherForecastDates: forecastDateWindow(asOf),

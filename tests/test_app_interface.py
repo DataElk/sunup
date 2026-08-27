@@ -233,6 +233,28 @@ def test_live_sites_use_a_rolling_history_and_real_forecast_series():
     assert "hourly: lastHourly" not in compute
 
 
+def test_live_weather_stops_on_the_last_complete_arizona_day():
+    site_weather = strip_comments(read("js", "siteweather.js"))
+    start = site_weather[site_weather.index("export async function startSiteBackfill"):]
+    assert "const today = phoenixToday()" in start
+    assert "const asOf = moveDate(today, -1)" in start
+    assert "weatherDates: observedDateWindow(asOf)" in start
+    assert "weatherForecastDates: forecastDateWindow(asOf)" in start
+
+
+def test_key_test_distinguishes_rejection_from_service_failure():
+    client = strip_comments(read("js", "liveweather.js"))
+    test_key = client[client.index("export async function testKey"):
+                      client.index("export async function submitHeatmap")]
+    assert "const date = previousDate(asOfDate)" in test_key
+    assert "error.status === 401 || error.status === 403" in test_key
+    assert "error.status >= 500" in test_key
+    assert "Key authentication failed" not in test_key
+    settings = strip_comments(read("js", "extraviews.js"))
+    assert "A key is saved in this browser" in settings
+    assert "Test saved key" in settings
+
+
 def test_today_is_the_real_arizona_date_not_the_fixture_date():
     compute = strip_comments(read("js", "compute.js"))
     today = compute[compute.index("export function today"):

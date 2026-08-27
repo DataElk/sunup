@@ -186,29 +186,34 @@ export function settingsView(ctx) {
 
   root.appendChild(section('Live weather', (() => {
     const wrap = el('div', 'stack');
+    const configured = liveWeather.hasConfiguredKey();
     const key = input('', {
       type: 'password', autocomplete: 'new-password',
-      placeholder: liveWeather.hasConfiguredKey() ? 'Key saved in this browser' : 'Enter key',
+      placeholder: configured ? 'Saved key is hidden' : 'Enter key',
     });
+    const keyStatus = el('p', 'muted', configured
+      ? 'A key is saved in this browser. Test it before creating a live site.'
+      : 'No key is saved in this browser.');
+    keyStatus.setAttribute('role', 'status');
     const actions = el('div', 'callout-actions');
     const save = el('button', 'btn btn-primary', 'Save key');
-    const test = el('button', 'btn', 'Test key');
+    const test = el('button', 'btn', 'Test saved key');
     const clearKey = el('button', 'btn btn-danger', 'Remove key');
     save.type = 'button';
     test.type = 'button';
     clearKey.type = 'button';
-    test.disabled = !liveWeather.hasConfiguredKey();
-    clearKey.disabled = !liveWeather.hasConfiguredKey();
+    test.disabled = !configured;
+    clearKey.disabled = !configured;
 
     save.addEventListener('click', () => {
       try {
         liveWeather.saveKey(key.value);
         key.value = '';
-        key.placeholder = 'Key saved in this browser';
+        key.placeholder = 'Saved key is hidden';
+        keyStatus.textContent = 'A key is saved in this browser. Test it before creating a live site.';
         test.disabled = false;
         clearKey.disabled = false;
         toast('Key saved in this browser');
-        ctx.refresh();
       } catch (error) {
         toast(error.message);
       }
@@ -217,8 +222,10 @@ export function settingsView(ctx) {
       test.disabled = true;
       try {
         await liveWeather.testKey(compute.today());
+        keyStatus.textContent = 'The saved key authenticated successfully.';
         toast('Key authenticated. Live weather is available.');
       } catch (error) {
+        keyStatus.textContent = `The key test failed: ${error.message}`;
         toast(error.message);
       } finally {
         test.disabled = false;
@@ -229,10 +236,10 @@ export function settingsView(ctx) {
         liveWeather.clearKey();
         key.value = '';
         key.placeholder = 'Enter key';
+        keyStatus.textContent = 'No key is saved in this browser.';
         test.disabled = true;
         clearKey.disabled = true;
         toast('Key removed from this browser');
-        ctx.refresh();
       } catch (error) {
         toast(error.message);
       }
@@ -241,6 +248,7 @@ export function settingsView(ctx) {
     wrap.append(
       field('API key', key,
         'Saved only in this browser. It is not included in store exports or reset data.'),
+      keyStatus,
       actions);
     actions.append(save, test, clearKey);
     return wrap;

@@ -42,7 +42,9 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(`Live weather request failed (${response.status}).`);
+    const error = new Error(`Live weather request failed (${response.status}).`);
+    error.status = response.status;
+    throw error;
   }
 
   try {
@@ -74,8 +76,15 @@ export function clearKey() {
   }
 }
 
-/** Submit a small real request. A successful activity id proves authentication. */
-export async function testKey(date) {
+function previousDate(date) {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() - 1);
+  return value.toISOString().slice(0, 10);
+}
+
+/** Submit a small completed-hour request. An activity id proves authentication. */
+export async function testKey(asOfDate) {
+  const date = previousDate(asOfDate);
   const payload = {
     polygon_aoi: {
       type: 'FeatureCollection',
@@ -100,8 +109,17 @@ export async function testKey(date) {
     response = await request('/v1/heatmap', {
       method: 'POST', body: JSON.stringify(payload),
     });
-  } catch {
-    throw new Error('Key authentication failed. Check the key and connection.');
+  } catch (error) {
+    if (error && (error.status === 401 || error.status === 403)) {
+      throw new Error('The saved API key was rejected. Check or replace the key.');
+    }
+    if (error && error.status === 429) {
+      throw new Error('FortyGuard is rate-limiting this key. Try again shortly.');
+    }
+    if (error && error.status >= 500) {
+      throw new Error('FortyGuard could not complete the key test. Try again shortly.');
+    }
+    throw error;
   }
   if (!response || !response.data || !response.data.activity_id) {
     throw new Error('The live weather service did not accept the key.');
