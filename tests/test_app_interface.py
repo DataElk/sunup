@@ -475,11 +475,26 @@ def test_today_is_the_default_start_of_shift_view():
     today = views[views.index("function todayAttention"):
                   views.index("export function sitesView")]
     assert "pageHeader('Today'" in today
-    for label in ("Prescribed (min)", "Calendar (min)", "Status", "Attention"):
+    for label in ("Plan (min)", "Calendar", "vs prior", "Status",
+                  "Next action"):
         assert f"label: '{label}'" in today
     assert "worker.active !== false" in today
     assert "selectable: false" in today
-    assert "Log prior day" in today
+    assert "Close out ${row.previous.date.slice(5)}" in today
+    assert "recommendationFor(result)" in today
+    assert "+${row.recommendation.gain} min" in today
+    assert "Compared with ${row.previous.date}" in today
+
+
+def test_site_and_crew_rollups_count_workers_who_need_action():
+    compute = strip_comments(read("js", "compute.js"))
+    assert "function needsCloseout" in compute
+    assert "actionRequired: rows.filter" in compute
+    assert "actionRequired: crews.reduce" in compute
+    views = strip_comments(read("js", "views.js"))
+    sites = views[views.index("export function sitesView"):
+                  views.index("export function crewView")]
+    assert sites.count("label: 'Action'") == 2
 
 
 def test_every_entity_route_has_a_real_page_heading():

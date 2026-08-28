@@ -145,6 +145,12 @@ function trailingAssumed(observed) {
 
 const SEVERITY = { stop: 0, restricted: 1, reduced: 2, cleared: 3 };
 
+function needsCloseout(result) {
+  if (!result || result.unavailable) return false;
+  const prior = result.observed.filter((record) => record.date < result.current.date);
+  return Boolean(prior.length && prior[prior.length - 1].assumed);
+}
+
 export function forCrew(crewId) {
   const rows = store.workers(crewId)
     .filter((w) => w.active !== false)
@@ -167,6 +173,9 @@ export function forCrew(crewId) {
     stopped: usable.filter((r) => r.current.status === 'stop').length,
     overexposed: usable.filter((r) => r.cumulativeOverexposure > 0).length,
     unprescribed: usable.filter((r) => r.unprescribedDays > 0).length,
+    restricted: usable.filter((r) => r.current.status === 'restricted').length,
+    actionRequired: rows.filter((r) => r.unavailable
+      || r.current.status === 'stop' || needsCloseout(r)).length,
     worstStatus: Object.keys(SEVERITY).find((k) => SEVERITY[k] === worst) || 'cleared',
   };
 }
@@ -184,6 +193,8 @@ export function forSite(siteId) {
     modelMinutes: crews.reduce((s, c) => s + c.modelMinutes, 0),
     calendarMinutes: crews.reduce((s, c) => s + c.calendarMinutes, 0),
     stopped: crews.reduce((s, c) => s + c.stopped, 0),
+    restricted: crews.reduce((s, c) => s + c.restricted, 0),
+    actionRequired: crews.reduce((s, c) => s + c.actionRequired, 0),
     worstStatus: Object.keys(SEVERITY).find((k) => SEVERITY[k] === worst) || 'cleared',
   };
 }

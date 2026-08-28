@@ -438,6 +438,17 @@ body {
 .diverge[data-dir="none"] { color: var(--ink-tertiary); }
 
 .loggedcell { display: inline-flex; align-items: center; gap: var(--space-1); flex-wrap: nowrap; }
+.attention-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.attention-action {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ==========================================================================
    Chips and tags

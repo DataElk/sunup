@@ -696,14 +696,33 @@ function todayMetric(value, label) {
 }
 
 function todayAttention(row) {
-  const wrap = el('span', 'loggedcell');
-  if (row.result.unavailable) wrap.appendChild(tag('Weather needed', 'danger'));
-  if (!row.result.unavailable && row.result.current.status === 'stop') {
-    wrap.appendChild(tag('Stop heat work', 'danger'));
+  const wrap = el('div', 'attention-cell');
+  let action = 'No immediate action';
+  if (row.result.unavailable) {
+    action = `Add weather for ${row.site ? row.site.name : 'this site'}`;
+  } else if (row.recommendation && row.recommendation.earlier) {
+    action = `${pad(row.recommendation.earlier.shiftStart)}:00 start, `
+      + `+${row.recommendation.gain} min`;
+  } else if (row.result.current.status === 'stop') {
+    action = 'Move heat work';
+  } else if (row.missingCloseout) {
+    action = `Close out ${row.previous.date.slice(5)}`;
+  } else if (row.result.current.status === 'restricted') {
+    action = `Use the ${row.result.current.prescribedMinutes} min plan`;
+  } else if (row.result.current.status === 'reduced') {
+    action = 'Protect recovery';
   }
-  if (row.missingCloseout) wrap.appendChild(tag('Log prior day', 'assumed'));
-  if (!wrap.childElementCount) wrap.appendChild(el('span', 'muted', 'Ready'));
+  wrap.appendChild(el('span', 'attention-action', action));
   return wrap;
+}
+
+function todayChange(row) {
+  if (row.result.unavailable || !row.previous) return el('span', 'muted', 'New');
+  const change = row.result.current.prescribedMinutes - row.previous.prescribedMinutes;
+  if (!change) return el('span', 'muted num', 'No change');
+  const value = el('span', 'num', `${change > 0 ? '+' : ''}${change} min`);
+  value.title = `Compared with ${row.previous.date}`;
+  return value;
 }
 
 export function todayView(ctx) {
@@ -721,14 +740,22 @@ export function todayView(ctx) {
       const site = result && result.site ? result.site : (crew ? store.site(crew.siteId) : null);
       const previous = previousObserved(result);
       const missingCloseout = Boolean(previous && previous.assumed);
+      const recommendation = recommendationFor(result);
       const priority = result.unavailable ? 0
-        : (result.current.status === 'stop' ? 1 : (missingCloseout ? 2 : 3));
-      return { worker, result, crew, site, missingCloseout, priority };
+        : (result.current.status === 'stop' ? 1
+          : (missingCloseout ? 2
+            : (result.current.status === 'restricted' ? 3
+              : (result.current.status === 'reduced' ? 4 : 5))));
+      return {
+        worker, result, crew, site, previous, recommendation, missingCloseout, priority,
+      };
     })
     .sort((a, b) => a.priority - b.priority || a.worker.name.localeCompare(b.worker.name));
 
   const usable = rows.filter((row) => !row.result.unavailable);
   const stopped = usable.filter((row) => row.result.current.status === 'stop').length;
+  const restricted = usable.filter(
+    (row) => row.result.current.status === 'restricted').length;
   const missing = rows.filter((row) => row.missingCloseout).length;
   const unavailable = rows.length - usable.length;
   const minutes = usable.reduce((sum, row) => sum + row.result.current.prescribedMinutes, 0);
@@ -737,32 +764,34 @@ export function todayView(ctx) {
   summary.append(
     todayMetric(String(rows.length), 'active workers'),
     todayMetric(`${(minutes / 60).toFixed(1)} h`, 'prescribed for active date'),
-    todayMetric(String(stopped), 'stop work'),
+    todayMetric(String(stopped + unavailable), 'urgent actions'),
+    todayMetric(String(restricted), 'restricted plans'),
     todayMetric(String(missing), 'need closeout'),
     todayMetric(String(unavailable), 'weather unavailable'));
   root.appendChild(summary);
 
   root.appendChild(detailsList({
     columns: [
-      { label: 'Worker', width: '1.4fr', render: (row) => workerNameCell(row.result) },
-      { label: 'Site / crew', width: '1.3fr',
+      { label: 'Worker', width: '1.2fr', render: (row) => workerNameCell(row.result) },
+      { label: 'Site / crew', width: '1.2fr',
         render: (row) => `${row.site ? row.site.name : 'No site'} / ${row.crew ? row.crew.name : 'No crew'}` },
-      { label: 'Date', width: '96px',
+      { label: 'Date', width: '88px',
         render: (row) => row.result.unavailable
           ? compute.currentDateForSite(row.site) : row.result.current.date },
-      { label: 'Shift', width: '96px', numeric: true,
+      { label: 'Shift', width: '94px', numeric: true,
         render: (row) => `${pad(row.worker.shiftStart)}:00-${pad(row.worker.shiftEnd)}:00` },
-      { label: 'Prescribed (min)', width: '136px', numeric: true,
+      { label: 'Plan (min)', width: '80px', numeric: true,
         render: (row) => row.result.unavailable
           ? '' : String(row.result.current.prescribedMinutes) },
-      { label: 'Calendar (min)', width: '104px', numeric: true,
+      { label: 'Calendar', width: '76px', numeric: true,
         render: (row) => row.result.unavailable
           ? '' : String(row.result.current.calendarMinutes) },
-      { label: 'Status', width: '110px',
+      { label: 'vs prior', width: '78px', numeric: true, render: todayChange },
+      { label: 'Status', width: '100px',
         render: (row) => row.result.unavailable
           ? el('span', 'muted', 'Unavailable')
           : chip(row.result.current.status, STATUS_TEXT[row.result.current.status]) },
-      { label: 'Attention', width: '1.4fr', render: todayAttention },
+      { label: 'Next action', width: '2fr', render: todayAttention },
     ],
     rows,
     sort: null,
@@ -807,6 +836,9 @@ export function sitesView(ctx) {
         render: (r) => r.site.weatherSource === 'none' ? '' : `${r.modelMinutes}` },
       { label: 'Calendar (min)', width: '112px', numeric: true,
         render: (r) => r.site.weatherSource === 'none' ? '' : `${r.calendarMinutes}` },
+      { label: 'Action', width: '92px', numeric: true,
+        render: (r) => r.actionRequired
+          ? el('span', 'num danger', String(r.actionRequired)) : '' },
       { label: 'Status', width: '110px',
         render: (r) => r.site.weatherSource === 'none'
           ? el('span', 'muted', 'unavailable')
@@ -868,8 +900,9 @@ export function siteView(ctx, siteId) {
         render: (r) => String(r.modelMinutes) },
       { label: 'Calendar', width: '90px', numeric: true,
         render: (r) => String(r.calendarMinutes) },
-      { label: 'Stopped', width: '80px', numeric: true,
-        render: (r) => r.stopped ? String(r.stopped) : '' },
+      { label: 'Action', width: '80px', numeric: true,
+        render: (r) => r.actionRequired
+          ? el('span', 'num danger', String(r.actionRequired)) : '' },
       { label: 'Flags', width: '220px',
         render: (r) => {
           const wrap = el('span', 'loggedcell');
