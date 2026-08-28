@@ -788,13 +788,20 @@ function todayChange(row) {
     return first;
   }
   const change = row.result.current.prescribedMinutes - row.previous.prescribedMinutes;
-  const direction = change > 0 ? 'up' : (change < 0 ? 'down' : 'same');
-  const label = change > 0
-    ? `Up ${change} min`
-    : (change < 0 ? `Down ${Math.abs(change)} min` : 'No change');
-  const value = el('span', 'change-indicator num', label);
+  if (!change) {
+    const same = el('span', 'change-indicator', 'No change');
+    same.setAttribute('data-direction', 'same');
+    same.title = `No change compared with ${row.previous.date}`;
+    return same;
+  }
+  const direction = change > 0 ? 'up' : 'down';
+  const label = `${Math.abs(change)} min`;
+  const spoken = `${change > 0 ? 'Up' : 'Down'} ${label}`;
+  const value = el('span', 'change-indicator num');
   value.setAttribute('data-direction', direction);
-  value.title = `${label} compared with ${row.previous.date}`;
+  value.setAttribute('aria-label', `${spoken} compared with ${row.previous.date}`);
+  value.title = `${spoken} compared with ${row.previous.date}`;
+  value.append(icon(change > 0 ? 'arrowUp' : 'arrowDown', 12), el('span', null, label));
   return value;
 }
 
@@ -920,7 +927,7 @@ export function todayView(ctx) {
       { label: 'Calendar', width: '76px', numeric: true,
         render: (row) => row.result.unavailable
           ? '' : String(row.result.current.calendarMinutes) },
-      { label: 'Change', width: '112px', numeric: true, render: todayChange },
+      { label: 'Change', width: '92px', numeric: true, render: todayChange },
       { label: 'Plan level', width: '174px',
         render: (row) => row.result.unavailable
           ? el('span', 'muted', 'Unavailable')

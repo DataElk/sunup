@@ -46,6 +46,8 @@ const PATHS = {
   copy: 'M3.5 3.5h6v6h-6zM6.5 6.5h6v6h-6z',
   close: 'M4 4l8 8M12 4l-8 8',
   chevron: 'M6 4l4 4-4 4',
+  arrowUp: 'M8 13V3M4.5 6.5L8 3l3.5 3.5',
+  arrowDown: 'M8 3v10M4.5 9.5L8 13l3.5-3.5',
   download: 'M8 2v8M5 7.5L8 10.5l3-3M3 13h10',
   print: 'M4 6V2.5h8V6M4 11H2.5V6h11v5H12M4 9.5h8v4H4zM11.5 7.5h.01',
   check: 'M3 8.5l3 3 7-7',

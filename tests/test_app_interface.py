@@ -503,8 +503,8 @@ def test_today_is_the_default_start_of_shift_view():
     assert "Close out ${row.previous.date.slice(5)}" in today
     assert "recommendationFor(result)" in today
     assert "+${row.recommendation.gain} min" in today
-    for label in ("Up ${change} min", "Down ${Math.abs(change)} min", "No change",
-                  "First day"):
+    for label in ("'Up' : 'Down'", "${Math.abs(change)} min", "No change",
+                  "First day", "arrowUp", "arrowDown"):
         assert label in today
     for direction in ("up", "down", "same", "new"):
         assert direction in today
