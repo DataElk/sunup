@@ -49,6 +49,61 @@ export function evaluateIntervention({
   };
 }
 
+function siteIdFor(entry) {
+  return entry && (entry.siteId || (entry.site && entry.site.id));
+}
+
+export function suggestIntervention({ sites, currentSiteId, worker, adaptation }) {
+  if (!Array.isArray(sites) || !worker) return null;
+  const currentSite = sites.find((entry) => siteIdFor(entry) === currentSiteId);
+  if (!currentSite) return null;
+
+  const baseline = evaluateIntervention({
+    hourly: currentSite.hourly, worker, adaptation,
+  });
+  if (!baseline) return null;
+
+  const duration = worker.shiftEnd - worker.shiftStart;
+  const firstStart = Math.min(worker.shiftStart, CONSTANTS.defaultShiftStartHour);
+  let best = {
+    siteId: currentSiteId,
+    shiftStart: worker.shiftStart,
+    shiftEnd: worker.shiftEnd,
+    result: baseline,
+    siteChange: 0,
+    shiftChange: 0,
+  };
+
+  sites.forEach((entry) => {
+    const siteId = siteIdFor(entry);
+    if (!siteId || !Array.isArray(entry.hourly)) return;
+    for (let start = firstStart; start <= worker.shiftStart; start += 1) {
+      const end = start + duration;
+      if (end > entry.hourly.length) continue;
+      const result = evaluateIntervention({
+        hourly: entry.hourly,
+        worker,
+        adaptation,
+        shiftStart: start,
+        shiftEnd: end,
+      });
+      if (!result) continue;
+      const siteChange = siteId === currentSiteId ? 0 : 1;
+      const shiftChange = Math.abs(start - worker.shiftStart);
+      const improvesWork = result.plannedMinutes > best.result.plannedMinutes;
+      const sameWork = result.plannedMinutes === best.result.plannedMinutes;
+      const lessDisruption = siteChange < best.siteChange
+        || (siteChange === best.siteChange && shiftChange < best.shiftChange);
+      if (improvesWork || (sameWork && lessDisruption)) {
+        best = { siteId, shiftStart: start, shiftEnd: end, result, siteChange, shiftChange };
+      }
+    }
+  });
+
+  const gain = best.result.plannedMinutes - baseline.plannedMinutes;
+  return gain > 0 ? { ...best, baseline, gain } : null;
+}
+
 export function bestEarlierShift(result) {
   if (!result || result.unavailable || !result.currentHourly) return null;
   const worker = result.worker;

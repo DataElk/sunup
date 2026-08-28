@@ -228,3 +228,23 @@ def test_intervention_uses_the_existing_engine_and_respects_an_hourly_cap():
     assert out["capped"] == 240
     assert out["recovery"] == 240
     assert out["hours"] == [30] * 8
+
+
+def test_intervention_suggestion_selects_a_better_available_site():
+    out = _node(
+        "await (async()=>{"
+        "const i=await import('./app/js/interventions.js');"
+        "const w=%s;"
+        "const suggestion=i.suggestIntervention({"
+        "sites:[{siteId:'hot',hourly:Array(24).fill(40)},"
+        "{siteId:'cool',hourly:Array(24).fill(20)}],"
+        "currentSiteId:'hot',worker:w,adaptation:0});"
+        "const none=i.suggestIntervention({"
+        "sites:[{siteId:'hot',hourly:Array(24).fill(40)},"
+        "{siteId:'same',hourly:Array(24).fill(40)}],"
+        "currentSiteId:'hot',worker:w,adaptation:0});"
+        "return {siteId:suggestion.siteId,start:suggestion.shiftStart,"
+        "end:suggestion.shiftEnd,gain:suggestion.gain,none:none===null};})()"
+        % WORKER)
+    assert out == {"siteId": "cool", "start": 6, "end": 14,
+                   "gain": 480, "none": True}

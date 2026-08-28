@@ -14,7 +14,7 @@ import { hasConfiguredKey } from './liveweather.js';
 import { startSiteBackfill } from './siteweather.js';
 import { sitePoint } from './leaflet.js';
 import {
-  evaluateIntervention, recommendationFor, workCapOptions,
+  evaluateIntervention, recommendationFor, suggestIntervention, workCapOptions,
 } from './interventions.js';
 import {
   el, icon, chip, tag, detailsList, breadcrumb, commandBar, panel,
@@ -416,14 +416,35 @@ function interventionSimulator(result) {
   })).filter((entry) => entry.hourly);
   if (!result.currentHourly || !sites.length) return null;
 
+  const suggestion = suggestIntervention({
+    sites,
+    currentSiteId: result.site.id,
+    worker,
+    adaptation: current.adaptationStart,
+  });
+  const initialSiteId = suggestion ? suggestion.siteId : result.site.id;
+  const initialStart = suggestion ? suggestion.shiftStart : worker.shiftStart;
+  const initialEnd = suggestion ? suggestion.shiftEnd : worker.shiftEnd;
+
   const card = el('section', 'decision-card intervention-card');
   const heading = el('div', 'intervention-heading');
-  heading.append(
+  const headingCopy = el('div', 'intervention-heading-copy');
+  headingCopy.append(
     el('h3', 'decision-title', 'Compare an intervention'),
-    el('p', 'muted', 'Change the assigned site, shift, or hourly work cap.'));
+    el('p', 'muted', suggestion
+      ? 'A practical alternative is selected. Adjust any input to compare another plan.'
+      : 'Adjust the site, shift, or hourly heat-work cap.'));
+  const presetActions = el('div', 'intervention-actions');
+  const suggestedButton = suggestion ? el('button', 'btn', 'Use suggested plan') : null;
+  const assignedButton = el('button', 'btn', 'Use assigned plan');
+  [suggestedButton, assignedButton].filter(Boolean).forEach((button) => {
+    button.type = 'button';
+    presetActions.appendChild(button);
+  });
+  heading.append(headingCopy, presetActions);
   card.appendChild(heading);
 
-  const siteControl = select(result.site.id, sites.map((entry) => ({
+  const siteControl = select(initialSiteId, sites.map((entry) => ({
     value: entry.site.id, label: entry.site.name,
   })));
   const starts = Array.from({ length: result.currentHourly.length }, (_, hour) => ({
@@ -432,18 +453,18 @@ function interventionSimulator(result) {
   const ends = Array.from({ length: result.currentHourly.length }, (_, index) => ({
     value: index + 1, label: `${pad(index + 1)}:00`,
   }));
-  const startControl = select(worker.shiftStart, starts);
-  const endControl = select(worker.shiftEnd, ends);
-  const capControl = select('', [{ value: '', label: 'Use prescribed duty cycle' }]
+  const startControl = select(initialStart, starts);
+  const endControl = select(initialEnd, ends);
+  const capControl = select('', [{ value: '', label: 'No extra hourly cap' }]
     .concat(workCapOptions().map((minutes) => ({
-      value: minutes, label: `At most ${minutes} work min/hour`,
+      value: minutes, label: `At most ${minutes} heat-work min/hour`,
     }))));
   const controls = el('div', 'intervention-controls');
   controls.append(
     field('Site', siteControl),
     field('Shift start', startControl),
     field('Shift end', endControl),
-    field('Extra recovery', capControl));
+    field('Hourly heat-work cap', capControl));
   card.appendChild(controls);
 
   const output = el('div', 'intervention-output');
@@ -478,29 +499,54 @@ function interventionSimulator(result) {
     calculationOrder = 0;
     const summary = el('div', 'intervention-summary');
     const gain = scenario.plannedMinutes - baseline.plannedMinutes;
+    const assignedPlan = selected.site.id === result.site.id
+      && start === worker.shiftStart && end === worker.shiftEnd && capControl.value === '';
     summary.append(
       el('strong', null,
-        gain === 0 ? 'No change in workable minutes'
-          : (gain > 0 ? `+${gain} workable minutes`
-            : `${Math.abs(gain)} fewer workable minutes`)),
+        assignedPlan ? 'Assigned plan'
+          : (gain === 0 ? 'No gain in heat-work time'
+            : (gain > 0 ? `+${gain} heat-work minutes`
+              : `${Math.abs(gain)} fewer heat-work minutes`))),
       el('span', 'muted', `${selected.site.name}, ${pad(start)}:00 to ${pad(end)}:00`));
 
     const comparison = el('div', 'intervention-comparison');
     const header = el('div', 'intervention-row intervention-header');
-    header.append(el('span', null, ''), el('span', null, 'Current'), el('span', null, 'Scenario'));
+    header.append(el('span', null, ''), el('span', null, 'Assigned'), el('span', null, 'Compared'));
     comparison.append(
       header,
-      interventionMetric('Work', baseline.plannedMinutes, scenario.plannedMinutes,
+      interventionMetric('Heat work', baseline.plannedMinutes, scenario.plannedMinutes,
         (value) => `${value} min`),
-      interventionMetric('Recovery', baseline.recoveryMinutes, scenario.recoveryMinutes,
+      interventionMetric('Recovery or non-heat work', baseline.recoveryMinutes, scenario.recoveryMinutes,
         (value) => `${value} min`),
       interventionMetric('Peak WBGT', baseline.peakWbgt, scenario.peakWbgt,
         (value) => `${value.toFixed(1)} °C`),
       interventionMetric('Readiness after', baseline.readinessAfter, scenario.readinessAfter,
         (value) => `${Math.round(value * 100)}%`));
+    let explanation = 'The compared plan changes the timing or location without increasing heat-work time.';
+    if (assignedPlan) {
+      explanation = baseline.plannedMinutes === 0
+        ? 'The assigned shift permits no heat work. Use a cooler site, an earlier shift, or non-heat duties.'
+        : 'This is the assigned plan. Choose an alternative above to compare it.';
+    } else if (scenario.plannedMinutes === 0) {
+      explanation = 'This plan still permits no heat work. The remaining shift is for recovery or non-heat duties.';
+    } else if (baseline.plannedMinutes === 0 && scenario.plannedMinutes > 0) {
+      explanation = `The assigned shift permits no heat work. This plan restores ${scenario.plannedMinutes} minutes; `
+        + 'the remaining time is recovery or non-heat work.';
+    } else if (gain > 0) {
+      explanation = `This plan restores ${gain} heat-work minutes without changing readiness at shift start.`;
+    } else if (gain < 0) {
+      explanation = 'The lower heat-work total creates additional recovery or non-heat time.';
+    }
     output.replaceChildren(summary, comparison,
+      el('p', 'intervention-explanation', explanation),
       el('p', 'section-description',
         `Both plans use ${current.date} and the same readiness at shift start.`));
+    if (suggestedButton) {
+      suggestedButton.disabled = selected.site.id === suggestion.siteId
+        && start === suggestion.shiftStart && end === suggestion.shiftEnd
+        && capControl.value === '';
+    }
+    assignedButton.disabled = assignedPlan;
   }
 
   function recalculate() {
@@ -514,6 +560,19 @@ function interventionSimulator(result) {
   }
   [siteControl, startControl, endControl, capControl]
     .forEach((control) => control.addEventListener('change', recalculate));
+  function applyPlan(siteId, start, end) {
+    siteControl.value = siteId;
+    startControl.value = String(start);
+    endControl.value = String(end);
+    capControl.value = '';
+    recalculate();
+  }
+  if (suggestedButton) {
+    suggestedButton.addEventListener('click', () => applyPlan(
+      suggestion.siteId, suggestion.shiftStart, suggestion.shiftEnd));
+  }
+  assignedButton.addEventListener('click', () => applyPlan(
+    result.site.id, worker.shiftStart, worker.shiftEnd));
   recalculate();
   return card;
 }

@@ -647,14 +647,17 @@ def test_worker_detail_explains_and_compares_pullable_interventions():
     interventions = strip_comments(read("js", "interventions.js"))
     assert "Compare an intervention" in views
     assert "Shift start" in views and "Shift end" in views
-    assert "Extra recovery" in views
+    assert "Hourly heat-work cap" in views
     assert "Both plans use ${current.date}" in views
     assert "function interventionSimulator" in views
     assert "export function evaluateIntervention" in interventions
+    assert "export function suggestIntervention" in interventions
     assert "export function recommendationFor" in interventions
     assert "CONSTANTS.defaultShiftStartHour" in interventions
     assert "prescribeHours(hourly, candidate, adaptation)" in interventions
     assert "decision-explanation" in views
+    assert "Recovery or non-heat work" in views
+    assert "Use suggested plan" in views
 
 
 def test_intervention_changes_animate_without_forcing_motion():
