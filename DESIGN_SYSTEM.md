@@ -102,6 +102,7 @@ variant into a screen. That is how a design system dies.
 | `DecisionCard` | Supervisor work window, recovery time, controls, and closeout | Derived from existing status and hourly allocation |
 | `WorkerLocation` | Static Arizona location context for one worker | Site marker and direct action to the interactive site map |
 | `CalculationFeedback` | Confirms a saved actual has recalculated the plan | Changed values show staggered calculation dots, then reveal in place; chart points and bars update with the same cadence; disabled by reduced-motion preference |
+| `InterventionSimulator` | Compares a pullable site, shift, or recovery change against the current plan | Uses the existing engine and the same start-of-shift readiness; changed outputs calculate and reveal in place |
 | `Panel` | Editors and confirmations | `--drawer-width` over a scrim, closes on Escape |
 | `Callout` | A state the user must act on or account for | Kinds: info, warn, danger, assumed |
 | `MapCanvas` | Exceedance choropleth and selection surface | Canvas, `--heat-*` ramp, quantile classes, crew markers are clickable |

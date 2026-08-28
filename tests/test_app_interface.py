@@ -50,7 +50,8 @@ def strip_comments(source):
 
 
 JS_FILES = ["app.js", "engine.js", "store.js", "compute.js", "ui.js",
-            "views.js", "forms.js", "mapview.js", "extraviews.js"]
+            "views.js", "forms.js", "mapview.js", "extraviews.js",
+            "interventions.js"]
 
 
 # ---------------------------------------------------------------------------
@@ -604,6 +605,30 @@ def test_worker_detail_adds_location_context_and_supervisor_actions():
     assert "function supervisorPlan" in views
     assert "planned work window" in views
     assert "shaded or cooled recovery area" in views
+
+
+def test_worker_detail_explains_and_compares_pullable_interventions():
+    views = strip_comments(read("js", "views.js"))
+    interventions = strip_comments(read("js", "interventions.js"))
+    assert "Compare an intervention" in views
+    assert "Shift start" in views and "Shift end" in views
+    assert "Extra recovery" in views
+    assert "Both plans use ${current.date}" in views
+    assert "function interventionSimulator" in views
+    assert "export function evaluateIntervention" in interventions
+    assert "export function recommendationFor" in interventions
+    assert "CONSTANTS.defaultShiftStartHour" in interventions
+    assert "prescribeHours(hourly, candidate, adaptation)" in interventions
+    assert "decision-explanation" in views
+
+
+def test_intervention_changes_animate_without_forcing_motion():
+    views = strip_comments(read("js", "views.js"))
+    css = read("styles", "components.css")
+    assert "Calculating the scenario" in views
+    assert "calculation-loader intervention-loader" in views
+    assert "calculatedValue(scenarioText" in views
+    assert ".intervention-loader span { animation: none; }" in css
 
 
 def test_log_feedback_animates_the_recalculated_result_without_forcing_motion():

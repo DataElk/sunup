@@ -14,8 +14,11 @@ import { hasConfiguredKey } from './liveweather.js';
 import { startSiteBackfill } from './siteweather.js';
 import { sitePoint } from './leaflet.js';
 import {
+  evaluateIntervention, recommendationFor, workCapOptions,
+} from './interventions.js';
+import {
   el, icon, chip, tag, detailsList, breadcrumb, commandBar, panel,
-  dismissPanel, toast, confirmDialog, pageHeader,
+  dismissPanel, toast, confirmDialog, pageHeader, field, select,
 } from './ui.js';
 
 const STATUS_TEXT = {
@@ -339,7 +342,8 @@ function workWindow(hours) {
   return `${pad(first.hour)}:00 to ${pad(last.hour + 1)}:00`;
 }
 
-function supervisorPlan(current, recalculation = null) {
+function supervisorPlan(result, recalculation = null) {
+  const current = result.current;
   const hours = current.hours;
   const hottest = hours.reduce((best, hour) => (!best || hour.wbgt > best.wbgt ? hour : best), null);
   const recovery = hours.reduce((total, hour) => total + (60 - hour.minutes), 0);
@@ -360,19 +364,157 @@ function supervisorPlan(current, recalculation = null) {
   });
   card.appendChild(metrics);
 
+  const recommendation = recommendationFor(result);
+  if (recommendation) {
+    const explanation = el('div', 'decision-explanation');
+    const binding = el('div', 'decision-explanation-row');
+    binding.append(
+      el('span', 'decision-explanation-label', 'Binding condition'),
+      el('strong', null, recommendation.diagnosis));
+    const readiness = el('div', 'decision-explanation-row');
+    readiness.append(
+      el('span', 'decision-explanation-label', 'Exposure history'),
+      el('span', null, `${recommendation.readiness}% ready at shift start, `
+        + `${recommendation.limit.toFixed(2)} °C personal limit.`));
+    explanation.append(binding, readiness);
+    card.appendChild(explanation);
+  }
+
   const list = el('ul', 'action-list');
-  const statusAction = {
-    stop: 'Move heat work to a cooler task or time and confirm the plan before the shift.',
-    restricted: 'Keep heat work inside the planned minutes and use the coolest hours first.',
-    reduced: 'Use the planned work window and protect the recovery periods.',
-    cleared: 'Keep the normal heat controls active as conditions change.',
-  }[current.status] || 'Confirm the work plan before the shift.';
   [
-    statusAction,
+    recommendation ? recommendation.action : 'Confirm the work plan before the shift.',
     'Keep drinking water and a shaded or cooled recovery area close to the work.',
     'Log actual minutes after the shift so the next plan reflects the completed work.',
   ].forEach((text) => list.appendChild(el('li', null, text)));
   card.appendChild(list);
+  return card;
+}
+
+function seriesForSite(site, date) {
+  const registry = window.SUNUP_WEATHER && window.SUNUP_WEATHER.series;
+  const series = registry && site && site.seriesKey && registry[site.seriesKey];
+  const hourly = series && series[date];
+  return Array.isArray(hourly) && hourly.length === 24 ? hourly : null;
+}
+
+function interventionMetric(label, current, scenario, format) {
+  const row = el('div', 'intervention-row');
+  const currentText = format(current);
+  const scenarioText = format(scenario);
+  row.append(
+    el('span', 'intervention-label', label),
+    el('span', 'intervention-value num', currentText),
+    calculatedValue(scenarioText, current !== scenario, 'intervention-value num'));
+  return row;
+}
+
+function interventionSimulator(result) {
+  const current = result.current;
+  const worker = result.worker;
+  const sites = store.sites().map((site) => ({
+    site, hourly: seriesForSite(site, current.date),
+  })).filter((entry) => entry.hourly);
+  if (!result.currentHourly || !sites.length) return null;
+
+  const card = el('section', 'decision-card intervention-card');
+  const heading = el('div', 'intervention-heading');
+  heading.append(
+    el('h3', 'decision-title', 'Compare an intervention'),
+    el('p', 'muted', 'Change the assigned site, shift, or hourly work cap.'));
+  card.appendChild(heading);
+
+  const siteControl = select(result.site.id, sites.map((entry) => ({
+    value: entry.site.id, label: entry.site.name,
+  })));
+  const starts = Array.from({ length: result.currentHourly.length }, (_, hour) => ({
+    value: hour, label: `${pad(hour)}:00`,
+  }));
+  const ends = Array.from({ length: result.currentHourly.length }, (_, index) => ({
+    value: index + 1, label: `${pad(index + 1)}:00`,
+  }));
+  const startControl = select(worker.shiftStart, starts);
+  const endControl = select(worker.shiftEnd, ends);
+  const capControl = select('', [{ value: '', label: 'Use prescribed duty cycle' }]
+    .concat(workCapOptions().map((minutes) => ({
+      value: minutes, label: `At most ${minutes} work min/hour`,
+    }))));
+  const controls = el('div', 'intervention-controls');
+  controls.append(
+    field('Site', siteControl),
+    field('Shift start', startControl),
+    field('Shift end', endControl),
+    field('Extra recovery', capControl));
+  card.appendChild(controls);
+
+  const output = el('div', 'intervention-output');
+  output.setAttribute('aria-live', 'polite');
+  card.appendChild(output);
+  let timer = null;
+
+  function showResult() {
+    const selected = sites.find((entry) => entry.site.id === siteControl.value);
+    const start = Number(startControl.value);
+    const end = Number(endControl.value);
+    if (!selected || end <= start) {
+      output.replaceChildren(el('p', 'callout-text danger',
+        'Shift end must be later than shift start.'));
+      return;
+    }
+    const baseline = evaluateIntervention({
+      hourly: result.currentHourly,
+      worker,
+      adaptation: current.adaptationStart,
+    });
+    const scenario = evaluateIntervention({
+      hourly: selected.hourly,
+      worker,
+      adaptation: current.adaptationStart,
+      shiftStart: start,
+      shiftEnd: end,
+      capMinutes: capControl.value === '' ? null : Number(capControl.value),
+    });
+    if (!baseline || !scenario) return;
+
+    calculationOrder = 0;
+    const summary = el('div', 'intervention-summary');
+    const gain = scenario.plannedMinutes - baseline.plannedMinutes;
+    summary.append(
+      el('strong', null,
+        gain === 0 ? 'No change in workable minutes'
+          : (gain > 0 ? `+${gain} workable minutes`
+            : `${Math.abs(gain)} fewer workable minutes`)),
+      el('span', 'muted', `${selected.site.name}, ${pad(start)}:00 to ${pad(end)}:00`));
+
+    const comparison = el('div', 'intervention-comparison');
+    const header = el('div', 'intervention-row intervention-header');
+    header.append(el('span', null, ''), el('span', null, 'Current'), el('span', null, 'Scenario'));
+    comparison.append(
+      header,
+      interventionMetric('Work', baseline.plannedMinutes, scenario.plannedMinutes,
+        (value) => `${value} min`),
+      interventionMetric('Recovery', baseline.recoveryMinutes, scenario.recoveryMinutes,
+        (value) => `${value} min`),
+      interventionMetric('Peak WBGT', baseline.peakWbgt, scenario.peakWbgt,
+        (value) => `${value.toFixed(1)} °C`),
+      interventionMetric('Readiness after', baseline.readinessAfter, scenario.readinessAfter,
+        (value) => `${Math.round(value * 100)}%`));
+    output.replaceChildren(summary, comparison,
+      el('p', 'section-description',
+        `Both plans use ${current.date} and the same readiness at shift start.`));
+  }
+
+  function recalculate() {
+    if (timer) window.clearTimeout(timer);
+    const loader = el('span', 'calculation-loader intervention-loader');
+    loader.setAttribute('aria-hidden', 'true');
+    loader.append(el('span'), el('span'), el('span'));
+    output.replaceChildren(el('div', 'intervention-pending', ''), loader);
+    output.firstChild.textContent = 'Calculating the scenario';
+    timer = window.setTimeout(showResult, 240);
+  }
+  [siteControl, startControl, endControl, capControl]
+    .forEach((control) => control.addEventListener('change', recalculate));
+  recalculate();
   return card;
 }
 
@@ -912,8 +1054,11 @@ export function workerView(ctx, siteId, crewId, workerId) {
   }
 
   const briefing = el('div', 'worker-briefing');
-  briefing.append(supervisorPlan(current, recalculation), workerLocationCard(site, ctx));
+  briefing.append(supervisorPlan(result, recalculation), workerLocationCard(site, ctx));
   root.appendChild(briefing);
+
+  const simulator = interventionSimulator(result);
+  if (simulator) root.appendChild(simulator);
 
   const historyLabel = result.projected.length
     ? `${result.observed.length} observed days and ${result.projected.length} forecast days`

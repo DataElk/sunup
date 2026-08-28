@@ -119,6 +119,7 @@ export function forWorker(workerId) {
     observed: records.filter((r) => !r.projected),
     projected: records.filter((r) => r.projected),
     current,
+    currentHourly: series[current.date] || null,
     finalAdaptation: run.finalAdaptation,
     cumulativeOverexposure: run.cumulativeOverexposure,
     assumedRun: trailingAssumed(records.filter((r) => !r.projected)),

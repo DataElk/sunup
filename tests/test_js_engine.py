@@ -212,3 +212,19 @@ def test_an_unlogged_day_is_marked_assumed_and_uses_the_prescription():
     assert out["assumed"] is True
     assert out["rule"] == "prescribed"
     assert out["actual"] == out["prescribed"]
+
+
+def test_intervention_uses_the_existing_engine_and_respects_an_hourly_cap():
+    out = _node(
+        "await (async()=>{"
+        "const i=await import('./app/js/interventions.js');"
+        "const w=%s;"
+        "const base=i.evaluateIntervention({hourly:Array(24).fill(24),worker:w,adaptation:0});"
+        "const capped=i.evaluateIntervention({hourly:Array(24).fill(24),worker:w,adaptation:0,capMinutes:30});"
+        "return {base:base.plannedMinutes,capped:capped.plannedMinutes,"
+        "recovery:capped.recoveryMinutes,hours:capped.hours.map(h=>h.minutes)};})()"
+        % WORKER)
+    assert out["base"] == 480
+    assert out["capped"] == 240
+    assert out["recovery"] == 240
+    assert out["hours"] == [30] * 8
