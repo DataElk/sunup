@@ -1166,6 +1166,133 @@ export function crewView(ctx, siteId, crewId) {
   return root;
 }
 
+/* --- Crew field briefing ------------------------------------------------------- */
+
+function briefingStatus(result) {
+  if (result.unavailable) return 'Weather unavailable';
+  if (result.current.status === 'stop') return 'Move heat work outside this shift';
+  if (result.current.status === 'restricted') {
+    return `Restricted to ${result.current.prescribedMinutes} heat-work minutes`;
+  }
+  if (result.current.status === 'reduced') return 'Protect every recovery period';
+  return 'Normal controls and planned closeout';
+}
+
+function briefingCloseout(result) {
+  if (result.unavailable) return 'Cannot calculate';
+  return result.current.assumed ? 'Closeout pending' : 'Actual minutes recorded';
+}
+
+function briefingHour(hour) {
+  const cell = el('span', 'briefing-hour');
+  cell.append(
+    el('strong', 'num', formatHour(hour.hour)),
+    el('span', 'num', `${hour.minutes} work`),
+    el('span', 'num muted', `${60 - hour.minutes} recovery`));
+  return cell;
+}
+
+function reviewBox(label) {
+  const wrap = el('span', 'briefing-review');
+  wrap.append(el('span', 'briefing-check'), el('span', null, label));
+  return wrap;
+}
+
+function briefingWorker(result) {
+  const item = el('section', 'briefing-worker');
+  const head = el('div', 'briefing-worker-head');
+  const identity = el('div', 'briefing-identity');
+  identity.append(
+    el('strong', null, result.worker.name),
+    el('span', 'muted', result.worker.trade));
+  head.appendChild(identity);
+  if (!result.unavailable) {
+    head.appendChild(chip(result.current.status, STATUS_TEXT[result.current.status]));
+  }
+  item.appendChild(head);
+
+  if (result.unavailable) {
+    item.appendChild(el('p', 'briefing-unavailable muted',
+      'No weather history is available for this worker\'s assigned site.'));
+  } else {
+    const summary = el('div', 'briefing-worker-summary');
+    summary.append(
+      el('span', 'num', `${formatHour(result.worker.shiftStart)}-${formatHour(result.worker.shiftEnd)}`),
+      el('span', 'num', `${result.current.prescribedMinutes} min heat work`),
+      el('span', 'num', `${result.shiftHours * 60 - result.current.prescribedMinutes} min recovery`),
+      el('span', null, briefingStatus(result)));
+    item.appendChild(summary);
+    const hourly = el('div', 'briefing-hours');
+    result.current.hours.forEach((hour) => hourly.appendChild(briefingHour(hour)));
+    item.appendChild(hourly);
+  }
+
+  const review = el('div', 'briefing-worker-review');
+  review.append(
+    reviewBox('Plan reviewed'),
+    el('span', 'briefing-closeout', briefingCloseout(result)));
+  item.appendChild(review);
+  return item;
+}
+
+export function crewBriefingView(ctx, siteId, crewId) {
+  const crew = store.crew(crewId);
+  const site = store.site(siteId);
+  if (!crew || !site) return missing(ctx, 'That crew no longer exists.');
+
+  const root = el('div', 'view view-briefing');
+  root.appendChild(breadcrumb([
+    { label: 'Sites', href: '#/sites' },
+    { label: site.name, href: `#/site/${siteId}` },
+    { label: crew.name, href: `#/site/${siteId}/crew/${crewId}` },
+    { label: 'Daily briefing' },
+  ]));
+  const date = compute.currentDateForCrew(crewId);
+  root.appendChild(pageHeader('Daily crew briefing',
+    `${site.name} / ${crew.name} / ${date}`));
+
+  const facts = el('div', 'briefing-facts');
+  facts.append(
+    optimizerMetric('Site', site.name, site.weatherSource === 'live' ? 'live weather' : 'cached weather'),
+    optimizerMetric('Crew', crew.name,
+      `${store.workers(crewId).filter((worker) => worker.active !== false).length} active workers`),
+    optimizerMetric('Plan date', date, 'active weather date'),
+    optimizerMetric('Supervisor', '', 'review before heat work begins'));
+  root.appendChild(facts);
+
+  const controls = el('section', 'briefing-controls');
+  controls.appendChild(el('h2', 'sect-h', 'Field controls'));
+  const controlGrid = el('div', 'briefing-control-grid');
+  [
+    'Stage potable water for the full shift',
+    'Confirm a shaded or cooled recovery area',
+    'Assign buddy checks before heat work begins',
+    'Review the emergency response and contact path',
+  ].forEach((text) => controlGrid.appendChild(reviewBox(text)));
+  controls.appendChild(controlGrid);
+  root.appendChild(controls);
+
+  const workerList = el('div', 'briefing-workers');
+  store.workers(crewId)
+    .filter((worker) => worker.active !== false)
+    .map((worker) => compute.forWorker(worker.id))
+    .filter(Boolean)
+    .forEach((result) => workerList.appendChild(briefingWorker(result)));
+  if (!workerList.children.length) {
+    workerList.appendChild(el('p', 'briefing-unavailable muted',
+      'This crew has no active workers.'));
+  }
+  root.appendChild(workerList);
+
+  const signoff = el('section', 'briefing-signoff');
+  signoff.append(
+    reviewBox('All workers briefed'),
+    el('span', 'briefing-signature', 'Supervisor initials'),
+    el('span', 'briefing-signature', 'Time'));
+  root.appendChild(signoff);
+  return root;
+}
+
 /* --- Level 4: one worker ----------------------------------------------------------- */
 
 export function workerView(ctx, siteId, crewId, workerId) {

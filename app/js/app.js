@@ -7,6 +7,7 @@
      #/today  #/sites
      #/site/:siteId
      #/site/:siteId/crew/:crewId
+     #/site/:siteId/crew/:crewId/briefing
      #/site/:siteId/crew/:crewId/worker/:workerId
      #/map  #/performance  #/settings
      #/forecast (legacy alias for model performance)
@@ -61,6 +62,9 @@ function parse() {
   if (parts[0] === 'sites') return { view: 'sites' };
   if (parts[0] === 'site' && parts[1]) {
     if (parts[2] === 'crew' && parts[3]) {
+      if (parts[4] === 'briefing') {
+        return { view: 'briefing', siteId: parts[1], crewId: parts[3] };
+      }
       if (parts[4] === 'worker' && parts[5]) {
         return { view: 'worker', siteId: parts[1], crewId: parts[3], workerId: parts[5] };
       }
@@ -143,6 +147,8 @@ function commandsFor(current) {
       { icon: 'log', label: 'Log crew',
         run: () => forms.editCrewDayLog(current.crewId,
           compute.currentDateForCrew(current.crewId), after) },
+      { icon: 'print', label: 'Crew briefing',
+        run: () => go(`#/site/${current.siteId}/crew/${current.crewId}/briefing`) },
       { divider: true },
       { icon: 'remove', label: 'Remove', danger: true, enabled: () => any,
         run: () => forms.confirmRemove('worker', selectedWorkers(), after) },
@@ -167,6 +173,13 @@ function commandsFor(current) {
         run: () => forms.confirmRemove('worker',
           [store.worker(current.workerId)],
           () => go(`#/site/${current.siteId}/crew/${current.crewId}`)) },
+    ];
+  }
+  if (current.view === 'briefing') {
+    return [
+      { icon: 'print', label: 'Print briefing', run: () => window.print() },
+      { icon: 'crew', label: 'Back to crew',
+        run: () => go(`#/site/${current.siteId}/crew/${current.crewId}`) },
     ];
   }
   if (current.view === 'today' || current.view === 'settings' || current.view === 'map'
@@ -230,7 +243,7 @@ function railFor(current) {
 }
 
 function treeFor(current) {
-  const showing = ['sites', 'site', 'crew', 'worker'].includes(current.view);
+  const showing = ['sites', 'site', 'crew', 'briefing', 'worker'].includes(current.view);
   document.getElementById('shell').setAttribute('data-tree', String(showing));
   if (!showing) { treeHost.replaceChildren(); return; }
 
@@ -311,6 +324,9 @@ function render() {
     case 'settings': view = settingsView(ctx); break;
     case 'site': view = views.siteView(ctx, current.siteId); break;
     case 'crew': view = views.crewView(ctx, current.siteId, current.crewId); break;
+    case 'briefing':
+      view = views.crewBriefingView(ctx, current.siteId, current.crewId);
+      break;
     case 'worker':
       view = views.workerView(ctx, current.siteId, current.crewId, current.workerId);
       break;

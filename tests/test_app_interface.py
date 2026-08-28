@@ -479,7 +479,7 @@ def test_editing_a_worker_reruns_the_prescription_immediately():
 
 def test_routing_is_three_levels_deep_and_linkable():
     source = strip_comments(read("js", "app.js"))
-    for route in ("today", "sites", "site", "crew", "worker", "map", "performance",
+    for route in ("today", "sites", "site", "crew", "briefing", "worker", "map", "performance",
                   "settings"):
         assert f"'{route}'" in source, route
     assert "parts[0] === 'forecast'" in source, "old forecast links remain valid"
@@ -543,6 +543,26 @@ def test_a_whole_crew_can_be_closed_out_without_selecting_workers():
     assert "Absent" in bulk
     assert "store.setDayLog" in bulk
     assert "footer('Save crew'" in bulk
+
+
+def test_crew_briefing_is_a_dedicated_printable_field_handoff():
+    app = strip_comments(read("js", "app.js"))
+    views = strip_comments(read("js", "views.js"))
+    css = read("styles", "components.css")
+    assert "parts[4] === 'briefing'" in app
+    assert "label: 'Crew briefing'" in app
+    assert "label: 'Print briefing'" in app
+    assert "window.print()" in app
+    assert "export function crewBriefingView" in views
+    briefing = views[views.index("export function crewBriefingView"):
+                     views.index("export function workerView")]
+    assert "Daily crew briefing" in briefing
+    assert "Field controls" in briefing
+    assert "Plan reviewed" in views
+    assert "Closeout pending" in views
+    assert "review before heat work begins" in briefing
+    assert "@media print" in css
+    assert "@page { size: landscape" in css
 
 
 def test_settings_imports_every_control_it_renders():

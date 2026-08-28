@@ -49,6 +49,11 @@ disruption. At closeout, actual minutes feed the next eligible day's plan. Work
 beyond the prescription is reported as overexposure rather than treated as
 beneficial adaptation alone.
 
+Each crew also has a print-ready daily field briefing. It converts the interactive
+workspace into one stable handoff with hourly work and recovery instructions,
+shared water, recovery-area, buddy-check, and emergency controls, individual
+exceptions, supervisor review boxes, and closeout state.
+
 ## Why FortyGuard is central
 
 FortyGuard provides the daily local thermal anchor for every live site. Sunup uses the

@@ -26,6 +26,8 @@ This is a hackathon prototype. It is not validated for operational safety decisi
   hourly recovery.
 - A crew shift optimizer that finds one shared start, preserves each worker's shift
   length, and refuses any plan that reduces a worker's prescribed heat-work time.
+- A printable daily crew briefing with hourly work and recovery, shared field
+  controls, individual exceptions, review boxes, and closeout state.
 - Point and polygon site selection on an Arizona-constrained Leaflet map.
 - Live FortyGuard `filter_type=3` calls for each site's daily cell minimum, mean, and
   maximum temperature.

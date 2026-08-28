@@ -695,6 +695,116 @@ body {
 }
 
 /* ==========================================================================
+   Printable crew briefing
+   ========================================================================== */
+
+.briefing-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--surface-panel);
+  border: var(--border-width) solid var(--line-default);
+  border-radius: var(--radius-surface);
+}
+.briefing-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface-panel);
+  border: var(--border-width) solid var(--line-default);
+  border-radius: var(--radius-surface);
+}
+.briefing-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-6);
+}
+.briefing-review {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.briefing-check {
+  width: var(--space-4);
+  height: var(--space-4);
+  flex: none;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--surface-panel);
+}
+.briefing-workers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.briefing-worker {
+  background: var(--surface-panel);
+  border: var(--border-width) solid var(--line-default);
+  border-radius: var(--radius-surface);
+  overflow: hidden;
+}
+.briefing-worker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width) solid var(--line-hairline);
+}
+.briefing-identity { display: flex; align-items: baseline; gap: var(--space-3); }
+.briefing-worker-summary {
+  display: grid;
+  grid-template-columns: 120px 150px 150px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  color: var(--ink-secondary);
+  border-bottom: var(--border-width) solid var(--line-hairline);
+}
+.briefing-hours {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(72px, 1fr));
+  overflow-x: auto;
+}
+.briefing-hour {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border-right: var(--border-width) solid var(--line-hairline);
+  font-size: var(--text-caption);
+}
+.briefing-hour:last-child { border-right: 0; }
+.briefing-worker-review {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--border-width) solid var(--line-hairline);
+  background: var(--surface-sunken);
+}
+.briefing-closeout { color: var(--ink-secondary); }
+.briefing-unavailable { margin: 0; padding: var(--space-4); }
+.briefing-signoff {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(120px, .5fr);
+  gap: var(--space-6);
+  align-items: end;
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface-panel);
+  border: var(--border-width) solid var(--line-default);
+  border-radius: var(--radius-surface);
+}
+.briefing-signature {
+  min-height: var(--space-6);
+  padding-bottom: var(--space-1);
+  border-bottom: var(--border-width) solid var(--line-strong);
+  color: var(--ink-secondary);
+}
+
+/* ==========================================================================
    Worker detail
    ========================================================================== */
 
@@ -1355,6 +1465,8 @@ body {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--space-4) 0;
   }
+  .briefing-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .briefing-worker-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 900px) {
@@ -1386,4 +1498,23 @@ body {
   }
   .readiness-item { padding-block: var(--space-2); border-right: 0; }
   .settings-grid { grid-template-columns: 1fr; }
+  .briefing-facts,
+  .briefing-control-grid,
+  .briefing-worker-summary,
+  .briefing-signoff { grid-template-columns: 1fr; }
+}
+
+@media print {
+  @page { size: landscape; margin: 12mm; }
+  .sidenav,
+  .cmdbar-host { display: none; }
+  .shell,
+  .main,
+  .content { display: block; height: auto; overflow: visible; }
+  .view-briefing { padding: 0; gap: var(--space-3); }
+  .view-briefing .crumbs { display: none; }
+  .briefing-controls,
+  .briefing-worker,
+  .briefing-signoff { break-inside: avoid; }
+  .briefing-hour { padding: var(--space-1) var(--space-2); }
 }
