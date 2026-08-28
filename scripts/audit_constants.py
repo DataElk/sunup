@@ -58,7 +58,7 @@ CREW = [
     ("A. Reyes", "concrete", (5, 13), 5, "hot_site"),
     ("B. Osei", "concrete", (10, 18), 5, "hot_site"),
     ("C. Duarte", "rebar", (5, 13), 2, "hot_site"),
-    ("D. Whitfield", "electrical", (5, 13), 1, "cool_site"),
+    ("D. Whitfield", "electrical", (1, 9), 1, "cool_site"),
     ("E. Nakamura", "carpentry", (5, 13), 7, "cool_site"),
     ("F. Okoro", "roofing", (5, 13), 14, "hot_site"),
 ]

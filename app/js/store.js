@@ -94,6 +94,7 @@ export async function initStore() {
       state.exceptionAcknowledgements = {};
       migrated = true;
     }
+    if (migrateDemoV2(state, window.SUNUP_SEED)) migrated = true;
     if (migrated) writeRaw(STORE_KEY, state);
     hydrateWeatherSeries();
     return state;
@@ -173,6 +174,27 @@ export function workersAtSite(siteId) {
 
 export function logsFor(workerId) {
   return state.dayLogs[workerId] || {};
+}
+
+function migrateDemoV2(current, seed) {
+  if (!seed || seed.version < 2 || !current.seeded || current.seeded >= 2) return false;
+  const worker = current.workers.find((item) => item.id === 'wkr_whitfield');
+  const replacement = seed.workers.find((item) => item.id === 'wkr_whitfield');
+  const untouched = worker && worker.seeded
+    && worker.name === 'D. Whitfield'
+    && worker.crewId === 'crew_elec'
+    && worker.trade === 'electrical'
+    && worker.clothing === 'work_clothes'
+    && worker.shiftStart === 5
+    && worker.shiftEnd === 13
+    && worker.hireDate === '2026-08-08';
+  if (untouched && replacement) {
+    worker.shiftStart = replacement.shiftStart;
+    worker.shiftEnd = replacement.shiftEnd;
+  }
+  current.seeded = 2;
+  writeRaw(SEED_KEY, 2);
+  return true;
 }
 
 export function exceptionAcknowledgements() {

@@ -214,6 +214,56 @@ def test_an_unlogged_day_is_marked_assumed_and_uses_the_prescription():
     assert out["actual"] == out["prescribed"]
 
 
+def test_the_demo_contains_one_evidence_based_full_heat_work_shift():
+    out = _node(
+        "(()=>{"
+        "(0,eval)(readFileSync('app/data/weather.js','utf8'));"
+        "(0,eval)(readFileSync('app/data/seed.js','utf8'));"
+        "const w=window.SUNUP_SEED.workers.find(x=>x.id==='wkr_whitfield');"
+        "const date=window.SUNUP_SEED.today;"
+        "const hourly=window.SUNUP_WEATHER.series.cool_site[date];"
+        "const record=e.simulate({worker:w,days:[{date,hourly}],logs:{}}).records[0];"
+        "return {start:w.shiftStart,end:w.shiftEnd,minutes:record.prescribedMinutes,"
+        "status:record.status,peak:record.peakWbgt};})()")
+    assert out["start"] == 1
+    assert out["end"] == 9
+    assert out["minutes"] == 480
+    assert out["status"] == "cleared"
+    assert out["peak"] <= 28.0
+
+
+def test_demo_v2_migrates_only_the_untouched_seed_worker():
+    out = _node(
+        "await (async()=>{"
+        "(0,eval)(readFileSync('app/data/seed.js','utf8'));"
+        "window.SUNUP_WEATHER={series:{}};"
+        "const memory={};"
+        "globalThis.localStorage={"
+        "getItem:key=>Object.prototype.hasOwnProperty.call(memory,key)?memory[key]:null,"
+        "setItem:(key,value)=>{memory[key]=value;}};"
+        "const makeState=()=>({"
+        "sites:window.SUNUP_SEED.sites.map(x=>({...x,seeded:true})),"
+        "crews:window.SUNUP_SEED.crews.map(x=>({...x,seeded:true})),"
+        "workers:window.SUNUP_SEED.workers.map(x=>({...x,seeded:true})),"
+        "dayLogs:{},weatherSeries:{},exceptionAcknowledgements:{},seeded:1});"
+        "const store=await import('./app/js/store.js');"
+        "const untouched=makeState();"
+        "Object.assign(untouched.workers.find(x=>x.id==='wkr_whitfield'),"
+        "{shiftStart:5,shiftEnd:13});"
+        "memory['sunup.store.v1']=JSON.stringify(untouched);"
+        "await store.initStore();"
+        "const migrated=store.worker('wkr_whitfield');"
+        "const edited=makeState();"
+        "Object.assign(edited.workers.find(x=>x.id==='wkr_whitfield'),"
+        "{shiftStart:4,shiftEnd:12});"
+        "memory['sunup.store.v1']=JSON.stringify(edited);"
+        "await store.initStore();"
+        "const preserved=store.worker('wkr_whitfield');"
+        "return {migrated:[migrated.shiftStart,migrated.shiftEnd],"
+        "preserved:[preserved.shiftStart,preserved.shiftEnd]};})()")
+    assert out == {"migrated": [1, 9], "preserved": [4, 12]}
+
+
 def test_intervention_uses_the_existing_engine_and_respects_an_hourly_cap():
     out = _node(
         "await (async()=>{"

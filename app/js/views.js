@@ -24,8 +24,11 @@ import {
 } from './ui.js';
 
 const STATUS_TEXT = {
-  cleared: 'Full shift', reduced: 'Reduced', restricted: 'Restricted',
-  stop: 'No work', absent: 'Absent',
+  cleared: 'Full heat-work shift',
+  reduced: 'Modified heat-work plan',
+  restricted: 'Limited heat work',
+  stop: 'Move heat work',
+  absent: 'Absent',
 };
 
 /* --- Sparkline ---------------------------------------------------------------
@@ -778,11 +781,20 @@ function todayAttention(row) {
 }
 
 function todayChange(row) {
-  if (row.result.unavailable || !row.previous) return el('span', 'muted', 'New');
+  if (row.result.unavailable) return '';
+  if (!row.previous) {
+    const first = el('span', 'change-indicator', 'First day');
+    first.setAttribute('data-direction', 'new');
+    return first;
+  }
   const change = row.result.current.prescribedMinutes - row.previous.prescribedMinutes;
-  if (!change) return el('span', 'muted num', 'No change');
-  const value = el('span', 'num', `${change > 0 ? '+' : ''}${change} min`);
-  value.title = `Compared with ${row.previous.date}`;
+  const direction = change > 0 ? 'up' : (change < 0 ? 'down' : 'same');
+  const label = change > 0
+    ? `Up ${change} min`
+    : (change < 0 ? `Down ${Math.abs(change)} min` : 'No change');
+  const value = el('span', 'change-indicator num', label);
+  value.setAttribute('data-direction', direction);
+  value.title = `${label} compared with ${row.previous.date}`;
   return value;
 }
 
@@ -908,8 +920,8 @@ export function todayView(ctx) {
       { label: 'Calendar', width: '76px', numeric: true,
         render: (row) => row.result.unavailable
           ? '' : String(row.result.current.calendarMinutes) },
-      { label: 'vs prior', width: '78px', numeric: true, render: todayChange },
-      { label: 'Status', width: '100px',
+      { label: 'Change', width: '112px', numeric: true, render: todayChange },
+      { label: 'Plan level', width: '174px',
         render: (row) => row.result.unavailable
           ? el('span', 'muted', 'Unavailable')
           : chip(row.result.current.status, STATUS_TEXT[row.result.current.status]) },
@@ -962,7 +974,7 @@ export function sitesView(ctx) {
       { label: 'Action', width: '92px', numeric: true,
         render: (r) => r.actionRequired
           ? el('span', 'num danger', String(r.actionRequired)) : '' },
-      { label: 'Status', width: '110px',
+      { label: 'Status', width: '174px',
         render: (r) => r.site.weatherSource === 'none'
           ? el('span', 'muted', 'unavailable')
           : chip(r.worstStatus, STATUS_TEXT[r.worstStatus]) },
@@ -1033,7 +1045,7 @@ export function siteView(ctx, siteId) {
           if (r.unprescribed) wrap.appendChild(tag(`${r.unprescribed} unprescribed`, 'danger'));
           return wrap;
         } },
-      { label: 'Status', width: '110px',
+      { label: 'Status', width: '174px',
         render: (r) => !r.workers
           ? el('span', 'muted', 'No workers')
           : (r.unavailable
@@ -1187,7 +1199,7 @@ export function crewView(ctx, siteId, crewId) {
           }
           return node;
         } },
-      { label: 'Status', width: '104px', sortKey: 'status',
+      { label: 'Status', width: '174px', sortKey: 'status',
         render: (r) => r.unavailable ? el('span', 'muted', 'Unavailable')
           : chip(r.current.status, STATUS_TEXT[r.current.status]) },
       { label: 'Plan (min)', width: '88px', numeric: true, sortKey: 'minutes',

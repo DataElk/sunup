@@ -495,7 +495,7 @@ def test_today_is_the_default_start_of_shift_view():
     today = views[views.index("function todayAttention"):
                   views.index("export function sitesView")]
     assert "pageHeader('Today'" in today
-    for label in ("Plan (min)", "Calendar", "vs prior", "Status",
+    for label in ("Plan (min)", "Calendar", "Change", "Plan level",
                   "Next action"):
         assert f"label: '{label}'" in today
     assert "worker.active !== false" in today
@@ -503,7 +503,32 @@ def test_today_is_the_default_start_of_shift_view():
     assert "Close out ${row.previous.date.slice(5)}" in today
     assert "recommendationFor(result)" in today
     assert "+${row.recommendation.gain} min" in today
-    assert "Compared with ${row.previous.date}" in today
+    for label in ("Up ${change} min", "Down ${Math.abs(change)} min", "No change",
+                  "First day"):
+        assert label in today
+    for direction in ("up", "down", "same", "new"):
+        assert direction in today
+
+
+def test_status_copy_describes_heat_work_instead_of_all_work():
+    views = strip_comments(read("js", "views.js"))
+    for label in ("Full heat-work shift", "Modified heat-work plan",
+                  "Limited heat work", "Move heat work"):
+        assert label in views
+    status = views[views.index("const STATUS_TEXT"):views.index("function sparkline")]
+    for misleading in ("'Full shift'", "'Reduced'", "'Restricted'", "'No work'"):
+        assert misleading not in status
+
+
+def test_demo_includes_a_safe_full_shift_without_relaxing_thresholds():
+    seed = generated("seed.js")
+    assert seed["version"] == 2
+    worker = next(item for item in seed["workers"] if item["id"] == "wkr_whitfield")
+    assert (worker["shiftStart"], worker["shiftEnd"]) == (1, 9)
+    store = strip_comments(read("js", "store.js"))
+    assert "function migrateDemoV2" in store
+    assert "worker.shiftStart === 5" in store
+    assert "worker.shiftEnd === 13" in store
 
 
 def test_site_and_crew_rollups_count_workers_who_need_action():

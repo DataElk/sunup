@@ -450,6 +450,29 @@ body {
   white-space: nowrap;
 }
 
+.change-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--ink-tertiary);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+.change-indicator::before {
+  content: "";
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  flex: none;
+  background: currentColor;
+}
+.change-indicator[data-direction="up"] { color: var(--status-cleared); }
+.change-indicator[data-direction="down"] { color: var(--status-restricted); }
+.change-indicator[data-direction="same"] { color: var(--ink-tertiary); }
+.change-indicator[data-direction="new"] { color: var(--accent); }
+
 .exception-heading {
   display: flex;
   align-items: baseline;

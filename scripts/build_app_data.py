@@ -48,7 +48,7 @@ WEATHER_OUT = os.path.join(HERE, "..", "app", "data", "weather.js")
 SEED_OUT = os.path.join(HERE, "..", "app", "data", "seed.js")
 
 MODEL = wbgt.NWB_PSYCHROMETRIC
-SEED_VERSION = 1
+SEED_VERSION = 2
 
 SITES = [
     ("site_north", "North Yard", "hot_site", "p95 exceedance"),
@@ -77,7 +77,7 @@ CREW_ROSTER = [
     ("T. Lindqvist", "crew_roof", "roofing", "coveralls", (5, 13), 4),
     ("E. Nakamura", "crew_carp", "carpentry", "work_clothes", (5, 13), 7),
     ("J. Baptiste", "crew_carp", "carpentry", "work_clothes", (7, 15), 13),
-    ("D. Whitfield", "crew_elec", "electrical", "work_clothes", (5, 13), 1),
+    ("D. Whitfield", "crew_elec", "electrical", "work_clothes", (1, 9), 1),
     ("S. Varga", "crew_elec", "electrical", "work_clothes", (6, 14), 8),
 ]
 
