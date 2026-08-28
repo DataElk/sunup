@@ -117,8 +117,12 @@ site-day. Days with no Open-Meteo fixture still run, on tagged assumptions.
 ## The 14-day two-site backfill [2026-08-24]
 
 28 `filter_type=3` parcel calls (14 days x 2 sites), 1 km-square AOIs centred on the
-p5 and p95 sites. **Not committed as fixtures**: they live in the gitignored disk
-cache, keyed on the request payload. Rebuild with:
+p5 and p95 sites. The complete raw responses are committed under `data/cache/`
+with the request-derived keys produced by `DiskCache`. They contain no API key or
+authorization header. Keeping these specific entries makes the full model suite
+reproducible in a clean checkout and lets CI verify the 14-day findings offline.
+
+The responses were retrieved on 2026-08-24 by:
 
 ```
 python scripts/m3_fetch.py --backfill
@@ -285,7 +289,9 @@ drift apart. Change a builder and the seeded keys move with it.
 so `["a","b"]` and `["b","a"]` are different requests. The env_params entry
 records the exact order `exploration/step3_phoenix_env_params.py` sent.
 
-The cache itself (`data/cache/`) is derived and gitignored. On a fresh checkout:
+Most of the cache (`data/cache/`) is derived and gitignored. The 28 raw M3
+backfill responses documented above are the exception and are tracked so the
+published findings remain reproducible. On a fresh checkout:
 
 ```
 python scripts/seed_cache.py
