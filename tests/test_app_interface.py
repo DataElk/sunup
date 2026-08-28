@@ -212,6 +212,17 @@ def test_site_rollup_does_not_present_missing_inputs_as_a_full_shift():
     assert "'Unavailable'" in site_view
 
 
+def test_entry_pages_use_the_served_sunup_favicon():
+    with open(os.path.join(APP, "index.html"), encoding="utf-8") as source:
+        app_entry = source.read()
+    with open(os.path.join(ROOT, "index.html"), encoding="utf-8") as source:
+        root_entry = source.read()
+    favicon = os.path.join(ROOT, "favicon.svg")
+    assert 'href="../favicon.svg"' in app_entry
+    assert 'href="favicon.svg"' in root_entry
+    assert os.path.isfile(favicon)
+
+
 def test_interrupted_live_weather_resumes_the_paid_activity():
     site_weather = strip_comments(read("js", "siteweather.js"))
     assert "liveActivities" in site_weather
