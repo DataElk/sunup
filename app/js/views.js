@@ -897,9 +897,9 @@ export function siteView(ctx, siteId) {
       { label: 'Workers', width: '80px', numeric: true, sortKey: 'workers',
         render: (r) => String(r.workers) },
       { label: 'Model', width: '90px', numeric: true, sortKey: 'model',
-        render: (r) => String(r.modelMinutes) },
+        render: (r) => r.unavailable || !r.workers ? '' : String(r.modelMinutes) },
       { label: 'Calendar', width: '90px', numeric: true,
-        render: (r) => String(r.calendarMinutes) },
+        render: (r) => r.unavailable || !r.workers ? '' : String(r.calendarMinutes) },
       { label: 'Action', width: '80px', numeric: true,
         render: (r) => r.actionRequired
           ? el('span', 'num danger', String(r.actionRequired)) : '' },
@@ -911,7 +911,11 @@ export function siteView(ctx, siteId) {
           return wrap;
         } },
       { label: 'Status', width: '110px',
-        render: (r) => chip(r.worstStatus, STATUS_TEXT[r.worstStatus]) },
+        render: (r) => !r.workers
+          ? el('span', 'muted', 'No workers')
+          : (r.unavailable
+            ? el('span', 'muted', 'Unavailable')
+            : chip(r.worstStatus, STATUS_TEXT[r.worstStatus])) },
     ],
     rows: sortRows(rows, ctx.sort, {
       name: (r) => r.crew.name, workers: (r) => r.workers,

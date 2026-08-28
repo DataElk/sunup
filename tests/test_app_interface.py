@@ -203,6 +203,15 @@ def test_dynamic_weather_series_persist_and_hydrate():
     assert "store.saveWeatherSeries(key" in forms
 
 
+def test_site_rollup_does_not_present_missing_inputs_as_a_full_shift():
+    views = strip_comments(read("js", "views.js"))
+    site_view = views[views.index("export function siteView"):
+                      views.index("export function crewView")]
+    assert "r.unavailable || !r.workers" in site_view
+    assert "'No workers'" in site_view
+    assert "'Unavailable'" in site_view
+
+
 def test_interrupted_live_weather_resumes_the_paid_activity():
     site_weather = strip_comments(read("js", "siteweather.js"))
     assert "liveActivities" in site_weather
