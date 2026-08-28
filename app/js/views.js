@@ -828,7 +828,7 @@ function exceptionLedgerSection(ctx, events) {
       { label: 'Site / crew', width: '1.2fr', render: (event) => event.scope },
       { label: 'Date', width: '96px', render: (event) => event.date },
       { label: 'State', width: '132px', render: exceptionState },
-      { label: 'Review', width: '112px', render: (event) => exceptionAction(ctx, event) },
+      { label: 'Review', width: '124px', render: (event) => exceptionAction(ctx, event) },
     ],
     rows: events,
     sort: null,

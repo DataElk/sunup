@@ -461,7 +461,10 @@ body {
 .exception-count { color: var(--ink-secondary); white-space: nowrap; }
 .review-state { color: var(--ink-secondary); }
 .review-needed { color: var(--status-stop); font-weight: var(--weight-semibold); }
-.review-action {
+.btn.review-action {
+  width: 100%;
+  max-width: 100%;
+  justify-content: center;
   height: calc(var(--control-height) - var(--space-2));
   padding: 0 var(--space-2);
   font-size: var(--text-caption);

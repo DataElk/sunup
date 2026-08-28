@@ -569,6 +569,7 @@ def test_today_has_a_persisted_exception_acknowledgement_ledger():
     views = strip_comments(read("js", "views.js"))
     events = strip_comments(read("js", "exceptions.js"))
     store = strip_comments(read("js", "store.js"))
+    css = read("styles", "components.css")
     assert "Exceptions and review" in views
     assert "Acknowledge" in views and "Reopen" in views
     assert "store.acknowledgeException(event)" in views
@@ -584,6 +585,9 @@ def test_today_has_a_persisted_exception_acknowledgement_ledger():
     assert "export function acknowledgeException" in store
     assert "dropExceptionAcknowledgements" in store
     assert "event.memberWorkerIds.includes(id)" in store
+    assert "width: '124px'" in views
+    assert ".btn.review-action" in css
+    assert "width: 100%" in css[css.index(".btn.review-action"):]
 
 
 def test_settings_imports_every_control_it_renders():
