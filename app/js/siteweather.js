@@ -12,6 +12,8 @@ import {
 const HISTORY_DAYS = 14;
 const FIRST_DAYS = 5;
 const FORECAST_DAYS = 6;
+const INITIAL_CONCURRENCY = 5;
+const BACKFILL_CONCURRENCY = 3;
 const inflight = new Set();
 
 function weather() { return window.SUNUP_WEATHER; }
@@ -63,13 +65,16 @@ export function readDailySeries(result, site, driver, queryAoi) {
   return buildWbgtSeries(cell, driver, site.location);
 }
 
-async function fetchDay(site, date, driver, onActivity) {
+async function fetchDay(site, date, driver, onActivity, activityId = null) {
   const queryAoi = bufferedAoi(site);
-  const submitted = await submitHeatmap(payload(site, date, queryAoi));
-  const activityId = submitted && submitted.data && submitted.data.activity_id;
-  if (!activityId) throw new Error('The live weather task was not accepted.');
-  if (onActivity) onActivity(activityId);
-  const result = await waitForActivity(activityId);
+  let pendingId = activityId;
+  if (!pendingId) {
+    const submitted = await submitHeatmap(payload(site, date, queryAoi));
+    pendingId = submitted && submitted.data && submitted.data.activity_id;
+    if (!pendingId) throw new Error('The live weather task was not accepted.');
+    if (onActivity) onActivity(pendingId);
+  }
+  const result = await waitForActivity(pendingId);
   return readDailySeries(result, site, driver, queryAoi);
 }
 
@@ -104,6 +109,39 @@ function completedDays(site) {
   return siteDates(site).filter((date) => dayReady(site, date)).length;
 }
 
+function pendingActivities(site) {
+  const pending = { ...((site && site.liveActivities) || {}) };
+  if (site && site.liveActivityId && site.liveActivityDate
+      && !pending[site.liveActivityDate]) {
+    pending[site.liveActivityDate] = site.liveActivityId;
+  }
+  return pending;
+}
+
+function setPendingActivity(siteId, date, activityId) {
+  const site = store.site(siteId);
+  if (!site) return;
+  const pending = { ...pendingActivities(site), [date]: activityId };
+  updateProgress(siteId, {
+    liveActivities: pending,
+    liveActivityId: activityId,
+    liveActivityDate: date,
+  });
+}
+
+function clearPendingActivity(siteId, date) {
+  const site = store.site(siteId);
+  if (!site) return;
+  const pending = pendingActivities(site);
+  delete pending[date];
+  const remaining = Object.entries(pending)[0] || [null, null];
+  updateProgress(siteId, {
+    liveActivities: pending,
+    liveActivityDate: remaining[0],
+    liveActivityId: remaining[1],
+  });
+}
+
 function orderedDates(site) {
   const dates = siteDates(site);
   return dates.slice(-FIRST_DAYS).concat(dates.slice(0, -FIRST_DAYS));
@@ -122,7 +160,9 @@ function setStage(siteId) {
   updateProgress(siteId, {
     weatherSource: completed >= FIRST_DAYS ? 'live' : 'none',
     weatherStatus: stageFor(completed, total),
-    weatherProgress: { completed, total },
+    weatherProgress: {
+      completed, total, pending: Object.keys(pendingActivities(site)).length,
+    },
   });
   return completed;
 }
@@ -148,54 +188,88 @@ function saveDailySeries(siteId, date, daily) {
   store.saveWeatherSeries(key, series);
   const completed = siteDates(site).filter((item) => Array.isArray(series[item])).length;
   const total = siteDates(site).length;
+  clearPendingActivity(siteId, date);
+  const current = store.site(siteId);
   updateProgress(siteId, {
     seriesKey: key,
     weatherSource: completed >= FIRST_DAYS ? 'live' : 'none',
     weatherStatus: stageFor(completed, total),
-    weatherProgress: { completed, total },
+    weatherProgress: {
+      completed, total, pending: Object.keys(pendingActivities(current)).length,
+    },
     weatherUpdatedAt: new Date().toISOString(),
-    liveActivityId: null,
-    liveActivityDate: null,
+    weatherError: null,
   });
   compute.invalidate();
   return completed;
 }
 
-async function fetchDates(siteId, dates, drivers) {
+async function runPool(items, limit, work) {
+  const queue = items.slice();
+  const outcomes = [];
+  async function worker() {
+    while (queue.length) {
+      const item = queue.shift();
+      try {
+        outcomes.push({ item, value: await work(item) });
+      } catch (error) {
+        outcomes.push({ item, error });
+      }
+    }
+  }
+  await Promise.all(Array.from(
+    { length: Math.min(limit, queue.length) }, () => worker()));
+  return outcomes;
+}
+
+async function fetchDates(siteId, dates, drivers, concurrency) {
   const site = store.site(siteId);
   if (!site) return 0;
-  for (const date of dates) {
+  const pending = pendingActivities(site);
+  const missing = dates.filter((date) => !dayReady(site, date) && !pending[date]);
+  const outcomes = await runPool(missing, concurrency, async (date) => {
     const current = store.site(siteId);
-    if (!current) return 0;
-    if (dayReady(current, date)) continue;
-    const daily = await fetchDay(current, date, drivers[date], (activityId) => (
-      updateProgress(siteId, { liveActivityId: activityId, liveActivityDate: date })
-    ));
-    saveDailySeries(siteId, date, daily);
-  }
+    if (!current) return null;
+    try {
+      const daily = await fetchDay(current, date, drivers[date], (activityId) => (
+        setPendingActivity(siteId, date, activityId)
+      ));
+      saveDailySeries(siteId, date, daily);
+      return daily;
+    } catch (error) {
+      if (error && error.code === 'activity_failed') clearPendingActivity(siteId, date);
+      throw error;
+    }
+  });
+  const failure = outcomes.find((outcome) => outcome.error);
+  if (failure) throw failure.error;
   const latest = store.site(siteId);
   return latest ? completedDays(latest) : 0;
 }
 
 async function resumePending(siteId, drivers) {
   const site = store.site(siteId);
-  if (!site || !site.liveActivityId) return false;
-  const date = site.liveActivityDate
-    || orderedDates(site).find((item) => !dayReady(site, item));
-  if (!date) {
-    updateProgress(siteId, { liveActivityId: null, liveActivityDate: null });
-    return false;
-  }
-  if (dayReady(site, date)) {
-    updateProgress(siteId, { liveActivityId: null, liveActivityDate: null });
-    return true;
-  }
-  updateProgress(siteId, { liveActivityDate: date });
-  const result = await waitForActivity(site.liveActivityId);
-  const current = store.site(siteId);
-  if (!current) return false;
-  const queryAoi = bufferedAoi(current);
-  saveDailySeries(siteId, date, readDailySeries(result, current, drivers[date], queryAoi));
+  if (!site) return false;
+  const pending = Object.entries(pendingActivities(site));
+  if (!pending.length) return false;
+  const outcomes = await runPool(pending, INITIAL_CONCURRENCY, async ([date, activityId]) => {
+    const current = store.site(siteId);
+    if (!current) return null;
+    if (dayReady(current, date)) {
+      clearPendingActivity(siteId, date);
+      return null;
+    }
+    try {
+      const daily = await fetchDay(current, date, drivers[date], null, activityId);
+      saveDailySeries(siteId, date, daily);
+      return daily;
+    } catch (error) {
+      if (error && error.code === 'activity_failed') clearPendingActivity(siteId, date);
+      throw error;
+    }
+  });
+  const failure = outcomes.find((outcome) => outcome.error);
+  if (failure) throw failure.error;
   return true;
 }
 
@@ -205,20 +279,21 @@ function markFailure(siteId, error) {
   const completed = completedDays(site);
   const changes = {
     weatherStatus: completed ? 'partial' : 'error',
-    weatherProgress: { completed, total: siteDates(site).length },
+    weatherProgress: {
+      completed,
+      total: siteDates(site).length,
+      pending: Object.keys(pendingActivities(site)).length,
+    },
     weatherError: error && error.message ? error.message : 'Live weather failed.',
   };
-  if (error && error.code === 'activity_failed') {
-    changes.liveActivityId = null;
-    changes.liveActivityDate = null;
-  }
   updateProgress(siteId, changes);
 }
 
 async function finishBackfill(siteId, drivers) {
   try {
     const site = store.site(siteId);
-    if (site) await fetchDates(siteId, orderedDates(site), drivers);
+    if (site) await fetchDates(
+      siteId, orderedDates(site), drivers, BACKFILL_CONCURRENCY);
   } catch (error) {
     markFailure(siteId, error);
   } finally {
@@ -250,7 +325,8 @@ export async function startSiteBackfill(siteId) {
     saveForecastSeries(siteId, drivers);
     await resumePending(siteId, drivers);
     const latest = store.site(siteId);
-    await fetchDates(siteId, siteDates(latest).slice(-FIRST_DAYS), drivers);
+    await fetchDates(
+      siteId, siteDates(latest).slice(-FIRST_DAYS), drivers, INITIAL_CONCURRENCY);
     window.setTimeout(() => finishBackfill(siteId, drivers), 0);
     return true;
   } catch (error) {
@@ -262,7 +338,7 @@ export async function startSiteBackfill(siteId) {
 
 export async function resumeSiteActivity(siteId) {
   const site = store.site(siteId);
-  if (!site || !site.liveActivityId) return false;
+  if (!site || !Object.keys(pendingActivities(site)).length) return false;
   try {
     const drivers = await loadDrivers(site);
     return await resumePending(siteId, drivers);
@@ -274,7 +350,7 @@ export async function resumeSiteActivity(siteId) {
 
 export function resumeSiteBackfills() {
   if (!hasConfiguredKey()) return Promise.resolve([]);
-  const resumable = store.sites().filter((site) => site.liveActivityId
+  const resumable = store.sites().filter((site) => Object.keys(pendingActivities(site)).length
     || ['loading', 'backfill', 'partial'].includes(site.weatherStatus));
   return Promise.allSettled(resumable.map((site) => startSiteBackfill(site.id)));
 }

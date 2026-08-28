@@ -204,17 +204,35 @@ def test_dynamic_weather_series_persist_and_hydrate():
 
 def test_interrupted_live_weather_resumes_the_paid_activity():
     site_weather = strip_comments(read("js", "siteweather.js"))
-    assert "liveActivityDate" in site_weather
-    assert "await waitForActivity(site.liveActivityId)" in site_weather
+    assert "liveActivities" in site_weather
+    assert "pendingActivities(site)" in site_weather
+    assert "fetchDay(current, date, drivers[date], null, activityId)" in site_weather
     assert "export function resumeSiteBackfills" in site_weather
     assert "Promise.allSettled" in site_weather
     app = strip_comments(read("js", "app.js"))
     assert "resumeSiteBackfills()" in app
 
 
+def test_initial_live_weather_days_are_fetched_concurrently_and_saved_individually():
+    source = strip_comments(read("js", "siteweather.js"))
+    assert "const INITIAL_CONCURRENCY = 5" in source
+    assert "async function runPool" in source
+    assert "outcomes.push({ item, value: await work(item) })" in source
+    assert "saveDailySeries(siteId, date, daily)" in source
+    start = source[source.index("export async function startSiteBackfill"):]
+    assert "INITIAL_CONCURRENCY" in start
+
+
+def test_live_weather_polling_has_a_recoverable_timeout():
+    client = strip_comments(read("js", "liveweather.js"))
+    assert "const ACTIVITY_TIMEOUT_MS" in client
+    assert "error.code = 'activity_timeout'" in client
+    assert "resume the same task" in client
+
+
 def test_live_weather_reports_freshness_and_skips_completed_days():
     site_weather = strip_comments(read("js", "siteweather.js"))
-    assert "if (dayReady(current, date)) continue" in site_weather
+    assert "!dayReady(site, date)" in site_weather
     assert "weatherUpdatedAt: new Date().toISOString()" in site_weather
     views = strip_comments(read("js", "views.js"))
     assert "function weatherFreshness" in views

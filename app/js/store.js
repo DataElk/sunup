@@ -213,6 +213,7 @@ export function addSite(fields) {
     weatherForecastDates: null,
     weatherAsOfDate: null,
     weatherError: null,
+    liveActivities: {},
     liveActivityId: null,
     liveActivityDate: null,
     seeded: false,

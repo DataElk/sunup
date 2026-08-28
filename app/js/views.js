@@ -1095,14 +1095,17 @@ function weatherFreshness(site) {
     ? site.weatherUpdatedAt
     : value.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
   return el('p', 'muted',
-    `Live weather: ${progress.completed} of ${progress.total} days. Updated ${updated}.`);
+    `Live weather: ${progress.completed} of ${progress.total} days ready`
+    + `${progress.pending ? `, ${progress.pending} processing` : ''}. Updated ${updated}.`);
 }
 
 function noWeatherBanner(ctx, site) {
   if (site.weatherStatus === 'loading' || site.weatherStatus === 'backfill') {
     const progress = site.weatherProgress || { completed: 0, total: 14 };
     return banner('info', 'Retrieving live weather',
-      `${progress.completed} of ${progress.total} days ready. Prescriptions appear after the first five days.`);
+      `${progress.completed} of ${progress.total} days ready`
+      + `${progress.pending ? `, ${progress.pending} processing` : ''}. `
+      + 'The first completed day becomes usable immediately.');
   }
   if (site.weatherStatus === 'error' || site.weatherStatus === 'partial') {
     return weatherFailureBanner(ctx, site);
@@ -1156,7 +1159,9 @@ function weatherFailureBanner(ctx, site) {
 function backfillBanner(site) {
   const progress = site.weatherProgress || { completed: 5, total: 14 };
   return banner('info', 'Live weather is still backfilling',
-    `${progress.completed} of ${progress.total} days ready. Prescriptions update as history arrives.`);
+    `${progress.completed} of ${progress.total} days ready`
+    + `${progress.pending ? `, ${progress.pending} processing` : ''}. `
+    + 'Prescriptions update as history arrives.');
 }
 
 function missing(ctx, message) {

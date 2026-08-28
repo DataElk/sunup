@@ -7,6 +7,9 @@
    ========================================================================== */
 
 const KEY_STORAGE = 'sunup.weather.access.v1';
+const REQUEST_TIMEOUT_MS = 60000;
+const ACTIVITY_TIMEOUT_MS = 12 * 60 * 1000;
+const POLL_INTERVAL_MS = 3000;
 
 function readKey() {
   try {
@@ -32,13 +35,21 @@ function authHeaders() {
 
 async function request(path, options = {}) {
   let response;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     response = await fetch(endpoint(path), {
       ...options,
+      signal: controller.signal,
       headers: { ...authHeaders(), ...(options.headers || {}) },
     });
-  } catch {
+  } catch (error) {
+    if (error && error.name === 'AbortError') {
+      throw new Error('The live weather request timed out. Try again to resume it.');
+    }
     throw new Error('The live weather service could not be reached.');
+  } finally {
+    window.clearTimeout(timeout);
   }
 
   if (!response.ok) {
@@ -135,9 +146,18 @@ export async function activityStatus(activityId) {
   return request(`/v1/status/${encodeURIComponent(activityId)}`);
 }
 
-export async function waitForActivity(activityId, onPoll) {
+export async function waitForActivity(activityId, onPoll, options = {}) {
+  const timeoutMs = options.timeoutMs || ACTIVITY_TIMEOUT_MS;
+  const startedAt = Date.now();
   let errors = 0;
   for (;;) {
+    if (Date.now() - startedAt >= timeoutMs) {
+      const error = new Error(
+        'The live weather task is still processing. Retry later to resume the same task.');
+      error.code = 'activity_timeout';
+      error.activityId = activityId;
+      throw error;
+    }
     try {
       const response = await activityStatus(activityId);
       errors = 0;
@@ -155,7 +175,7 @@ export async function waitForActivity(activityId, onPoll) {
       errors += 1;
       if (errors > 3) throw error;
     }
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
   }
 }
 
@@ -173,10 +193,17 @@ export async function fetchRegionalWeather(location, startDate, endDate) {
     'shortwave_radiation', 'wind_speed_10m', 'cloud_cover',
   ].join(','));
   let response;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    response = await fetch(url);
-  } catch {
+    response = await fetch(url, { signal: controller.signal });
+  } catch (error) {
+    if (error && error.name === 'AbortError') {
+      throw new Error('Regional hourly weather timed out. Try again shortly.');
+    }
     throw new Error('Regional hourly weather could not be reached.');
+  } finally {
+    window.clearTimeout(timeout);
   }
   if (!response.ok) {
     throw new Error(`Regional hourly weather failed (${response.status}).`);
