@@ -1,10 +1,12 @@
 # Sunup
 
+[![Verify](https://github.com/DataElk/sunup/actions/workflows/verify.yml/badge.svg)](https://github.com/DataElk/sunup/actions/workflows/verify.yml)
+
+**[Open the live application](https://dataelk.github.io/sunup/)**
+
 Sunup turns site weather and actual minutes worked into a daily heat work plan for
 each worker. It was built for the FortyGuard Hackathon 2026, with Model Designing as
 the primary track and Industrial and Enterprise as the application track.
-
-Live application: https://dataelk.github.io/sunup/
 
 Sunup addresses a specific gap in calendar acclimatization schedules. Two workers can
 be on the same employment day while having very different heat exposure histories.
@@ -18,6 +20,10 @@ This is a hackathon prototype. It is not validated for operational safety decisi
 
 - Editable sites, crews, workers, shifts, trades, clothing, and actual-minutes logs.
 - A start-of-shift plan with each worker's model prescription and calendar comparison.
+- A supervisor action queue with prior-day change, closeout status, and the next
+  pullable intervention.
+- A worker-level intervention comparison for site, shift window, and additional
+  hourly recovery.
 - Point and polygon site selection on an Arizona-constrained Leaflet map.
 - Live FortyGuard `filter_type=3` calls for each site's daily cell minimum, mean, and
   maximum temperature.
@@ -28,10 +34,10 @@ This is a hackathon prototype. It is not validated for operational safety decisi
 - Hourly humidity, wet bulb, shortwave radiation, cloud, and wind from Open-Meteo.
 - The same black-globe and WBGT composition in Python and JavaScript, checked against
   a 24-hour cross-language regression fixture.
-- Five live history days before the first prescription, followed by nine background
-  backfill days.
-- Six Open-Meteo forecast days for live sites. Today's FortyGuard request uses the
-  endpoint's available current forecast window.
+- Five concurrent initial live history tasks. Each completed day becomes usable
+  immediately, followed by nine background backfill days.
+- Six Open-Meteo forecast days for live sites. FortyGuard observations end on the
+  last complete Arizona day.
 - Browser persistence, cascading deletes, JSON export, and reset to the cached example.
 - A cached two-site example that works when no FortyGuard key is configured.
 
@@ -66,6 +72,26 @@ files, served assets, store exports, screenshots, or reset data. Do not add a ke
 Without a key, the cached example remains available and no FortyGuard request is made.
 The site map still retrieves OpenStreetMap tiles when opened.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    FG[FortyGuard heatmap tiles] --> W[Site weather builder]
+    OM[Hourly environmental drivers] --> W
+    U[Supervisor roster and actual minutes] --> S[Browser store]
+    W --> S
+    S --> E[Validated decision engine]
+    E --> T[Today action queue]
+    E --> P[Worker work and recovery plan]
+    E --> I[Intervention comparison]
+    P --> L[Shift closeout]
+    L --> S
+```
+
+The Python implementation produces evidence, regression fixtures, and golden vectors.
+The browser implementation uses generated constants and must reproduce those vectors
+before deployment.
+
 ## Live data flow
 
 For a new site, Sunup creates a buffered request around the selected point or boundary.
@@ -81,9 +107,11 @@ Each observed day follows this path:
    temperature.
 7. Recompute every worker prescription attached to that site.
 
-The first five observed days are requested synchronously. The remaining nine continue
-in the background. Paid activity IDs are persisted so an interrupted poll can resume
-without submitting the same FortyGuard task again.
+The first five observed days are submitted concurrently. Successful days are saved
+independently and become usable as soon as they finish. The remaining nine continue
+with bounded background concurrency. Paid activity IDs are persisted by date so an
+interrupted or timed-out poll can resume without submitting the same FortyGuard task
+again.
 
 ## FortyGuard request and response
 
@@ -161,6 +189,10 @@ Actual minutes are not decorative. Logging them changes the adaptation state and
 next day's prescription. Work beyond the prescription is also recorded as cumulative
 overexposure.
 
+The intervention comparison does not introduce another risk score. It runs the same
+prescription engine with the same start-of-shift readiness while changing only the
+selected site, shift window, or hourly work cap.
+
 Age, sex, BMI, fitness, medical history, hydration, medication, ethnicity, residence,
 and home address are forbidden inputs. The store and model reject them.
 
@@ -199,6 +231,9 @@ environmental composition comparison against Python.
 The full method, findings, self-corrections, and caveats are in
 [WRITEUP.md](WRITEUP.md).
 
+Submission-ready project descriptions, impact framing, technical claims, limitations,
+and likely-question responses are collected in [SUBMISSION.md](SUBMISSION.md).
+
 ## Repository layout
 
 ```text
@@ -207,8 +242,10 @@ app/             Static browser application and live environmental pipeline
 scripts/         Data builders, reports, and audits
 fixtures/        Raw and derived regression evidence
 tests/           Python, JavaScript, contract, and interface verification
+.github/         Continuous verification on every push to main
 SPEC.md          Model and data specification
 WRITEUP.md       Submission narrative and findings
+SUBMISSION.md    Written submission copy and likely-question responses
 DESIGN_SYSTEM.md Interface rules and rationale
 ```
 

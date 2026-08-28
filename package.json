@@ -5,7 +5,7 @@
   "description": "Per-worker heat acclimatization state and heat work planning with live FortyGuard site weather.",
   "scripts": {
     "check:design": "node scripts/check-design.mjs",
-    "prebuild": "npm run check:design",
-    "build": "python scripts/build_roster_data.py"
+    "test": "python -m pytest",
+    "verify": "python -m pytest && node scripts/check-design.mjs"
   }
 }
