@@ -54,6 +54,12 @@ workspace into one stable handoff with hourly work and recovery instructions,
 shared water, recovery-area, buddy-check, and emergency controls, individual
 exceptions, supervisor review boxes, and closeout state.
 
+The Today workspace includes an exception ledger for no-work plans, grouped missing
+closeouts, unavailable weather, and recent actual minutes beyond the prescription.
+Supervisors can acknowledge or reopen each event, and resolved acknowledgements
+remain visible as browser-local history. Normal restricted plans stay in the Today
+table instead of generating duplicate alert noise.
+
 ## Why FortyGuard is central
 
 FortyGuard provides the daily local thermal anchor for every live site. Sunup uses the

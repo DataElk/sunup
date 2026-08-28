@@ -28,6 +28,9 @@ This is a hackathon prototype. It is not validated for operational safety decisi
   length, and refuses any plan that reduces a worker's prescribed heat-work time.
 - A printable daily crew briefing with hourly work and recovery, shared field
   controls, individual exceptions, review boxes, and closeout state.
+- A persisted exception ledger for no-work plans, grouped missing closeouts,
+  unavailable weather, and recent actual minutes above plan, with acknowledge and
+  reopen.
 - Point and polygon site selection on an Arizona-constrained Leaflet map.
 - Live FortyGuard `filter_type=3` calls for each site's daily cell minimum, mean, and
   maximum temperature.

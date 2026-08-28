@@ -73,7 +73,8 @@ function writeRaw(key, value) {
 }
 
 const EMPTY = {
-  sites: [], crews: [], workers: [], dayLogs: {}, weatherSeries: {}, seeded: null,
+  sites: [], crews: [], workers: [], dayLogs: {}, weatherSeries: {},
+  exceptionAcknowledgements: {}, seeded: null,
 };
 
 let state = null;
@@ -83,10 +84,17 @@ let state = null;
 export async function initStore() {
   state = readRaw(STORE_KEY, null);
   if (state && Array.isArray(state.sites)) {
+    let migrated = false;
     if (!state.weatherSeries || typeof state.weatherSeries !== 'object') {
       state.weatherSeries = {};
-      writeRaw(STORE_KEY, state);
+      migrated = true;
     }
+    if (!state.exceptionAcknowledgements
+        || typeof state.exceptionAcknowledgements !== 'object') {
+      state.exceptionAcknowledgements = {};
+      migrated = true;
+    }
+    if (migrated) writeRaw(STORE_KEY, state);
     hydrateWeatherSeries();
     return state;
   }
@@ -108,6 +116,7 @@ function applySeed(seed) {
     workers: seed.workers.map((w) => reject({ ...w, seeded: true }, 'seed worker')),
     dayLogs: JSON.parse(JSON.stringify(seed.dayLogs || {})),
     weatherSeries: {},
+    exceptionAcknowledgements: {},
     seeded: seed.version,
   };
   writeRaw(STORE_KEY, next);
@@ -164,6 +173,10 @@ export function workersAtSite(siteId) {
 
 export function logsFor(workerId) {
   return state.dayLogs[workerId] || {};
+}
+
+export function exceptionAcknowledgements() {
+  return state.exceptionAcknowledgements || {};
 }
 
 function hydrateWeatherSeries() {
@@ -266,6 +279,12 @@ export function updateSite(id, changes) { return patch(state.sites, id, changes,
 export function updateCrew(id, changes) { return patch(state.crews, id, changes, 'updateCrew'); }
 export function updateWorker(id, changes) { return patch(state.workers, id, changes, 'updateWorker'); }
 
+function dropExceptionAcknowledgements(matches) {
+  Object.entries(state.exceptionAcknowledgements || {}).forEach(([id, event]) => {
+    if (matches(event)) delete state.exceptionAcknowledgements[id];
+  });
+}
+
 /* Deletes cascade. A crew whose site is gone, or a worker whose crew is gone,
    would otherwise sit in the store unreachable and still be counted. */
 
@@ -279,6 +298,7 @@ export function removeSite(id) {
   });
   state.crews = state.crews.filter((c) => c.siteId !== id);
   state.sites = state.sites.filter((s) => s.id !== id);
+  dropExceptionAcknowledgements((event) => event.siteId === id);
   if (removed) dropWeatherSeries(removed.seriesKey);
   emit();
 }
@@ -290,12 +310,15 @@ export function removeCrew(id) {
     return false;
   });
   state.crews = state.crews.filter((c) => c.id !== id);
+  dropExceptionAcknowledgements((event) => event.crewId === id);
   emit();
 }
 
 export function removeWorker(id) {
   state.workers = state.workers.filter((w) => w.id !== id);
   delete state.dayLogs[id];
+  dropExceptionAcknowledgements((event) => event.workerId === id
+    || (Array.isArray(event.memberWorkerIds) && event.memberWorkerIds.includes(id)));
   emit();
 }
 
@@ -325,6 +348,36 @@ export function loggedMinutes(workerId) {
     out[date] = entry.minutes;
   }
   return out;
+}
+
+/* --- Exception review -------------------------------------------------------- */
+
+export function acknowledgeException(event) {
+  if (!event || !event.id) throw new Error('acknowledgeException: event id required');
+  const saved = {
+    id: event.id,
+    type: event.type,
+    date: event.date,
+    title: event.title,
+    detail: event.detail,
+    severity: event.severity,
+    workerId: event.workerId || null,
+    memberWorkerIds: Array.isArray(event.memberWorkerIds)
+      ? event.memberWorkerIds.slice() : [],
+    crewId: event.crewId || null,
+    siteId: event.siteId || null,
+    scope: event.scope || '',
+    href: event.href || null,
+    acknowledgedAt: new Date().toISOString(),
+  };
+  state.exceptionAcknowledgements[event.id] = saved;
+  emit();
+  return saved;
+}
+
+export function reopenException(id) {
+  delete state.exceptionAcknowledgements[id];
+  emit();
 }
 
 /* --- Export / import ---------------------------------------------------------- */

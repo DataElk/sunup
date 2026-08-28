@@ -450,6 +450,23 @@ body {
   white-space: nowrap;
 }
 
+.exception-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.exception-heading-copy { display: flex; flex-direction: column; gap: var(--space-2); }
+.exception-heading .section-description { margin: 0; }
+.exception-count { color: var(--ink-secondary); white-space: nowrap; }
+.review-state { color: var(--ink-secondary); }
+.review-needed { color: var(--status-stop); font-weight: var(--weight-semibold); }
+.review-action {
+  height: calc(var(--control-height) - var(--space-2));
+  padding: 0 var(--space-2);
+  font-size: var(--text-caption);
+}
+
 /* ==========================================================================
    Chips and tags
    ========================================================================== */

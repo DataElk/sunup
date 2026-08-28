@@ -10,6 +10,7 @@ import { CONSTANTS } from './engine.js';
 import * as store from './store.js';
 import * as compute from './compute.js';
 import * as forms from './forms.js';
+import { exceptionLedger } from './exceptions.js';
 import { hasConfiguredKey } from './liveweather.js';
 import { startSiteBackfill } from './siteweather.js';
 import { sitePoint } from './leaflet.js';
@@ -785,6 +786,63 @@ function todayChange(row) {
   return value;
 }
 
+function exceptionState(event) {
+  if (!event.active) return el('span', 'review-state muted', 'Resolved, reviewed');
+  if (event.acknowledgedAt) return el('span', 'review-state', 'Reviewed');
+  return el('span', 'review-state review-needed', 'Needs review');
+}
+
+function exceptionAction(ctx, event) {
+  if (!event.active) return '';
+  const reviewed = Boolean(event.acknowledgedAt);
+  const action = el('button', 'btn review-action', reviewed ? 'Reopen' : 'Acknowledge');
+  action.type = 'button';
+  action.addEventListener('click', (clickEvent) => {
+    clickEvent.stopPropagation();
+    if (reviewed) store.reopenException(event.id);
+    else store.acknowledgeException(event);
+    toast(reviewed ? 'Exception reopened' : 'Exception acknowledged');
+    ctx.refresh();
+  });
+  return action;
+}
+
+function exceptionLedgerSection(ctx, events) {
+  const wrap = el('section', 'sect exception-ledger');
+  const heading = el('div', 'exception-heading');
+  const copy = el('div', 'exception-heading-copy');
+  const open = events.filter((event) => event.active && !event.acknowledgedAt).length;
+  copy.append(
+    el('h2', 'sect-h', 'Exceptions and review'),
+    el('p', 'section-description',
+      'Current plan, closeout, and work-over-plan events with supervisor acknowledgement.'));
+  heading.append(copy, el('span', 'num exception-count', `${open} need review`));
+  wrap.appendChild(heading);
+  wrap.appendChild(detailsList({
+    columns: [
+      { label: 'Event', width: '2fr', render: (event) => {
+        const node = el('span', 'nm', event.title);
+        node.title = event.detail;
+        return node;
+      } },
+      { label: 'Site / crew', width: '1.2fr', render: (event) => event.scope },
+      { label: 'Date', width: '96px', render: (event) => event.date },
+      { label: 'State', width: '132px', render: exceptionState },
+      { label: 'Review', width: '112px', render: (event) => exceptionAction(ctx, event) },
+    ],
+    rows: events,
+    sort: null,
+    onSort: () => {},
+    selection: new Set(),
+    onSelectionChange: () => {},
+    rowKey: (event) => event.id,
+    onInvoke: (event) => { if (event.href) ctx.go(event.href); },
+    selectable: false,
+    empty: 'No plan, closeout, or work-over-plan exceptions need review.',
+  }));
+  return wrap;
+}
+
 export function todayView(ctx) {
   const root = el('div', 'view');
   const date = new Date(`${compute.today()}T00:00:00Z`).toLocaleDateString([], {
@@ -819,6 +877,9 @@ export function todayView(ctx) {
   const missing = rows.filter((row) => row.missingCloseout).length;
   const unavailable = rows.length - usable.length;
   const minutes = usable.reduce((sum, row) => sum + row.result.current.prescribedMinutes, 0);
+  const ledger = exceptionLedger();
+  const needsReview = ledger.filter(
+    (event) => event.active && !event.acknowledgedAt).length;
 
   const summary = el('div', 'fc-summary');
   summary.append(
@@ -827,7 +888,8 @@ export function todayView(ctx) {
     todayMetric(String(stopped + unavailable), 'urgent actions'),
     todayMetric(String(restricted), 'restricted plans'),
     todayMetric(String(missing), 'need closeout'),
-    todayMetric(String(unavailable), 'weather unavailable'));
+    todayMetric(String(unavailable), 'weather unavailable'),
+    todayMetric(String(needsReview), 'exceptions to review'));
   root.appendChild(summary);
 
   root.appendChild(detailsList({
@@ -867,6 +929,7 @@ export function todayView(ctx) {
     selectable: false,
     empty: 'No active workers. Add workers under Sites and crews.',
   }));
+  root.appendChild(exceptionLedgerSection(ctx, ledger));
   return root;
 }
 

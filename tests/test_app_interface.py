@@ -51,7 +51,7 @@ def strip_comments(source):
 
 JS_FILES = ["app.js", "engine.js", "store.js", "compute.js", "ui.js",
             "views.js", "forms.js", "mapview.js", "extraviews.js",
-            "interventions.js"]
+            "interventions.js", "exceptions.js"]
 
 
 # ---------------------------------------------------------------------------
@@ -563,6 +563,27 @@ def test_crew_briefing_is_a_dedicated_printable_field_handoff():
     assert "review before heat work begins" in briefing
     assert "@media print" in css
     assert "@page { size: landscape" in css
+
+
+def test_today_has_a_persisted_exception_acknowledgement_ledger():
+    views = strip_comments(read("js", "views.js"))
+    events = strip_comments(read("js", "exceptions.js"))
+    store = strip_comments(read("js", "store.js"))
+    assert "Exceptions and review" in views
+    assert "Acknowledge" in views and "Reopen" in views
+    assert "store.acknowledgeException(event)" in views
+    assert "store.reopenException(event.id)" in views
+    assert "export function currentExceptions" in events
+    assert "plan-stop" in events
+    assert "missing-closeout" in events
+    assert "over-plan" in events
+    assert "groupOperationalEvents" in events
+    assert "memberWorkerIds" in events
+    assert "result.observed.slice(-2)" in events
+    assert "exceptionAcknowledgements: {}" in store
+    assert "export function acknowledgeException" in store
+    assert "dropExceptionAcknowledgements" in store
+    assert "event.memberWorkerIds.includes(id)" in store
 
 
 def test_settings_imports_every_control_it_renders():
