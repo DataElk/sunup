@@ -539,7 +539,7 @@ function interventionSimulator(result) {
     }
     output.replaceChildren(summary, comparison,
       el('p', 'intervention-explanation', explanation),
-      el('p', 'section-description',
+      el('p', 'intervention-footnote',
         `Both plans use ${current.date} and the same readiness at shift start.`));
     if (suggestedButton) {
       suggestedButton.disabled = selected.site.id === suggestion.siteId

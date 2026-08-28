@@ -820,6 +820,13 @@ body {
   background: var(--surface-sunken);
   color: var(--ink-secondary);
 }
+.intervention-footnote {
+  display: block;
+  margin: var(--space-2) 0 0;
+  color: var(--ink-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--leading-normal);
+}
 
 .worker-location-map {
   display: block;
@@ -1166,17 +1173,26 @@ body {
 .fc-value[data-kind="safe"] { color: var(--mismatch-under); }
 .fc-value[data-kind="permissive"] { color: var(--mismatch-over); }
 .fc-label { font-size: var(--text-caption); color: var(--ink-secondary); }
-.fc-days { display: inline-flex; gap: var(--space-1); }
+.fc-days {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-1);
+}
 .fc-day {
-  min-width: 48px;
-  display: inline-flex;
+  min-width: 0;
+  min-height: 36px;
+  display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: var(--space-1);
   border-radius: var(--radius-control);
   background: var(--status-cleared-bg);
   color: var(--status-cleared);
   line-height: var(--leading-tight);
+  text-align: center;
 }
 .fc-day[data-ok="false"] { background: var(--status-restricted-bg); color: var(--status-restricted); }
 .fc-day-date { font-size: var(--text-label); }

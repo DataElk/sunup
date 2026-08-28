@@ -143,7 +143,7 @@ export function performanceView(ctx) {
         } },
       { label: 'Mean error (min)', width: '120px', numeric: true,
         render: (r) => r.degenerate ? '' : String(r.meanAbs) },
-      { label: 'Projected / actual', width: '280px',
+      { label: 'Projected / actual', width: '300px',
         render: (r) => {
           const wrap = el('span', 'fc-days');
           for (const pair of r.pairs) {

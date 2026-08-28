@@ -658,6 +658,7 @@ def test_worker_detail_explains_and_compares_pullable_interventions():
     assert "decision-explanation" in views
     assert "Recovery or non-heat work" in views
     assert "Use suggested plan" in views
+    assert "intervention-footnote" in views
 
 
 def test_intervention_changes_animate_without_forcing_motion():
@@ -785,6 +786,9 @@ def test_model_performance_has_no_decorative_selection_controls():
     assert "Projected / actual" in block
     assert "fc-day-value" in block
     assert "fc-dot" not in block
+    css = read("styles", "components.css")
+    assert "grid-template-columns: repeat(5, minmax(0, 1fr))" in css
+    assert ".intervention-footnote" in css
 
 
 def test_settings_groups_weather_and_browser_data():
