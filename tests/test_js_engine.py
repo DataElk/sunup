@@ -248,3 +248,44 @@ def test_intervention_suggestion_selects_a_better_available_site():
         % WORKER)
     assert out == {"siteId": "cool", "start": 6, "end": 14,
                    "gain": 480, "none": True}
+
+
+def test_crew_optimizer_recovers_time_without_reducing_any_worker():
+    out = _node(
+        "await (async()=>{"
+        "const i=await import('./app/js/interventions.js');"
+        "const hourly=Array(24).fill(20);"
+        "for(let h=8;h<18;h+=1) hourly[h]=40;"
+        "const make=(id,start)=>{const w={id,trade:'concrete',clothing:'work_clothes',"
+        "shiftStart:start,shiftEnd:start+8,workClassOverride:null,active:true};"
+        "const base=i.evaluateIntervention({hourly,worker:w,adaptation:0});"
+        "return {worker:w,currentHourly:hourly,current:{adaptationStart:0,"
+        "prescribedMinutes:base.plannedMinutes}};};"
+        "const result=i.optimizeCrewShift([make('a',6),make('b',7)]);"
+        "const rec=result.recommendation;"
+        "return {available:result.available,start:rec.shiftStart,gain:rec.gain,"
+        "helped:rec.helped,noLoss:rec.workers.every(w=>w.gain>=0),"
+        "durations:rec.workers.map(w=>w.shiftEnd-w.shiftStart)};})()")
+    assert out["available"] is True
+    assert out["start"] == 5
+    assert out["gain"] > 0
+    assert out["helped"] == 2
+    assert out["noLoss"] is True
+    assert out["durations"] == [8, 8]
+
+
+def test_crew_optimizer_refuses_partial_weather_and_no_gain_plans():
+    out = _node(
+        "await (async()=>{"
+        "const i=await import('./app/js/interventions.js');"
+        "const w={id:'a',trade:'concrete',clothing:'work_clothes',shiftStart:5,"
+        "shiftEnd:13,workClassOverride:null,active:true};"
+        "const hourly=Array(24).fill(20);"
+        "const plan=i.evaluateIntervention({hourly,worker:w,adaptation:0});"
+        "const same=i.optimizeCrewShift([{worker:w,currentHourly:hourly,"
+        "current:{adaptationStart:0,prescribedMinutes:plan.plannedMinutes}}]);"
+        "const missing=i.optimizeCrewShift([{worker:w,unavailable:true}]);"
+        "return {same:same.recommendation===null,missing:missing.available===false,"
+        "reason:missing.reason};})()")
+    assert out == {"same": True, "missing": True,
+                   "reason": "weather-unavailable"}

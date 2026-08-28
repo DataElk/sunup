@@ -661,6 +661,20 @@ def test_worker_detail_explains_and_compares_pullable_interventions():
     assert "intervention-footnote" in views
 
 
+def test_crew_view_offers_a_no_loss_shared_shift_optimizer():
+    views = strip_comments(read("js", "views.js"))
+    interventions = strip_comments(read("js", "interventions.js"))
+    crew = views[views.index("function crewOptimizerCard"):
+                 views.index("export function workerView")]
+    assert "Crew shift optimizer" in crew
+    assert "Apply recommended shift" in crew
+    assert "No active worker receives fewer prescribed minutes" in crew
+    assert "store.updateWorker" in crew
+    assert "export function optimizeCrewShift" in interventions
+    assert "plan.plannedMinutes < entry.plan.plannedMinutes" in interventions
+    assert "priorityHelped" in interventions
+
+
 def test_intervention_changes_animate_without_forcing_motion():
     views = strip_comments(read("js", "views.js"))
     css = read("styles", "components.css")

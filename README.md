@@ -24,6 +24,8 @@ This is a hackathon prototype. It is not validated for operational safety decisi
   pullable intervention.
 - A worker-level intervention comparison for site, shift window, and additional
   hourly recovery.
+- A crew shift optimizer that finds one shared start, preserves each worker's shift
+  length, and refuses any plan that reduces a worker's prescribed heat-work time.
 - Point and polygon site selection on an Arizona-constrained Leaflet map.
 - Live FortyGuard `filter_type=3` calls for each site's daily cell minimum, mean, and
   maximum temperature.
@@ -84,6 +86,7 @@ flowchart LR
     E --> T[Today action queue]
     E --> P[Worker work and recovery plan]
     E --> I[Intervention comparison]
+    E --> O[No-loss crew shift optimizer]
     P --> L[Shift closeout]
     L --> S
 ```

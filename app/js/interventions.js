@@ -104,6 +104,122 @@ export function suggestIntervention({ sites, currentSiteId, worker, adaptation }
   return gain > 0 ? { ...best, baseline, gain } : null;
 }
 
+function crewCandidateIsBetter(candidate, best) {
+  if (!best) return true;
+  if (candidate.priorityHelped !== best.priorityHelped) {
+    return candidate.priorityHelped > best.priorityHelped;
+  }
+  if (candidate.helped !== best.helped) return candidate.helped > best.helped;
+  if (candidate.gain !== best.gain) return candidate.gain > best.gain;
+  if (candidate.disruption !== best.disruption) {
+    return candidate.disruption < best.disruption;
+  }
+  return candidate.shiftStart < best.shiftStart;
+}
+
+/**
+ * Find one shared crew start without reducing any active worker's prescribed
+ * heat-work minutes. Each worker keeps their assigned shift duration. The
+ * optimizer changes scheduling only; it reuses the same worker prescription
+ * and readiness calculations as the detail view.
+ */
+export function optimizeCrewShift(results) {
+  const active = Array.isArray(results)
+    ? results.filter((result) => result && result.worker
+      && result.worker.active !== false)
+    : [];
+  if (!active.length) {
+    return { available: false, reason: 'no-workers', unavailableCount: 0 };
+  }
+
+  const unavailable = active.filter((result) => result.unavailable
+    || !Array.isArray(result.currentHourly));
+  if (unavailable.length) {
+    return {
+      available: false,
+      reason: 'weather-unavailable',
+      unavailableCount: unavailable.length,
+    };
+  }
+
+  const baselines = active.map((result) => ({
+    result,
+    plan: evaluateIntervention({
+      hourly: result.currentHourly,
+      worker: result.worker,
+      adaptation: result.current.adaptationStart,
+    }),
+  }));
+  if (baselines.some((entry) => !entry.plan)) {
+    return { available: false, reason: 'invalid-shift', unavailableCount: 0 };
+  }
+
+  const firstStart = Math.min(
+    CONSTANTS.defaultShiftStartHour,
+    ...active.map((result) => result.worker.shiftStart));
+  const lastStart = Math.max(...active.map((result) => result.worker.shiftStart));
+  const baselineMinutes = baselines.reduce(
+    (sum, entry) => sum + entry.plan.plannedMinutes, 0);
+  const baselineReadinessFloor = Math.min(
+    ...baselines.map((entry) => entry.plan.readinessAfter));
+  let best = null;
+
+  for (let start = firstStart; start <= lastStart; start += 1) {
+    const workers = [];
+    let valid = true;
+    for (const entry of baselines) {
+      const duration = entry.result.worker.shiftEnd - entry.result.worker.shiftStart;
+      const end = start + duration;
+      const plan = evaluateIntervention({
+        hourly: entry.result.currentHourly,
+        worker: entry.result.worker,
+        adaptation: entry.result.current.adaptationStart,
+        shiftStart: start,
+        shiftEnd: end,
+      });
+      if (!plan || plan.plannedMinutes < entry.plan.plannedMinutes) {
+        valid = false;
+        break;
+      }
+      workers.push({
+        worker: entry.result.worker,
+        baseline: entry.plan,
+        plan,
+        shiftStart: start,
+        shiftEnd: end,
+        gain: plan.plannedMinutes - entry.plan.plannedMinutes,
+      });
+    }
+    if (!valid) continue;
+
+    const plannedMinutes = workers.reduce(
+      (sum, entry) => sum + entry.plan.plannedMinutes, 0);
+    const candidate = {
+      shiftStart: start,
+      workers,
+      plannedMinutes,
+      baselineMinutes,
+      gain: plannedMinutes - baselineMinutes,
+      helped: workers.filter((entry) => entry.gain > 0).length,
+      priorityHelped: workers.filter((entry) => entry.gain > 0
+        && ['stop', 'restricted'].includes(entry.baseline.status)).length,
+      disruption: workers.reduce((sum, entry) => sum
+        + Math.abs(start - entry.worker.shiftStart), 0),
+      readinessFloor: Math.min(...workers.map((entry) => entry.plan.readinessAfter)),
+      baselineReadinessFloor,
+    };
+    if (crewCandidateIsBetter(candidate, best)) best = candidate;
+  }
+
+  return {
+    available: true,
+    workers: active.length,
+    baselineMinutes,
+    baselineReadinessFloor,
+    recommendation: best && best.gain > 0 ? best : null,
+  };
+}
+
 export function bestEarlierShift(result) {
   if (!result || result.unavailable || !result.currentHourly) return null;
   const worker = result.worker;

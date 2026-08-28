@@ -14,7 +14,8 @@ import { hasConfiguredKey } from './liveweather.js';
 import { startSiteBackfill } from './siteweather.js';
 import { sitePoint } from './leaflet.js';
 import {
-  evaluateIntervention, recommendationFor, suggestIntervention, workCapOptions,
+  evaluateIntervention, optimizeCrewShift, recommendationFor, suggestIntervention,
+  workCapOptions,
 } from './interventions.js';
 import {
   el, icon, chip, tag, detailsList, breadcrumb, commandBar, panel,
@@ -993,6 +994,95 @@ export function siteView(ctx, siteId) {
 
 /* --- Level 3: the worker grid ----------------------------------------------------- */
 
+function formatHour(hour) {
+  return `${String(hour).padStart(2, '0')}:00`;
+}
+
+function optimizerMetric(label, value, detail) {
+  const metric = el('div', 'crew-plan-metric');
+  metric.append(
+    el('span', 'crew-plan-label', label),
+    el('strong', 'num', value),
+    el('span', 'muted', detail));
+  return metric;
+}
+
+function crewOptimizerCard(ctx, crew, rows) {
+  const optimization = optimizeCrewShift(rows);
+  const card = el('section', 'decision-card crew-optimizer');
+  const heading = el('div', 'crew-plan-heading');
+  const copy = el('div', 'crew-plan-heading-copy');
+  copy.append(
+    el('h3', 'decision-title', 'Crew shift optimizer'),
+    el('p', 'muted', 'Tests one shared start while preserving each worker\'s shift length.'));
+  heading.appendChild(copy);
+  card.appendChild(heading);
+
+  if (!optimization.available) {
+    const message = optimization.reason === 'no-workers'
+      ? 'Add an active worker before comparing crew schedules.'
+      : (optimization.reason === 'weather-unavailable'
+        ? `Weather is unavailable for ${optimization.unavailableCount} active `
+          + `${optimization.unavailableCount === 1 ? 'worker' : 'workers'}.`
+        : 'One or more assigned shifts cannot be evaluated.');
+    card.appendChild(el('p', 'crew-plan-empty muted', message));
+    return card;
+  }
+
+  const proposed = optimization.recommendation;
+  if (!proposed) {
+    card.appendChild(el('p', 'crew-plan-empty',
+      'The assigned shifts are already the strongest no-loss plan in the available window.'));
+    return card;
+  }
+
+  const durationSet = new Set(proposed.workers.map(
+    (entry) => entry.shiftEnd - entry.shiftStart));
+  const shiftValue = durationSet.size === 1
+    ? `${formatHour(proposed.shiftStart)}-${formatHour(proposed.workers[0].shiftEnd)}`
+    : `${formatHour(proposed.shiftStart)} shared start`;
+  const action = el('button', 'btn btn-primary', 'Apply recommended shift');
+  action.type = 'button';
+  action.addEventListener('click', () => {
+    confirmDialog({
+      title: 'Apply the crew shift?',
+      message: `Move ${proposed.workers.length} active workers to a `
+        + `${formatHour(proposed.shiftStart)} shared start. Each worker keeps their `
+        + 'assigned shift length.',
+      confirmLabel: 'Apply shift',
+      onConfirm: () => {
+        proposed.workers.forEach((entry) => {
+          store.updateWorker(entry.worker.id, {
+            shiftStart: entry.shiftStart,
+            shiftEnd: entry.shiftEnd,
+          });
+        });
+        compute.invalidate();
+        toast(`Updated ${crew.name} to a ${formatHour(proposed.shiftStart)} start`);
+        ctx.refresh();
+      },
+    });
+  });
+  heading.appendChild(action);
+
+  const metrics = el('div', 'crew-plan-metrics');
+  metrics.append(
+    optimizerMetric('Recommended shift', shiftValue, 'shared crew start'),
+    optimizerMetric('Heat work recovered', `+${proposed.gain} min`,
+      `${proposed.baselineMinutes} to ${proposed.plannedMinutes} min`),
+    optimizerMetric('Workers helped', `${proposed.helped}/${optimization.workers}`,
+      'no worker loses time'),
+    optimizerMetric('Readiness floor', `${Math.round(proposed.readinessFloor * 100)}%`,
+      `${Math.round(proposed.baselineReadinessFloor * 100)}% assigned`));
+  card.appendChild(metrics);
+
+  const helped = proposed.workers.filter((entry) => entry.gain > 0)
+    .map((entry) => `${entry.worker.name} +${entry.gain} min`);
+  card.appendChild(el('p', 'crew-plan-explanation',
+    `Improves ${helped.join(', ')}. No active worker receives fewer prescribed minutes.`));
+  return card;
+}
+
 export function crewView(ctx, siteId, crewId) {
   const crew = store.crew(crewId);
   const site = store.site(siteId);
@@ -1017,6 +1107,8 @@ export function crewView(ctx, siteId, crewId) {
   else if (site.weatherSource === 'derived') root.appendChild(derivedBanner(site));
 
   const rows = store.workers(crewId).map((w) => compute.forWorker(w.id)).filter(Boolean);
+
+  root.appendChild(crewOptimizerCard(ctx, crew, rows));
 
   root.appendChild(detailsList({
     columns: [

@@ -42,9 +42,12 @@ hourly work and recovery plan for each worker.
 The supervisor sees who needs action, why the restriction exists, what changed from
 the prior day, and which earlier shift can recover workable minutes. A comparison tool
 can test another site, shift window, or recovery cap using the same start-of-shift
-readiness. At closeout, actual minutes feed the next eligible day's plan. Work beyond
-the prescription is reported as overexposure rather than treated as beneficial
-adaptation alone.
+readiness. A crew optimizer then tests one shared start across every active worker,
+rejects any schedule that reduces one worker's prescribed time, and ranks the
+remaining plans by workers helped, total minutes recovered, and operational
+disruption. At closeout, actual minutes feed the next eligible day's plan. Work
+beyond the prescription is reported as overexposure rather than treated as
+beneficial adaptation alone.
 
 ## Why FortyGuard is central
 
@@ -82,6 +85,8 @@ outdoor workers across multiple sites. Sunup can support:
 - Stronger protection for workers whose calendar day overstates their readiness.
 - A documented reason for each worker-specific instruction.
 - Faster start-of-shift prioritization across sites and crews.
+- A shared crew schedule that improves workable time without trading away another
+  worker's protection.
 - A closeout record that connects actual work with later planning.
 - Better targeting of scarce wearable monitoring toward the workers who need it most.
 
