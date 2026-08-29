@@ -365,12 +365,23 @@ export function removeWorker(id) {
    ---------------------------------------------------------------------------- */
 
 export function setDayLog(workerId, date, minutes, note) {
+  const assignedWorker = worker(workerId);
+  if (!assignedWorker) throw new Error('Worker not found.');
   if (!state.dayLogs[workerId]) state.dayLogs[workerId] = {};
   if (minutes === null || minutes === undefined || minutes === '') {
     delete state.dayLogs[workerId][date];
   } else {
+    const value = Number(minutes);
+    if (!Number.isFinite(value) || value < 0) {
+      throw new Error('Actual minutes must be a non-negative number.');
+    }
+    const shiftMinutes = Math.max(0,
+      (assignedWorker.shiftEnd - assignedWorker.shiftStart) * 60);
+    if (value > shiftMinutes) {
+      throw new Error(`Actual minutes cannot exceed this worker's ${shiftMinutes}-minute shift.`);
+    }
     state.dayLogs[workerId][date] = {
-      minutes: Math.max(0, Math.round(Number(minutes))),
+      minutes: Math.round(value),
       note: note || '',
     };
   }

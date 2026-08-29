@@ -509,8 +509,9 @@ export function editDayLog(workerId, date, after) {
   const record = result && !result.unavailable
     ? result.records.find((r) => r.date === date) : null;
 
+  const shiftMinutes = Math.max(0, (worker.shiftEnd - worker.shiftStart) * 60);
   const minutes = input(entry ? entry.minutes : '', {
-    type: 'number', min: '0', max: '1440', step: '5',
+    type: 'number', min: '0', max: String(shiftMinutes), step: '5',
     placeholder: 'Not recorded',
   });
   const note = input(entry ? entry.note : '', { placeholder: 'Optional' });
@@ -551,8 +552,14 @@ export function editDayLog(workerId, date, after) {
   }
 
   function save() {
+    if (!minutes.reportValidity()) return;
     const raw = minutes.value.trim();
-    store.setDayLog(workerId, date, raw === '' ? null : Number(raw), note.value);
+    try {
+      store.setDayLog(workerId, date, raw === '' ? null : Number(raw), note.value);
+    } catch (error) {
+      toast(error.message);
+      return;
+    }
     dismissPanel();
     compute.invalidate();
     markRecalculation(workerId, date, result);
@@ -589,8 +596,9 @@ export function editCrewDayLog(crewId, date, after) {
     const record = result && !result.unavailable
       ? result.records.find((item) => item.date === date) : null;
     const isAbsent = Boolean(entry && entry.minutes === 0 && entry.note === 'Absent');
+    const shiftMinutes = Math.max(0, (worker.shiftEnd - worker.shiftStart) * 60);
     const minutes = input(isAbsent ? '0' : (entry ? entry.minutes : ''), {
-      type: 'number', min: '0', max: '1440', step: '5',
+      type: 'number', min: '0', max: String(shiftMinutes), step: '5',
       placeholder: 'Not recorded',
       'aria-label': `Actual minutes for ${worker.name}`,
     });
@@ -629,12 +637,22 @@ export function editCrewDayLog(crewId, date, after) {
   else body.appendChild(el('p', 'muted', 'This crew has no active workers.'));
 
   function save() {
+    const entries = [];
     for (const control of controls) {
       const raw = control.minutes.value.trim();
+      if (!control.absent.checked && !control.minutes.reportValidity()) return;
       const note = control.absent.checked
         ? 'Absent' : (control.entry && control.entry.note !== 'Absent' ? control.entry.note : '');
-      store.setDayLog(control.worker.id, date,
-        control.absent.checked ? 0 : (raw === '' ? null : Number(raw)), note);
+      entries.push({ workerId: control.worker.id,
+        minutes: control.absent.checked ? 0 : (raw === '' ? null : Number(raw)), note });
+    }
+    try {
+      for (const entry of entries) {
+        store.setDayLog(entry.workerId, date, entry.minutes, entry.note);
+      }
+    } catch (error) {
+      toast(error.message);
+      return;
     }
     dismissPanel();
     compute.invalidate();

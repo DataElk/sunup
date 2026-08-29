@@ -176,18 +176,35 @@ def test_rule_a_scales_proportionally_and_preserves_shape():
     assert out["duties"] == pytest.approx([0.5, 0.25, 0.125, 0.0], abs=1e-12)
 
 
-def test_rule_c_takes_over_when_nothing_was_prescribed():
+def test_unplanned_work_is_bounded_and_assigned_to_the_hottest_hours():
     """The case that matters most: told to stop, worked anyway."""
     out = _node(
         "(()=>{const w=%s;"
-        "const hours=[{minutes:0},{minutes:0},{minutes:0},{minutes:0}];"
+        "const hours=[{hour:6,minutes:0,overLimit:1,wbgt:28},"
+        "{hour:7,minutes:0,overLimit:4,wbgt:31},"
+        "{hour:8,minutes:0,overLimit:3,wbgt:30},"
+        "{hour:9,minutes:0,overLimit:2,wbgt:29}];"
         "const a=e.allocateActual(hours,120,w);"
         "return {rule:a.rule,duties:a.duties,unprescribed:a.unprescribedWork};})()"
         % WORKER)
-    assert out["rule"] == "uniform"
+    assert out["rule"] == "bounded_conservative"
     assert out["unprescribed"] is True, "must be flagged, not averaged away"
-    # 120 minutes spread over an 8 h shift = 15 min/h = 0.25 duty
-    assert out["duties"] == pytest.approx([0.25] * 4, abs=1e-12)
+    assert out["duties"] == pytest.approx([0.0, 1.0, 1.0, 0.0], abs=1e-12)
+
+
+def test_work_above_plan_never_exceeds_one_hour_inside_a_clock_hour():
+    out = _node(
+        "(()=>{const w=%s;"
+        "const hours=[{hour:6,minutes:60,overLimit:1,wbgt:28},"
+        "{hour:7,minutes:30,overLimit:4,wbgt:31},"
+        "{hour:8,minutes:15,overLimit:3,wbgt:30},"
+        "{hour:9,minutes:30,overLimit:2,wbgt:29}];"
+        "const a=e.allocateActual(hours,210,w);"
+        "return {rule:a.rule,duties:a.duties,total:a.duties.reduce((s,x)=>s+x*60,0)};})()"
+        % WORKER)
+    assert out["rule"] == "bounded_conservative"
+    assert max(out["duties"]) <= 1.0
+    assert out["total"] == pytest.approx(210, abs=1e-12)
 
 
 def test_a_zero_log_is_not_treated_as_no_log():
@@ -311,6 +328,24 @@ def test_demo_v2_migrates_only_the_untouched_seed_worker():
         "return {migrated:[migrated.shiftStart,migrated.shiftEnd],"
         "preserved:[preserved.shiftStart,preserved.shiftEnd]};})()")
     assert out == {"migrated": [1, 9], "preserved": [4, 12]}
+
+
+def test_day_logs_cannot_exceed_the_assigned_shift():
+    out = _node(
+        "await (async()=>{"
+        "(0,eval)(readFileSync('app/data/seed.js','utf8'));"
+        "window.SUNUP_WEATHER={series:{}};"
+        "const memory={};"
+        "globalThis.localStorage={getItem:key=>memory[key]||null,"
+        "setItem:(key,value)=>{memory[key]=value;}};"
+        "const store=await import('./app/js/store.js');"
+        "await store.initStore();"
+        "const w=window.SUNUP_SEED.workers[0];"
+        "let error=''; try { store.setDayLog(w.id,'2026-08-09',481,''); }"
+        "catch (e) { error=e.message; }"
+        "return {error,stored:store.logsFor(w.id)['2026-08-09']||null};})()")
+    assert "cannot exceed" in out["error"]
+    assert out["stored"] is None
 
 
 def test_intervention_uses_the_existing_engine_and_respects_an_hourly_cap():

@@ -110,37 +110,54 @@ export function prescribeHours(hourly, worker, adaptation) {
    per-hour duty. Bridging the two is a modelling decision, so it is named here
    rather than buried.
 
-   RULE A: PROPORTIONAL. Scale every prescribed hour by actual/prescribed. It
-   preserves the shape of the day: the hottest hours were prescribed least and
-   still contribute least.
+   RULE A: PROPORTIONAL. When actual work is at or below the prescription, scale
+   every prescribed hour by actual/prescribed. It preserves the planned shape.
 
-   RULE C: UNIFORM, the fallback. When the prescription totalled zero and the
-   worker worked anyway, rule A divides by zero. There is no shape to preserve
-   because the schedule said "no work at all", so the minutes are spread evenly
-   across the shift and the day is flagged `unprescribedWork`, a supervisor
-   who logged work on a stop-work day must see that, not have it averaged away.
+   RULE B: BOUNDED CONSERVATIVE. When actual work exceeds the prescription,
+   retain every prescribed minute and place the extra work into the hottest
+   shift hours first. No hour can exceed 60 minutes. This avoids the old failure
+   mode where proportional scaling could invent more than one hour of exposure
+   inside a clock hour. Work logged against a zero-minute plan is flagged.
    -------------------------------------------------------------------------- */
 
 export function allocateActual(hours, actualMinutes, worker) {
   const prescribed = hours.reduce((sum, h) => sum + h.minutes, 0);
-  const span = Math.max(1, shiftHours(worker));
+  const capacity = Math.min(shiftHours(worker), hours.length) * 60;
 
   if (actualMinutes === null || actualMinutes === undefined) {
     return { duties: hours.map((h) => h.minutes / 60), rule: 'prescribed',
              prescribed, actual: prescribed, unprescribedWork: false };
   }
-  if (prescribed > 0) {
-    const factor = actualMinutes / prescribed;
-    return { duties: hours.map((h) => (h.minutes * factor) / 60), rule: 'proportional',
-             prescribed, actual: actualMinutes, unprescribedWork: false };
+  const requested = Number(actualMinutes);
+  if (!Number.isFinite(requested) || requested < 0) {
+    throw new Error('Actual minutes must be a non-negative number.');
   }
-  const perHour = actualMinutes / span;
+  const actual = Math.min(requested, capacity);
+  if (prescribed > 0 && actual <= prescribed) {
+    const factor = actual / prescribed;
+    return { duties: hours.map((h) => (h.minutes * factor) / 60), rule: 'proportional',
+             prescribed, actual, requestedActual: requested, unprescribedWork: false };
+  }
+
+  const allocated = hours.map((h) => Math.min(60, Math.max(0, h.minutes)));
+  let remaining = Math.max(0, actual - allocated.reduce((sum, value) => sum + value, 0));
+  const hottestFirst = hours.map((h, index) => ({ h, index })).sort((a, b) =>
+    (Number(b.h.overLimit || 0) - Number(a.h.overLimit || 0))
+    || (Number(b.h.wbgt || 0) - Number(a.h.wbgt || 0))
+    || (Number(a.h.hour || 0) - Number(b.h.hour || 0)));
+  for (const { index } of hottestFirst) {
+    if (remaining <= 0) break;
+    const added = Math.min(60 - allocated[index], remaining);
+    allocated[index] += added;
+    remaining -= added;
+  }
   return {
-    duties: hours.map(() => perHour / 60),
-    rule: 'uniform',
+    duties: allocated.map((minutes) => minutes / 60),
+    rule: 'bounded_conservative',
     prescribed,
-    actual: actualMinutes,
-    unprescribedWork: actualMinutes > 0,
+    actual,
+    requestedActual: requested,
+    unprescribedWork: prescribed === 0 && actual > 0,
   };
 }
 
@@ -265,7 +282,9 @@ export function simulate({ worker, days, logs = {}, initialAdaptation = 0,
       projected: Boolean(day.projected),
       hours,
       prescribedMinutes: prescribed,
-      actualMinutes: logged === null ? prescribed : logged,
+      actualMinutes: logged === null ? prescribed : allocation.actual,
+      actualMinutesLogged: logged,
+      allocationClamped: logged !== null && allocation.actual !== logged,
       assumed: logged === null,
       absent,
       absenceReason: absent ? String(richEntry.note || 'Absent') : null,
