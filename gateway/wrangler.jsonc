@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sunup-weather-gateway",
+  "main": "src/index.mjs",
+  "compatibility_date": "2026-08-29",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "ALLOWED_ORIGINS": "https://dataelk.github.io,http://127.0.0.1:8777,http://localhost:8777"
+  },
+  "secrets": {
+    "required": ["FORTYGUARD_API_KEY"]
+  },
+  "ratelimits": [
+    {
+      "name": "SUBMIT_LIMITER",
+      "namespace_id": "2026082901",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
+    },
+    {
+      "name": "STATUS_LIMITER",
+      "namespace_id": "2026082902",
+      "simple": {
+        "limit": 300,
+        "period": 60
+      }
+    }
+  ]
+}

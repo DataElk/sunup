@@ -1,6 +1,8 @@
 .env
 .env.*
 !.env.example
+.dev.vars
+.dev.vars.*
 venv/
 __pycache__/
 node_modules/
