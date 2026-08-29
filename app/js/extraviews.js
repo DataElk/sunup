@@ -2,9 +2,10 @@
    Model performance, and Settings.
 
    MODEL PERFORMANCE stands at an as-of date, projects
-   every active worker forward by carrying that day's weather, and compares
-   against what each worker's OWN DAY LOG says happened. Accuracy is therefore
-   measured against what crews actually did.
+   every active worker forward by carrying that day's weather, then compares
+   that projection with a hindsight prescription recalculated from observed
+   weather and the worker's later day logs. It measures prescription stability,
+   not whether completed work or health outcomes matched a forecast.
 
    It keeps two habits from the earlier build, because both were right: it says
    plainly that it is a backtest rather than a live forecast, and it refuses to
@@ -53,8 +54,8 @@ function backtest(worker) {
     firstDayOnJob: history.nextDayOnJob,
   }).records;
 
-  /* The truth: the real days, with the worker's real log. */
-  const actual = simulate({
+  /* The hindsight comparison: observed weather, with later logs available. */
+  const recalculated = simulate({
     worker, days: after, logs,
     initialAdaptation: history.finalAdaptation,
     firstDayOnJob: history.nextDayOnJob,
@@ -63,17 +64,17 @@ function backtest(worker) {
   const pairs = predicted.map((p, i) => ({
     date: p.date,
     predicted: p.prescribedMinutes,
-    actual: actual[i].prescribedMinutes,
-    logged: actual[i].assumed ? null : actual[i].actualMinutes,
-    error: p.prescribedMinutes - actual[i].prescribedMinutes,
-    bandMatched: p.status === actual[i].status,
+    recalculated: recalculated[i].prescribedMinutes,
+    logged: recalculated[i].assumed ? null : recalculated[i].actualMinutes,
+    error: p.prescribedMinutes - recalculated[i].prescribedMinutes,
+    bandMatched: p.status === recalculated[i].status,
     predictedStatus: p.status,
-    actualStatus: actual[i].status,
+    recalculatedStatus: recalculated[i].status,
   }));
 
   const errors = pairs.map((p) => Math.abs(p.error));
   const signed = pairs.map((p) => p.error);
-  const values = new Set(pairs.flatMap((p) => [p.predicted, p.actual]));
+  const values = new Set(pairs.flatMap((p) => [p.predicted, p.recalculated]));
 
   return {
     worker,
@@ -153,10 +154,10 @@ export function performanceView(ctx) {
             const day = el('span', 'fc-day');
             day.setAttribute('data-ok', String(pair.bandMatched));
             day.title = `${pair.date}: projected ${pair.predicted}, `
-              + `recalculated ${pair.actual}`;
+              + `recalculated ${pair.recalculated}`;
             day.append(
               el('span', 'fc-day-date', pair.date.slice(5)),
-              el('span', 'fc-day-value num', `${pair.predicted}/${pair.actual}`));
+              el('span', 'fc-day-value num', `${pair.predicted}/${pair.recalculated}`));
             wrap.appendChild(day);
           }
           return wrap;
