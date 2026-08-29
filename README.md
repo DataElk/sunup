@@ -125,7 +125,9 @@ initial days are submitted concurrently. Successful days are saved independently
 become usable as soon as they finish. The remaining nine continue with bounded
 background concurrency. Paid activity IDs are persisted by date so an
 interrupted or timed-out poll can resume without submitting the same FortyGuard task
-again.
+again. When the app opens with a saved key, each complete live site rolls its window to
+the last completed Arizona day. It submits one activity for each missing historical
+day, up to 14 after a long gap, and rebuilds the six-day forecast.
 
 ## FortyGuard request and response
 

@@ -42,6 +42,15 @@ export function forecastDateWindow(asOf = phoenixToday()) {
   return Array.from({ length: FORECAST_DAYS }, (_, index) => moveDate(asOf, index + 1));
 }
 
+export function siteNeedsRefresh(site, asOf = moveDate(phoenixToday(), -1)) {
+  if (!site || site.weatherSource !== 'live') return false;
+  const expectedForecastDate = moveDate(asOf, 1);
+  return site.weatherAsOfDate !== asOf
+    || !Array.isArray(site.weatherDates) || !site.weatherDates.includes(asOf)
+    || !Array.isArray(site.weatherForecastDates)
+    || !site.weatherForecastDates.includes(expectedForecastDate);
+}
+
 function siteDates(site) {
   return Array.isArray(site.weatherDates) && site.weatherDates.length
     ? site.weatherDates : observedDateWindow();
@@ -355,6 +364,7 @@ export async function resumeSiteActivity(siteId) {
 export function resumeSiteBackfills() {
   if (!hasConfiguredKey()) return Promise.resolve([]);
   const resumable = store.sites().filter((site) => Object.keys(pendingActivities(site)).length
-    || ['loading', 'backfill', 'partial'].includes(site.weatherStatus));
+    || ['loading', 'backfill', 'partial'].includes(site.weatherStatus)
+    || siteNeedsRefresh(site));
   return Promise.allSettled(resumable.map((site) => startSiteBackfill(site.id)));
 }

@@ -399,6 +399,25 @@ def test_live_site_uses_the_current_arizona_forecast_as_its_active_plan():
     assert len(out["observed"]) == 1
 
 
+def test_complete_live_sites_refresh_when_their_observation_window_is_stale():
+    out = _node(
+        "await (async()=>{"
+        "const weather=await import('./app/js/siteweather.js');"
+        "const site={weatherSource:'live',weatherAsOfDate:'2026-08-28',"
+        "weatherDates:['2026-08-28'],weatherForecastDates:['2026-08-29']};"
+        "return {current:weather.siteNeedsRefresh(site,'2026-08-28'),"
+        "stale:weather.siteNeedsRefresh(site,'2026-08-29'),"
+        "cached:weather.siteNeedsRefresh({...site,weatherSource:'cached'},'2026-08-29'),"
+        "brokenForecast:weather.siteNeedsRefresh({...site,weatherForecastDates:[]},"
+        "'2026-08-28')};})()")
+    assert out == {
+        "current": False,
+        "stale": True,
+        "cached": False,
+        "brokenForecast": True,
+    }
+
+
 def test_intervention_uses_the_existing_engine_and_respects_an_hourly_cap():
     out = _node(
         "await (async()=>{"

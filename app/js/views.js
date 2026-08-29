@@ -12,7 +12,7 @@ import * as compute from './compute.js';
 import * as forms from './forms.js';
 import { exceptionLedger } from './exceptions.js';
 import { hasConfiguredKey } from './liveweather.js';
-import { startSiteBackfill } from './siteweather.js';
+import { siteNeedsRefresh, startSiteBackfill } from './siteweather.js';
 import { sitePoint } from './leaflet.js';
 import {
   evaluateIntervention, optimizeCrewShift, recommendationFor, suggestIntervention,
@@ -1028,6 +1028,8 @@ export function siteView(ctx, siteId) {
     root.appendChild(weatherFailureBanner(ctx, site));
   } else if (site.weatherStatus === 'backfill') {
     root.appendChild(backfillBanner(site));
+  } else if (siteNeedsRefresh(site)) {
+    root.appendChild(weatherStaleBanner(ctx, site));
   }
 
   const rows = store.crews(siteId).map((c) => compute.forCrew(c.id));
@@ -1693,6 +1695,17 @@ function weatherFailureBanner(ctx, site) {
       : 'No live days are available. Check the API key, then retry.'));
   const actions = el('div', 'callout-actions');
   actions.appendChild(liveFetchButton(ctx, site, 'Retry missing history'));
+  node.appendChild(actions);
+  return node;
+}
+
+function weatherStaleBanner(ctx, site) {
+  const node = banner('warn', 'Live weather needs refresh',
+    `The last FortyGuard observation is ${site.weatherAsOfDate || 'not available'}. `
+    + 'Refresh to fetch each missing historical day and rebuild the forecast. '
+    + 'This submits one activity per missing day, up to 14 after a long gap.');
+  const actions = el('div', 'callout-actions');
+  actions.appendChild(liveFetchButton(ctx, site, 'Refresh weather'));
   node.appendChild(actions);
   return node;
 }

@@ -232,6 +232,7 @@ def test_interrupted_live_weather_resumes_the_paid_activity():
     assert "pendingActivities(site)" in site_weather
     assert "fetchDay(current, date, drivers[date], null, activityId)" in site_weather
     assert "export function resumeSiteBackfills" in site_weather
+    assert "siteNeedsRefresh(site)" in site_weather
     assert "Promise.allSettled" in site_weather
     app = strip_comments(read("js", "app.js"))
     assert "resumeSiteBackfills()" in app
@@ -305,6 +306,7 @@ def test_key_test_distinguishes_rejection_from_service_failure():
     assert "uses 1 request" in settings
     assert "Testing submits one FortyGuard activity" in settings
     assert "new or moved site can submit up to 14 history activities" in settings
+    assert "one activity per missing historical day" in settings
 
 
 def test_browser_security_policy_and_leaflet_integrity_are_pinned():

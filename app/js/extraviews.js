@@ -274,7 +274,7 @@ export function settingsView(ctx) {
 
     wrap.append(
       field('API key', key,
-        'Saved only in this browser. It is not included in store exports or reset data. Testing submits one FortyGuard activity. A new or moved site can submit up to 14 history activities.'),
+        'Saved only in this browser. It is not included in store exports or reset data. Testing submits one FortyGuard activity. A new or moved site can submit up to 14 history activities. On app open, live sites fetch one activity per missing historical day, up to 14 after a long gap.'),
       keyStatus,
       actions);
     actions.append(save, test, clearKey);
