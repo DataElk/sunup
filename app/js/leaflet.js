@@ -4,6 +4,8 @@ const ARIZONA_OUTER = [
   [-114.82, 31.33], [-114.47, 32.49], [-114.48, 34.72], [-114.12, 35.0],
   [-114.13, 37.0], [-109.04, 37.0], [-109.04, 31.33],
 ];
+const LEAFLET_CSS_INTEGRITY = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+const LEAFLET_JS_INTEGRITY = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
 
 let leafletPromise = null;
 
@@ -14,9 +16,15 @@ export function loadLeaflet() {
     const stylesheet = document.createElement('link');
     stylesheet.rel = 'stylesheet';
     stylesheet.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    stylesheet.integrity = LEAFLET_CSS_INTEGRITY;
+    stylesheet.crossOrigin = 'anonymous';
+    stylesheet.referrerPolicy = 'no-referrer';
     document.head.appendChild(stylesheet);
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.integrity = LEAFLET_JS_INTEGRITY;
+    script.crossOrigin = 'anonymous';
+    script.referrerPolicy = 'no-referrer';
     script.onload = () => resolve(window.L);
     script.onerror = () => reject(new Error('The map library could not be loaded.'));
     document.head.appendChild(script);

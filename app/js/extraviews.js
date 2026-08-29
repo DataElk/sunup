@@ -197,6 +197,7 @@ export function settingsView(ctx) {
     const configured = liveWeather.hasConfiguredKey();
     const key = input('', {
       type: 'password', autocomplete: 'new-password',
+      autocapitalize: 'none', spellcheck: 'false',
       placeholder: configured ? 'Saved key is hidden' : 'Enter key',
     });
     const keyStatus = el('p', 'muted', configured
@@ -205,7 +206,7 @@ export function settingsView(ctx) {
     keyStatus.setAttribute('role', 'status');
     const actions = el('div', 'callout-actions');
     const save = el('button', 'btn btn-primary', 'Save key');
-    const test = el('button', 'btn', 'Test saved key');
+    const test = el('button', 'btn', 'Test saved key (uses 1 request)');
     const clearKey = el('button', 'btn btn-danger', 'Remove key');
     save.type = 'button';
     test.type = 'button';
@@ -216,7 +217,8 @@ export function settingsView(ctx) {
     key.addEventListener('input', () => {
       const entered = Boolean(key.value.trim());
       save.disabled = !entered;
-      test.textContent = entered ? 'Save and test' : 'Test saved key';
+      test.textContent = entered
+        ? 'Save and test (uses 1 request)' : 'Test saved key (uses 1 request)';
       test.disabled = !entered && !liveWeather.hasConfiguredKey();
     });
 
@@ -245,14 +247,14 @@ export function settingsView(ctx) {
           clearKey.disabled = false;
           keyStatus.textContent = 'The entered key was saved. Testing it now.';
         }
-        await liveWeather.testKey(compute.today());
-        keyStatus.textContent = 'The saved key authenticated successfully.';
+        const result = await liveWeather.testKey(compute.today());
+        keyStatus.textContent = `The saved key authenticated successfully. Test activity ${result.activityId}.`;
         toast('Key authenticated. Live weather is available.');
       } catch (error) {
         keyStatus.textContent = `The key test failed: ${error.message}`;
         toast(error.message);
       } finally {
-        test.textContent = 'Test saved key';
+        test.textContent = 'Test saved key (uses 1 request)';
         test.disabled = false;
       }
     });
@@ -272,7 +274,7 @@ export function settingsView(ctx) {
 
     wrap.append(
       field('API key', key,
-        'Saved only in this browser. It is not included in store exports or reset data.'),
+        'Saved only in this browser. It is not included in store exports or reset data. Testing submits one FortyGuard activity.'),
       keyStatus,
       actions);
     actions.append(save, test, clearKey);

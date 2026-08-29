@@ -298,6 +298,20 @@ def test_key_test_distinguishes_rejection_from_service_failure():
     assert "Save and test" in settings
     assert "if (key.value.trim())" in settings
     assert "liveWeather.saveKey(key.value)" in settings
+    assert "uses 1 request" in settings
+    assert "Testing submits one FortyGuard activity" in settings
+
+
+def test_browser_security_policy_and_leaflet_integrity_are_pinned():
+    index = read("index.html")
+    assert "Content-Security-Policy" in index
+    assert "script-src 'self' https://unpkg.com" in index
+    assert "connect-src 'self' https://api.fortyguard.com https://api.open-meteo.com" in index
+    leaflet = read("js", "leaflet.js")
+    assert "LEAFLET_CSS_INTEGRITY" in leaflet
+    assert "LEAFLET_JS_INTEGRITY" in leaflet
+    assert "crossOrigin = 'anonymous'" in leaflet
+    assert "referrerPolicy = 'no-referrer'" in leaflet
 
 
 def test_today_is_the_real_arizona_date_not_the_fixture_date():
@@ -909,4 +923,4 @@ def test_live_network_access_is_opt_in():
     assert "if (!hasConfiguredKey()) return false" in backfill
     html = read("index.html")
     assert "http://" not in html
-    assert "https://" not in html
+    assert not re.search(r'(?:src|href)=["\']https://', html)

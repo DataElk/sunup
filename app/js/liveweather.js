@@ -135,7 +135,7 @@ export async function testKey(asOfDate) {
   if (!response || !response.data || !response.data.activity_id) {
     throw new Error('The live weather service did not accept the key.');
   }
-  return true;
+  return { activityId: response.data.activity_id, date };
 }
 
 export async function submitHeatmap(payload) {
