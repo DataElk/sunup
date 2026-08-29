@@ -711,6 +711,14 @@ def test_cached_active_dates_are_not_called_today():
     assert "Fourteen days to" not in views
 
 
+def test_status_weather_source_comes_from_site_data_not_key_presence():
+    app = strip_comments(read("js", "app.js"))
+    status = app[app.index("function statusFor"):app.index("function render")]
+    assert "site.weatherSource" in status
+    assert "Live and cached weather" in status
+    assert "hasConfiguredKey" not in status
+
+
 def test_commands_enable_on_selection_rather_than_appearing():
     """An Office toolbar does not reflow as the selection changes."""
     ui = strip_comments(read("js", "ui.js"))

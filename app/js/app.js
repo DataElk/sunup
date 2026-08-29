@@ -21,7 +21,6 @@ import * as store from './store.js';
 import * as compute from './compute.js';
 import * as forms from './forms.js';
 import * as views from './views.js';
-import { hasConfiguredKey } from './liveweather.js';
 import { resumeSiteBackfills } from './siteweather.js';
 import { mapView } from './mapview.js';
 import { performanceView, settingsView } from './extraviews.js';
@@ -283,7 +282,6 @@ function treeFor(current) {
 }
 
 function statusFor(current) {
-  const weather = window.SUNUP_WEATHER;
   const state = store.getState();
   statusHost.replaceChildren();
   const add = (label, value, title) => {
@@ -292,8 +290,13 @@ function statusFor(current) {
     if (title) wrap.title = title;
     statusHost.appendChild(wrap);
   };
+  const sources = new Set(state.sites.map((site) => site.weatherSource));
+  const sourceLabel = sources.has('live') && sources.has('cached')
+    ? 'Live and cached weather'
+    : (sources.has('live') ? 'Live weather'
+      : (sources.has('cached') ? 'Cached weather' : 'Weather unavailable'));
   add('Date', compute.today());
-  add('Source', hasConfiguredKey() ? 'Live weather' : 'Cached weather');
+  add('Source', sourceLabel);
   add('Store', `${state.workers.length} workers, browser storage`);
 }
 

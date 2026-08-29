@@ -14,7 +14,7 @@ python -m pytest
 node scripts/check-design.mjs
 ```
 
-On 2026-08-29, the full Python and JavaScript suite passed 384 tests. The design
+On 2026-08-29, the full Python and JavaScript suite passed 385 tests. The design
 checker passed with 30 non-blocking warnings, primarily reminders to confirm
 tabular-number styling. GitHub Actions repeats the verification after each push.
 
