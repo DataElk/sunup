@@ -372,6 +372,33 @@ def test_saved_multiplicative_weather_estimates_are_removed_on_migration():
     assert out["series"] == {}
 
 
+def test_live_site_uses_the_current_arizona_forecast_as_its_active_plan():
+    out = _node(
+        "await (async()=>{"
+        "const compute=await import('./app/js/compute.js');"
+        "const today=compute.today();"
+        "const value=new Date(today+'T00:00:00Z'); value.setUTCDate(value.getUTCDate()-1);"
+        "const prior=value.toISOString().slice(0,10);"
+        "window.SUNUP_WEATHER={dates:[prior],series:{live:{"
+        "[prior]:Array(24).fill(29),[today]:Array(24).fill(30)}}};"
+        "const memory={}; const saved={sites:[{id:'s',seriesKey:'live',"
+        "weatherSource:'live',weatherDates:[prior],weatherForecastDates:[today],"
+        "weatherAsOfDate:prior}],crews:[{id:'c',siteId:'s'}],workers:[{id:'w',"
+        "crewId:'c',trade:'concrete',clothing:'work_clothes',shiftStart:5,shiftEnd:13,"
+        "hireDate:prior,rampType:'new',active:true}],dayLogs:{},weatherSeries:{},"
+        "exceptionAcknowledgements:{},seeded:2};"
+        "memory['sunup.store.v1']=JSON.stringify(saved);"
+        "globalThis.localStorage={getItem:key=>memory[key]||null,"
+        "setItem:(key,data)=>{memory[key]=data;}};"
+        "const store=await import('./app/js/store.js'); await store.initStore();"
+        "const result=compute.forWorker('w');"
+        "return {today,active:result.current.date,projected:result.current.projected,"
+        "observed:result.observed.map(x=>x.date)};})()")
+    assert out["active"] == out["today"]
+    assert out["projected"] is True
+    assert len(out["observed"]) == 1
+
+
 def test_intervention_uses_the_existing_engine_and_respects_an_hourly_cap():
     out = _node(
         "await (async()=>{"

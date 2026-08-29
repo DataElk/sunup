@@ -40,8 +40,12 @@ export function forecastDatesForSite(site) {
 export function allDates(site = null) { return observedDatesForSite(site); }
 
 export function currentDateForSite(site) {
+  const current = today();
+  const forecasts = forecastDatesForSite(site);
+  const series = site && site.seriesKey && W().series[site.seriesKey];
+  if (forecasts.includes(current) && series && series[current]) return current;
   const dates = observedDatesForSite(site);
-  return (site && site.weatherAsOfDate) || dates[dates.length - 1] || today();
+  return (site && site.weatherAsOfDate) || dates[dates.length - 1] || current;
 }
 
 export function currentDateForWorker(workerId) {
@@ -129,7 +133,7 @@ export function forWorker(workerId) {
 
   const records = run.records;
   const currentDate = currentDateForSite(site);
-  const todayIndex = records.findIndex((r) => r.date === currentDate && !r.projected);
+  const todayIndex = records.findIndex((r) => r.date === currentDate);
   const current = todayIndex >= 0 ? records[todayIndex] : records[dates.length - 1];
 
   const result = {

@@ -353,7 +353,10 @@ function supervisorPlan(result, recalculation = null) {
   const hottest = hours.reduce((best, hour) => (!best || hour.wbgt > best.wbgt ? hour : best), null);
   const recovery = hours.reduce((total, hour) => total + (60 - hour.minutes), 0);
   const card = el('section', 'decision-card supervisor-card');
-  card.appendChild(el('h3', 'decision-title', 'Supervisor plan'));
+  const title = el('div', 'decision-title-row');
+  title.appendChild(el('h3', 'decision-title', 'Supervisor plan'));
+  if (current.projected) title.appendChild(tag('Forecast weather', 'assumed'));
+  card.appendChild(title);
 
   const metrics = el('div', 'decision-metrics');
   const hoursChanged = recalculationField(recalculation, current.date, 'hours');
@@ -802,6 +805,14 @@ function todayChange(row) {
   return value;
 }
 
+function activeDateCell(row) {
+  if (row.result.unavailable) return compute.currentDateForSite(row.site);
+  const value = el('div', 'cellline');
+  value.appendChild(el('span', 'num', row.result.current.date));
+  if (row.result.current.projected) value.appendChild(tag('forecast', 'assumed'));
+  return value;
+}
+
 function exceptionState(event) {
   if (!event.active) return el('span', 'review-state muted', 'Resolved, reviewed');
   if (event.acknowledgedAt) return el('span', 'review-state', 'Reviewed');
@@ -913,9 +924,7 @@ export function todayView(ctx) {
       { label: 'Worker', width: '1.2fr', render: (row) => workerNameCell(row.result) },
       { label: 'Site / crew', width: '1.2fr',
         render: (row) => `${row.site ? row.site.name : 'No site'} / ${row.crew ? row.crew.name : 'No crew'}` },
-      { label: 'Date', width: '88px',
-        render: (row) => row.result.unavailable
-          ? compute.currentDateForSite(row.site) : row.result.current.date },
+      { label: 'Active date', width: '144px', render: activeDateCell },
       { label: 'Shift', width: '94px', numeric: true,
         render: (row) => `${pad(row.worker.shiftStart)}:00-${pad(row.worker.shiftEnd)}:00` },
       { label: 'Plan (min)', width: '80px', numeric: true,

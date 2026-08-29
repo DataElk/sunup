@@ -894,6 +894,14 @@ body {
   font-size: var(--text-body-lg);
   font-weight: var(--weight-semibold);
 }
+.decision-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.decision-title-row .decision-title { margin: 0; }
 .decision-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

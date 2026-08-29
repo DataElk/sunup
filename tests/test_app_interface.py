@@ -145,8 +145,10 @@ def test_divergence_is_signed_in_both_directions_in_the_view():
 def test_projected_days_are_visually_distinct():
     """Past solid, future dashed. An honesty requirement, not a style."""
     css = read("styles", "components.css")
+    views = read("js", "views.js")
     assert "--projected-alpha" in css
     assert "--projected-stroke" in css
+    assert "Forecast weather" in views
     assert "stroke-dasharray" in css
     assert ".sbar-proj" in css
 
@@ -323,8 +325,10 @@ def test_today_is_the_real_arizona_date_not_the_fixture_date():
                     compute.index("export function observedDatesForSite")]
     assert "America/Phoenix" in today
     assert "W().today" not in today
+    assert "forecasts.includes(current)" in compute
     views = strip_comments(read("js", "views.js"))
     assert "Each row shows its active weather date" in views
+    assert "tag('forecast', 'assumed')" in views
 
 
 def test_worker_feedback_makes_log_effects_visible_without_rewriting_history():
