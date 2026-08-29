@@ -270,7 +270,7 @@ def main():
         ("globe emissivity 0,95 . ISO 7243:2017 Annex B.2 b)",
          "a secondary source said 0,97 and was wrong"),
         ("natural wet bulb ...... ISO 7243:2017 Annex D, Formulae (D.1)/(D.2)",
-         "validated against all 22 rows of Table D.1"),
+         "checked against all 22 rows of Table D.1"),
         ("Nusselt correlation ... Liljegren's wbgt.c, citing BSL p.409", None),
         ("Haurwitz 1098 / 0.059 . pvlib reference impl. + Haurwitz 1945", None),
         ("Kasten-Czeplak ........ Solar Energy 24(2):177-189, 1980", None),

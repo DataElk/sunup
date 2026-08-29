@@ -1,4 +1,4 @@
-"""ISO 7243:2017 Annex D, validated against the standard's own worked examples.
+"""ISO 7243:2017 Annex D, checked against the standard's own worked examples.
 
 Table D.1 of ISO 7243:2017 tabulates 22 cases: given air temperature, 150 mm
 globe temperature, air velocity and relative humidity, it gives the predicted

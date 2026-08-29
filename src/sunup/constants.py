@@ -189,24 +189,17 @@ WBGT_LIMIT_UNACCLIMATIZED = {    # NIOSH RAL
 # Work/rest allocation as a function of how far the environment exceeds the
 # worker's personal limit.
 #
-# [RESOLVED 2026-08-25: AND THE ORIGINAL PREMISE WAS WRONG]
+# [CORRECTED 2026-08-29]
 #
-# This block used to say "[CHECK] against the NIOSH work/rest schedule table".
-# There is no such table. NIOSH 2016-106 was read for it: work/rest scheduling
-# appears only as a named administrative control, and the document's tables
-# cover acclimatization schedules (Table 4-1), not WBGT-versus-regimen
-# screening. The familiar 75/25 - 50/50 - 25/75 screening table is ACGIH's, from
-# the TLVs and BEIs booklet, and ACGIH's heat stress material is copyrighted and
-# not publicly reproducible (OSHA Technical Manual III:4 says so explicitly and
-# declines to reprint it).
+# NIOSH does publish work/rest recommendations and example schedules, including
+# the NIOSH 2017-127 work/rest schedule based on the 2016-106 criteria document.
+# An earlier project note incorrectly claimed otherwise.
 #
-# So this ladder is OUR CONSTRUCTION. It is not a standard, it is not NIOSH, and
-# it must never be presented as either. What it borrows from ACGIH is only the
-# STRUCTURE that everyone uses: four rungs at 60/45/30/15 minutes of work per
-# hour, applied to a different independent variable: degrees above THIS
-# worker's personal limit, rather than absolute WBGT against a fixed category.
-# That substitution is the whole product, and it means no published table could
-# have supplied these numbers.
+# This particular ladder is still OUR CONSTRUCTION. It is not a transcription of
+# a NIOSH or ACGIH schedule: it applies fixed 60/45/30/15 minute rungs to degrees
+# above an interpolated personal limit. NIOSH guidance varies work/rest by heat
+# conditions and workload, not by this project's continuous readiness state.
+# The distinction must remain explicit wherever absolute minutes are discussed.
 #
 # Load-bearing: this ladder alone decides whether a worker is told to stop.
 # Treat it as the model's largest unvalidated assumption and say so in the
@@ -424,11 +417,12 @@ MATERIAL_LIMIT_GAP_C = 0.25
 # they have to absorb. It also reframes the inversion finding from an awkward
 # caveat into the reason the optimum exists at all.
 #
-# [NOT YET BUILT] The optimiser itself is not in M2 or M3. What exists is the
-# diagnostic that proves the optimum is real and interior
-# (diagnostics.weather_history_sweep) plus everything needed to evaluate a
-# candidate schedule. Building the search is a natural M4/M5 addition; do not
-# claim it is implemented until it is.
+# The M3 diagnostic proves an interior optimum exists
+# (diagnostics.weather_history_sweep). The deployed browser also has a narrower
+# crew shift optimizer in app/js/interventions.js: it searches shared start
+# times, preserves every worker's shift length, and rejects candidates that
+# reduce any worker's prescribed heat-work minutes. It does not yet solve the
+# broader dA/dt problem across shift length, site assignment, and work/rest.
 #
 # THE STRAIN CEILING IS THE PART TO GET RIGHT. "Fastest ramp" without a
 # constraint is just "work him in the hottest hours", which is how people die.
@@ -856,7 +850,7 @@ DIURNAL_WARP_GAMMA_PLAUSIBLE = (0.4, 2.5)
 # 5g. NATURAL WET BULB BY CALCULATION: ISO 7243:2017 Annex D
 # ----------------------------------------------------------------------------
 # [VERIFIED 2026-08-24 against ISO 7243:2017(E) Annex D, Formulae (D.1) and
-#  (D.2), and validated against all 22 rows of the standard's own Table D.1, 
+#  (D.2), and checked against all 22 rows of the standard's own Table D.1,
 #  see tests/test_natural_wet_bulb.py, worst error 0.16 degC.]
 #
 # Formula (D.1), solved iteratively for t_nw:

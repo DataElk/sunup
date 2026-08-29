@@ -4,18 +4,18 @@
 
 WHY THIS EXISTS
 ---------------
-WORK_REST_LADDER is the model's largest unvalidated assumption. constants.py
-section 2 records why: NIOSH 2016-106 publishes no work/rest lookup table, the
-familiar 75/25 - 50/50 - 25/75 screening table is ACGIH's and is copyrighted,
-and in any case ours reads against a PERSONAL limit rather than a fixed
-category, so no published table could have supplied it. It is our construction.
+WORK_REST_LADDER is the model's largest unvalidated assumption. NIOSH publishes
+work/rest recommendations and example schedules, but this ladder is not a
+transcription of them. It reads fixed 60/45/30/15 minute rungs against a
+PERSONAL interpolated limit rather than the heat-condition and workload inputs
+used by the NIOSH schedule. It is our construction.
 
 It is also the single thing that decides whether a worker is told to stop. An
 unvalidated assumption in that position has to be sensitivity-tested rather than
 merely disclosed, exactly as TAU_GAIN and TAU_DECAY were.
 
-The question is not whether the ladder is "right". There is no reference to be
-right against. It is whether the PRODUCT'S CLAIM depends on it. Shift timing is
+The question is not whether this audit proves the ladder is safe. It cannot. The
+question is whether the PRODUCT'S COMPARATIVE CLAIM depends on it. Shift timing is
 the headline: two workers, same site, same trade, same day count, differing only
 in start time. If the separation survives every plausible ladder, the claim
 rests on the physics and the schedule, not on four numbers we chose.

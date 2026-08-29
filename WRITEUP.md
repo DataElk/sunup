@@ -77,19 +77,18 @@ within 500 m of the edge, and ranking by percentile instead of raw min/max gives
 **1.284×**. The map draws the discarded band rather than cropping it, because the band is
 part of the result.
 
-**2. The work/rest ladder is not NIOSH's.** `scripts/audit_ladder.py`
+**2. The work/rest ladder is a Sunup construction, not NIOSH's schedule.**
+`scripts/audit_ladder.py`
 
 `constants.py` carried a note to verify our ladder against "the NIOSH work/rest schedule
-table". We went to check it. **There is no such table.** NIOSH 2016-106 names work/rest
-scheduling as an administrative control; its tables cover acclimatization. The familiar
-75/25, 50/50, 25/75 screening table is **ACGIH's**, it is copyrighted, and the OSHA
-Technical Manual explicitly declines to reprint it.
+table". Our first audit overstated the result: **NIOSH does publish work/rest
+recommendations and example schedules**, including its 2017-127 schedule derived from
+the 2016 criteria document. We corrected that claim in the code and documentation.
 
 So the ladder is our construction, and it decides whether a worker is told to stop.
 Correct attribution now reads: exposure limits from NIOSH 2016-106 Figures 8-1 and 8-2;
-rung structure the standard four-step convention, applied to a *personal* limit rather
-than a fixed category, which is the product and is why no published table could have
-supplied it.
+60/45/30/15 minute rungs chosen by this project and applied to a *personal* interpolated
+limit. It is not a transcription of the NIOSH work/rest schedule.
 
 **3. Normalising by a window-dependent quantity measures your window.**
 `scripts/audit_resolution.py`
@@ -213,8 +212,8 @@ prescription by **30 minutes, two full rungs**. Of every constant feeding the WB
 composition, the one that matters most is the one that is our step rather than ISO's. That
 coincidence is uncomfortable and it is the first thing we would fix with more time.
 
-**The work/rest ladder is unvalidated against any standard**, because no applicable
-standard publishes one. See Methods.
+**The work/rest ladder has not been validated as a safe schedule** against the NIOSH
+work/rest recommendations or prospective worker outcome data. See Methods.
 
 **The OSHA heat standard is PROPOSED, not law.** Enforcement is active under the General
 Duty Clause and the Heat National Emphasis Program. Every prescription here uses NIOSH

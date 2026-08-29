@@ -152,7 +152,7 @@ function commandsFor(current) {
       { divider: true },
       { icon: 'remove', label: 'Remove', danger: true, enabled: () => any,
         run: () => forms.confirmRemove('worker', selectedWorkers(), after) },
-      { icon: 'copy', label: 'Copy compliance record', overflow: true,
+      { icon: 'copy', label: 'Copy plan record', overflow: true,
         run: () => copyRecord(current.crewId) },
       { icon: 'log', label: 'Log selected worker', overflow: true, enabled: () => one,
         run: () => forms.editDayLog([...selection][0],
@@ -196,7 +196,7 @@ function copyRecord(crewId) {
   const crew = store.crew(crewId);
   const site = store.site(crew.siteId);
   const lines = [];
-  lines.push('SUNUP - HEAT EXPOSURE COMPLIANCE RECORD');
+  lines.push('SUNUP - HEAT EXPOSURE PLAN RECORD');
   lines.push(`Date: ${compute.currentDateForCrew(crewId)}`);
   lines.push(`Site: ${site.name}   Crew: ${crew.name}`);
   lines.push(`Weather source: ${site.weatherSource}`);
@@ -221,7 +221,7 @@ function copyRecord(crewId) {
   }
   const text = lines.join('\n');
   navigator.clipboard.writeText(text)
-    .then(() => toast('Compliance record copied'))
+    .then(() => toast('Plan record copied'))
     .catch(() => toast('Clipboard blocked by the browser'));
 }
 

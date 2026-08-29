@@ -571,6 +571,13 @@ def test_a_whole_crew_can_be_closed_out_without_selecting_workers():
     assert "footer('Save crew'" in bulk
 
 
+def test_export_is_a_plan_record_and_does_not_claim_legal_compliance():
+    app = strip_comments(read("js", "app.js"))
+    assert "Copy plan record" in app
+    assert "HEAT EXPOSURE PLAN RECORD" in app
+    assert "compliance record" not in app.lower()
+
+
 def test_crew_briefing_is_a_dedicated_printable_field_handoff():
     app = strip_comments(read("js", "app.js"))
     views = strip_comments(read("js", "views.js"))

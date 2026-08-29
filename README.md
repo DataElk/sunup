@@ -16,6 +16,9 @@ hourly work and rest plan.
 
 This is a hackathon prototype. It is not validated for operational safety decisions.
 
+See [Standards and assurance status](STANDARDS.md) and
+[Software verification](VALIDATION.md) for the exact scope of the claims.
+
 ## What is implemented
 
 - Editable sites, crews, workers, shifts, trades, clothing, and actual-minutes logs.
@@ -88,7 +91,7 @@ flowchart LR
     OM[Hourly environmental drivers] --> W
     U[Supervisor roster and actual minutes] --> S[Browser store]
     W --> S
-    S --> E[Validated decision engine]
+    S --> E[Regression-tested decision engine]
     E --> T[Today action queue]
     E --> P[Worker work and recovery plan]
     E --> I[Intervention comparison]

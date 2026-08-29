@@ -399,8 +399,10 @@ Section 4 shows the optimum is interior, both extremes give zero adaptation --
 and the measurements above show which lever actually moves it. Shift timing is
 worth up to 1.07 degC of personal limit; site assignment, on these two sites,
 is worth 0.23 degC and does not clear materiality. A calendar has no term for
-either. The optimiser itself is NOT built; what is built is the evidence that it
-would have something real to optimise.""")
+either. The deployed browser now searches shared crew start times for the most
+prescribed heat-work minutes without reducing any worker's current plan. That is
+narrower than the full dA/dt optimization described here, which would also vary
+shift length, site assignment, and work/rest.""")
 
 
 if __name__ == "__main__":

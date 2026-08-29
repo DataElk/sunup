@@ -397,7 +397,7 @@ discard, percentile ranking) and selected cells are cross-checked against satell
 segmentation. No selected site sits within 500 m of an AOI edge.
 
 ### M4: Interface
-Supervisor roster, ramp strip, counterfactual, compliance record export.
+Supervisor roster, ramp strip, counterfactual, plan record export.
 
 **Exit:** every screen renders from the design tokens; a supervisor can answer
 "who works today and for how long" in under ten seconds; the adaptation number never
@@ -426,7 +426,7 @@ can log what a worker actually did and see tomorrow's recommendation change; the
 roster is visibly seed data and can be reset or deleted; nothing on screen explains the
 demo scenario.
 
-The compliance record is no longer a panel. It is a command on the crew's command bar
+The plan record is no longer a panel. It is a command on the crew's command bar
 that copies a plain-text record to the clipboard, which is what a supervisor does with it.
 
 This milestone moved the per-worker maths into the browser, because an editable roster

@@ -7,7 +7,7 @@ during a demo.
 
 Each site-day is FortyGuard `filter_type=3` tile data (per-cell diurnal
 min/mean/max) reconstructed against Open-Meteo hourly shape, solar, wind, cloud,
-wet bulb and humidity, the same pipeline M1 validated, on a site chosen by M3's
+wet bulb and humidity, the same pipeline M1 regression-checked, on a site chosen by M3's
 percentile ranking rather than by hand.
 """
 
