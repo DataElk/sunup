@@ -325,8 +325,12 @@ export async function startSiteBackfill(siteId) {
     saveForecastSeries(siteId, drivers);
     await resumePending(siteId, drivers);
     const latest = store.site(siteId);
-    await fetchDates(
-      siteId, siteDates(latest).slice(-FIRST_DAYS), drivers, INITIAL_CONCURRENCY);
+    const initialDates = siteDates(latest).slice(-FIRST_DAYS);
+    // Validate the returned grid and site geometry with one paid activity before
+    // submitting the rest of the initial batch. An unusable point or boundary
+    // therefore fails after one activity instead of consuming five.
+    await fetchDates(siteId, initialDates.slice(0, 1), drivers, 1);
+    await fetchDates(siteId, initialDates.slice(1), drivers, INITIAL_CONCURRENCY);
     window.setTimeout(() => finishBackfill(siteId, drivers), 0);
     return true;
   } catch (error) {

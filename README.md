@@ -45,8 +45,9 @@ See [Standards and assurance status](STANDARDS.md) and
 - Hourly humidity, wet bulb, shortwave radiation, cloud, and wind from Open-Meteo.
 - The same black-globe and WBGT composition in Python and JavaScript, checked against
   a 24-hour cross-language regression fixture.
-- Five concurrent initial live history tasks. Each completed day becomes usable
-  immediately, followed by nine background backfill days.
+- One initial live history task validates the returned site grid, followed by four
+  concurrent initial days and nine background backfill days. Each completed day
+  becomes usable immediately.
 - Six Open-Meteo forecast days for live sites. FortyGuard observations end on the
   last complete Arizona day.
 - Browser persistence, cascading deletes, JSON export, and reset to the cached example.
@@ -119,9 +120,10 @@ Each observed day follows this path:
    temperature.
 7. Recompute every worker prescription attached to that site.
 
-The first five observed days are submitted concurrently. Successful days are saved
-independently and become usable as soon as they finish. The remaining nine continue
-with bounded background concurrency. Paid activity IDs are persisted by date so an
+The first observed day validates the returned grid and site geometry before four more
+initial days are submitted concurrently. Successful days are saved independently and
+become usable as soon as they finish. The remaining nine continue with bounded
+background concurrency. Paid activity IDs are persisted by date so an
 interrupted or timed-out poll can resume without submitting the same FortyGuard task
 again.
 

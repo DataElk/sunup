@@ -1649,10 +1649,10 @@ function noWeatherBanner(ctx, site) {
   }
   const node = banner('danger', 'No weather history, prescriptions unavailable',
     'This site has no hourly WBGT series, so nothing can be prescribed for the '
-    + 'crews under it.');
+    + 'crews under it. A full history submits up to 14 FortyGuard activities.');
   const actions = el('div', 'callout-actions');
 
-  actions.appendChild(liveFetchButton(ctx, site, 'Fetch live'));
+  actions.appendChild(liveFetchButton(ctx, site, 'Fetch 14-day history'));
   node.appendChild(actions);
   return node;
 }
@@ -1683,7 +1683,7 @@ function weatherFailureBanner(ctx, site) {
       ? 'Some days are available. Retry to complete this site’s history.'
       : 'No live days are available. Check the API key, then retry.'));
   const actions = el('div', 'callout-actions');
-  actions.appendChild(liveFetchButton(ctx, site, 'Retry live fetch'));
+  actions.appendChild(liveFetchButton(ctx, site, 'Retry missing history'));
   node.appendChild(actions);
   return node;
 }

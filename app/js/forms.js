@@ -71,7 +71,7 @@ export function editSite(siteId, after, initialPoint = null) {
   fields.append(
     field('Name', name),
     field('Location', picker,
-      'Click a point or draw a boundary in Arizona. Live weather is fetched after creation.'));
+      'Click a point or draw a boundary in Arizona. With a saved key, creating or moving a site starts up to 14 FortyGuard history activities.'));
   body.appendChild(fields);
 
   function save() {
@@ -105,6 +105,7 @@ export function editSite(siteId, after, initialPoint = null) {
     compute.invalidate();
     if (after) after();
     if ((!existing || changedLocation) && hasConfiguredKey()) {
+      toast('Site saved. Starting the 14-day live weather history.');
       startSiteBackfill(saved.id).then((started) => {
         if (!started) toast('Live weather could not start for this site');
       });

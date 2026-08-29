@@ -267,6 +267,8 @@ def test_live_sites_use_a_rolling_history_and_real_forecast_series():
     assert "export function forecastDateWindow" in site_weather
     assert "fetchRegionalWeather" in site_weather
     assert "buildWbgtSeries(null, drivers[date], site.location)" in site_weather
+    assert "initialDates.slice(0, 1), drivers, 1" in site_weather
+    assert "initialDates.slice(1), drivers, INITIAL_CONCURRENCY" in site_weather
     compute = strip_comments(read("js", "compute.js"))
     assert "forecastDatesForSite(site)" in compute
     assert "lastHourly" not in compute
@@ -300,6 +302,7 @@ def test_key_test_distinguishes_rejection_from_service_failure():
     assert "liveWeather.saveKey(key.value)" in settings
     assert "uses 1 request" in settings
     assert "Testing submits one FortyGuard activity" in settings
+    assert "new or moved site can submit up to 14 history activities" in settings
 
 
 def test_browser_security_policy_and_leaflet_integrity_are_pinned():
@@ -344,7 +347,7 @@ def test_failed_live_weather_has_a_retry_path():
     views = strip_comments(read("js", "views.js"))
     assert "function weatherFailureBanner" in views
     assert "function liveFetchButton" in views
-    assert "Retry live fetch" in views
+    assert "Retry missing history" in views
     assert "ctx.go('#/settings')" in views
     app = strip_comments(read("js", "app.js"))
     assert "if (!document.querySelector('.panel')) render()" in app
