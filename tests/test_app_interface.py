@@ -848,7 +848,8 @@ def test_finished_boundary_remains_the_saved_geometry():
 
 def test_the_backtest_reads_each_workers_own_day_log():
     source = strip_comments(read("js", "extraviews.js"))
-    assert "store.loggedMinutes(worker.id)" in source
+    assert "store.logsFor(worker.id)" in source
+    assert "history.nextDayOnJob" in source
     assert "logs: {}" in source, "the projection must be blind to the logs"
 
 

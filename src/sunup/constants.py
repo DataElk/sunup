@@ -918,8 +918,14 @@ OSHA_HIGH_HEAT_REST_MIN_PER_2H = 15             # [CHECK] proposed rule text
 # Day 1 = 20% of a normal shift, +20% per day.
 CALENDAR_RAMP_PCT_BY_DAY = {1: 20, 2: 40, 3: 60, 4: 80, 5: 100}
 
-# NIOSH variant, for comparison in the writeup. [CHECK]
-NIOSH_RAMP_PCT_BY_DAY = {1: 50, 2: 60, 3: 80, 4: 100}
+# NIOSH schedule for workers with previous experience doing the same work in
+# heat. This is a calendar comparator, not an initial physiological adaptation
+# value. A returning worker still starts Sunup's measured state from the
+# exposure evidence available to the model.
+RETURNING_CALENDAR_RAMP_PCT_BY_DAY = {1: 50, 2: 60, 3: 80, 4: 100}
+
+# Backwards-compatible analysis name used by older reports.
+NIOSH_RAMP_PCT_BY_DAY = RETURNING_CALENDAR_RAMP_PCT_BY_DAY
 
 # [VERIFIED 2026-08-23] Statistics for the pitch. Cite the source next to each
 # number wherever it appears in the UI or the writeup.

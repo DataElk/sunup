@@ -79,6 +79,17 @@ const EMPTY = {
 
 let state = null;
 
+function migrateWorkerDefaults(current) {
+  let changed = false;
+  for (const worker of current.workers || []) {
+    if (!worker.rampType) {
+      worker.rampType = 'new';
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 /* --- Seeding ----------------------------------------------------------------- */
 
 export async function initStore() {
@@ -94,6 +105,7 @@ export async function initStore() {
       state.exceptionAcknowledgements = {};
       migrated = true;
     }
+    if (migrateWorkerDefaults(state)) migrated = true;
     if (migrateDemoV2(state, window.SUNUP_SEED)) migrated = true;
     if (migrated) writeRaw(STORE_KEY, state);
     hydrateWeatherSeries();
@@ -114,7 +126,8 @@ function applySeed(seed) {
   const next = {
     sites: seed.sites.map((s) => reject({ ...s, seeded: true }, 'seed site')),
     crews: seed.crews.map((c) => reject({ ...c, seeded: true }, 'seed crew')),
-    workers: seed.workers.map((w) => reject({ ...w, seeded: true }, 'seed worker')),
+    workers: seed.workers.map((w) => reject({ rampType: 'new', ...w, seeded: true },
+      'seed worker')),
     dayLogs: JSON.parse(JSON.stringify(seed.dayLogs || {})),
     weatherSeries: {},
     exceptionAcknowledgements: {},
@@ -279,6 +292,7 @@ export function addWorker(fields) {
     shiftStart: CONSTANTS.defaultShiftStartHour,
     shiftEnd: CONSTANTS.defaultShiftEndHour,
     hireDate: null,
+    rampType: 'new',
     active: true,
     seeded: false,
     ...fields,

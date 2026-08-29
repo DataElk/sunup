@@ -140,6 +140,22 @@ def _node(expression):
     return json.loads(result.stdout)
 
 
+def _node_compute(expression):
+    script = (
+        "import {readFileSync} from 'node:fs';"
+        "globalThis.window=globalThis;"
+        "globalThis.localStorage={getItem:()=>null,setItem:()=>{}};"
+        "(0,eval)(readFileSync('app/data/constants.js','utf8'));"
+        "(0,eval)(readFileSync('app/data/weather.js','utf8'));"
+        "const c=await import('./app/js/compute.js');"
+        "process.stdout.write(JSON.stringify(%s));" % expression
+    )
+    result = subprocess.run(["node", "--input-type=module", "-e", script],
+                            cwd=ROOT, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    return json.loads(result.stdout)
+
+
 WORKER = ("{trade:'concrete',clothing:'work_clothes',shiftStart:6,shiftEnd:14,"
           "workClassOverride:null}")
 
@@ -185,6 +201,39 @@ def test_a_zero_log_is_not_treated_as_no_log():
     assert out["rule"] == "proportional"
     assert out["actual"] == 0
     assert out["duties"] == pytest.approx([0.0, 0.0], abs=1e-12)
+
+
+def test_an_explicit_absence_decays_state_without_advancing_the_ramp():
+    out = _node(
+        "(()=>{const w=%s;"
+        "const days=["
+        "{date:'2026-08-01',hourly:Array(24).fill(31.0)},"
+        "{date:'2026-08-02',hourly:Array(24).fill(31.0)}];"
+        "const logs={'2026-08-01':{minutes:0,note:'Absent',absent:true}};"
+        "const r=e.simulate({worker:w,days,logs,initialAdaptation:0.5});"
+        "return {first:r.records[0],second:r.records[1],next:r.nextDayOnJob};})()"
+        % WORKER)
+    assert out["first"]["absent"] is True
+    assert out["first"]["dayOnJob"] == 1
+    assert out["first"]["stimulus"] == 0
+    assert out["first"]["adaptationEnd"] < out["first"]["adaptationStart"]
+    assert out["second"]["dayOnJob"] == 1
+    assert out["next"] == 2
+
+
+def test_returning_worker_uses_the_published_calendar_comparator_only():
+    returning = WORKER[:-1] + ",rampType:'returning'}"
+    out = _node(
+        "(()=>{const w=%s;return [1,2,3,4,5].map(d=>e.calendarMinutes(d,w));})()"
+        % returning)
+    assert out == [240, 288, 384, 480, 480]
+
+
+def test_weather_window_does_not_restart_an_older_hire_at_day_one():
+    out = _node_compute(
+        "c.firstDayOnJob({hireDate:'2026-08-01'},'2026-08-08',"
+        "{'2026-08-03':{minutes:0,note:'Absent'}})")
+    assert out == 7
 
 
 def test_overexposure_counts_only_unauthorised_hours_above_the_limit():

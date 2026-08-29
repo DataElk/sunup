@@ -38,23 +38,26 @@ function backtest(worker) {
   const asOf = dates[cut - 1];
   const before = dates.slice(0, cut).map((d) => ({ date: d, hourly: series[d] }));
   const after = dates.slice(cut).map((d) => ({ date: d, hourly: series[d] }));
-  const logs = store.loggedMinutes(worker.id);
+  const logs = store.logsFor(worker.id);
+  const firstDay = compute.firstDayOnJob(worker, dates[0], logs);
 
-  const history = simulate({ worker, days: before, logs, initialAdaptation: 0 });
+  const history = simulate({
+    worker, days: before, logs, initialAdaptation: 0, firstDayOnJob: firstDay,
+  });
 
   /* The projection: carry the as-of day forward, seeing nothing after it. */
   const carried = after.map((d) => ({ date: d.date, hourly: series[asOf] }));
   const predicted = simulate({
     worker, days: carried, logs: {},
     initialAdaptation: history.finalAdaptation,
-    firstDayOnJob: history.records.length + 1,
+    firstDayOnJob: history.nextDayOnJob,
   }).records;
 
   /* The truth: the real days, with the worker's real log. */
   const actual = simulate({
     worker, days: after, logs,
     initialAdaptation: history.finalAdaptation,
-    firstDayOnJob: history.records.length + 1,
+    firstDayOnJob: history.nextDayOnJob,
   }).records;
 
   const pairs = predicted.map((p, i) => ({

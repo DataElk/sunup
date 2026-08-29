@@ -1417,6 +1417,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
       + (worker.workClassOverride ? ' (override)' : '')),
     fact('Shift', `${pad(worker.shiftStart)}:00 to ${pad(worker.shiftEnd)}:00`),
     fact('Clothing', worker.clothing.replace(/_/g, ' ')),
+    fact('Ramp', worker.rampType === 'returning' ? 'returning worker' : 'new worker'),
     fact('Day on job', String(current.dayOnJob)),
     fact('Calendar', `${current.calendarMinutes} min`));
   head.append(metric, facts, chip(current.status, STATUS_TEXT[current.status]));
@@ -1443,6 +1444,11 @@ export function workerView(ctx, siteId, crewId, workerId) {
       : `${result.assumedRun} recent days have no logged actual.`;
     root.appendChild(banner('assumed',
       missingTitle, 'Add actual minutes for these days.'));
+  }
+  if (result.historyLimited) {
+    root.appendChild(banner('assumed',
+      'Readiness history begins with the available weather window.',
+      'The calendar day reflects the hire date. Readiness starts conservatively at 0% because earlier heat exposure is unavailable.'));
   }
   if (result.cumulativeOverexposure > 0) {
     root.appendChild(banner('danger',
@@ -1482,6 +1488,7 @@ export function workerView(ctx, siteId, crewId, workerId) {
             node.title = 'No actual minutes recorded.';
             return node;
           }
+          if (r.absent) return tag('Absent', 'neutral');
           const node = calculatedValue(String(r.actualMinutes),
             recalculationField(recalculation, r.date, 'actualMinutes'), 'num');
           if (r.actualMinutes > r.prescribedMinutes) node.classList.add('danger');

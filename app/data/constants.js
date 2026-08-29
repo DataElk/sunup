@@ -114,7 +114,13 @@ window.SUNUP_CONSTANTS = {
   "moderate": 28.0,
   "very_heavy": 25.0
  },
- "sourceHash": "03a6127d8d65e27a",
+ "returningCalendarRampPctByDay": {
+  "1": 50,
+  "2": 60,
+  "3": 80,
+  "4": 100
+ },
+ "sourceHash": "1fdd7f662e19b2b8",
  "stimulusFloorDeg": 0.0,
  "tauDecayDays": 13.0,
  "tauGainDays": 4.0,

@@ -34,6 +34,15 @@ def worker():
     return ac.Worker(worker_id="w", trade="concrete")
 
 
+def test_returning_worker_calendar_uses_published_four_day_schedule():
+    assert [ac.calendar_ramp_pct(day, "returning") for day in range(1, 6)] == [
+        50, 60, 80, 100, 100,
+    ]
+    returning = ac.Worker(worker_id="returning", trade="concrete",
+                          ramp_type="returning")
+    assert returning.ramp_type == "returning"
+
+
 # ---------------------------------------------------------------------------
 # GAP 14: a worker on leave must DECAY, never reset
 # ---------------------------------------------------------------------------

@@ -374,6 +374,10 @@ export function editWorker(workerId, defaultCrewId, after) {
   const end = select(existing ? existing.shiftEnd : CONSTANTS.defaultShiftEndHour, HOURS);
   const hire = input(existing ? existing.hireDate || ''
     : compute.currentDateForCrew(defaultCrewId), { type: 'date' });
+  const rampType = select(existing ? existing.rampType || 'new' : 'new', [
+    { value: 'new', label: 'New to this work in heat' },
+    { value: 'returning', label: 'Returning with recent similar experience' },
+  ]);
 
   const fields = form(save);
   fields.classList.add('worker-form');
@@ -384,6 +388,8 @@ export function editWorker(workerId, defaultCrewId, after) {
     field('Work intensity', override,
       'Override only when the task differs from the trade default.'),
     field('Clothing adjustment', clothing),
+    field('Ramp schedule', rampType,
+      'This changes only the published calendar comparison. Readiness still comes from logged exposure.'),
     field('First day on job', hire),
     field('Shift start', start),
     field('Shift end', end));
@@ -401,6 +407,7 @@ export function editWorker(workerId, defaultCrewId, after) {
       shiftStart: s,
       shiftEnd: e,
       hireDate: hire.value || null,
+      rampType: rampType.value,
     };
     if (existing) store.updateWorker(existing.id, changes);
     else store.addWorker(changes);

@@ -203,14 +203,15 @@ export function advanceAdaptation(adaptation, stimulus, tau) {
 
 /* --- The calendar the product argues with ---------------------------------- */
 
-export function calendarPct(dayOnJob) {
-  const table = K.calendarRampPctByDay;
+export function calendarPct(dayOnJob, worker = null) {
+  const table = worker && worker.rampType === 'returning'
+    ? K.returningCalendarRampPctByDay : K.calendarRampPctByDay;
   const hit = table[String(dayOnJob)];
   return hit === undefined ? 100 : hit;
 }
 
 export function calendarMinutes(dayOnJob, worker) {
-  return Math.round((calendarPct(dayOnJob) / 100) * shiftHours(worker) * 60);
+  return Math.round((calendarPct(dayOnJob, worker) / 100) * shiftHours(worker) * 60);
 }
 
 /* --- Status band ----------------------------------------------------------- */
@@ -232,17 +233,25 @@ export function simulate({ worker, days, logs = {}, initialAdaptation = 0,
                            firstDayOnJob = 1, tau = null }) {
   let adaptation = initialAdaptation;
   let cumulativeOverexposure = 0;
+  let dayOnJob = firstDayOnJob;
   const records = [];
 
-  days.forEach((day, index) => {
-    const dayOnJob = firstDayOnJob + index;
+  days.forEach((day) => {
     const hours = prescribeHours(day.hourly, worker, adaptation);
     const prescribed = hours.reduce((sum, h) => sum + h.minutes, 0);
 
-    const logged = Object.prototype.hasOwnProperty.call(logs, day.date)
-      ? logs[day.date] : null;
+    const hasLog = Object.prototype.hasOwnProperty.call(logs, day.date);
+    const entry = hasLog ? logs[day.date] : null;
+    const richEntry = entry && typeof entry === 'object' ? entry : null;
+    const absent = Boolean(richEntry && (richEntry.absent === true
+      || String(richEntry.note || '').trim().toLowerCase() === 'absent'));
+    const logged = hasLog
+      ? (absent ? 0 : Number(richEntry ? richEntry.minutes : entry)) : null;
     const allocation = allocateActual(hours, logged, worker);
-    const stimulus = dailyStimulus(hours, worker, allocation);
+    const stimulus = absent
+      ? { degreeHours: 0, value: 0, saturated: false,
+        hoursAboveRal: 0, workedHoursEquivalent: 0 }
+      : dailyStimulus(hours, worker, allocation);
     const dayOverexposure = overexposure(hours, allocation);
     const adaptationEnd = advanceAdaptation(adaptation, stimulus.value, tau);
     cumulativeOverexposure += dayOverexposure;
@@ -258,7 +267,9 @@ export function simulate({ worker, days, logs = {}, initialAdaptation = 0,
       prescribedMinutes: prescribed,
       actualMinutes: logged === null ? prescribed : logged,
       assumed: logged === null,
-      allocationRule: allocation.rule,
+      absent,
+      absenceReason: absent ? String(richEntry.note || 'Absent') : null,
+      allocationRule: absent ? 'absent' : allocation.rule,
       unprescribedWork: allocation.unprescribedWork,
       adaptationStart: adaptation,
       adaptationEnd,
@@ -274,7 +285,13 @@ export function simulate({ worker, days, logs = {}, initialAdaptation = 0,
     });
 
     adaptation = adaptationEnd;
+    if (!absent) dayOnJob += 1;
   });
 
-  return { records, finalAdaptation: adaptation, cumulativeOverexposure };
+  return {
+    records,
+    finalAdaptation: adaptation,
+    cumulativeOverexposure,
+    nextDayOnJob: dayOnJob,
+  };
 }

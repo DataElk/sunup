@@ -60,6 +60,9 @@ def payload() -> dict:
 
         # The rule the product compares itself against.
         "calendarRampPctByDay": {str(k): v for k, v in C.CALENDAR_RAMP_PCT_BY_DAY.items()},
+        "returningCalendarRampPctByDay": {
+            str(k): v for k, v in C.RETURNING_CALENDAR_RAMP_PCT_BY_DAY.items()
+        },
 
         "defaultShiftStartHour": int(C.DEMO_SHIFT_START_HOUR),
         "defaultShiftEndHour": int(C.DEMO_SHIFT_END_HOUR),

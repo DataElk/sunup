@@ -77,6 +77,7 @@ class Worker:
     clothing: str = "work_clothes"
     shift_start_hour: int = C.DEMO_SHIFT_START_HOUR
     shift_end_hour: int = C.DEMO_SHIFT_END_HOUR
+    ramp_type: str = "new"
 
     def __post_init__(self) -> None:
         if self.trade not in C.TRADE_TO_WORK_CLASS:
@@ -94,6 +95,8 @@ class Worker:
                 "shift must satisfy 0 <= start < end <= 24; got %d-%d"
                 % (self.shift_start_hour, self.shift_end_hour)
             )
+        if self.ramp_type not in ("new", "returning"):
+            raise ValueError("ramp_type must be 'new' or 'returning'")
 
     @property
     def work_class(self) -> C.WorkClass:
@@ -109,7 +112,8 @@ class Worker:
         reject_forbidden_inputs(fields)
         allowed = {
             k: v for k, v in fields.items()
-            if k in ("worker_id", "trade", "clothing", "shift_start_hour", "shift_end_hour")
+            if k in ("worker_id", "trade", "clothing", "shift_start_hour",
+                     "shift_end_hour", "ramp_type")
         }
         unknown = sorted(set(fields) - set(allowed))
         if unknown:
@@ -248,15 +252,22 @@ def advance_adaptation(adaptation: float, stimulus: float, tau: Tau) -> float:
     return min(max(nxt, C.A_MIN), C.A_MAX)
 
 
-def calendar_ramp_pct(day_on_job: int) -> int:
-    """OSHA's "Rule of 20 Percent", the thing the model is measured against.
+def calendar_ramp_pct(day_on_job: int, ramp_type: str = "new") -> int:
+    """Published calendar comparator for a new or returning worker.
 
-    Day 1 is 20% of a normal shift, +20% per day, 100% from day 5. It is what a
-    supervisor does today, and it is the counterfactual the UI must always show.
+    New workers use 20% increments. Workers with recent experience doing the
+    same work in heat use 50%, 60%, 80%, then 100%. Neither schedule assigns a
+    physiological adaptation value; Sunup's state still comes from exposure.
     """
     if day_on_job < 1:
         raise ValueError("day_on_job starts at 1; got %r" % day_on_job)
-    return C.CALENDAR_RAMP_PCT_BY_DAY.get(day_on_job, 100)
+    if ramp_type == "new":
+        table = C.CALENDAR_RAMP_PCT_BY_DAY
+    elif ramp_type == "returning":
+        table = C.RETURNING_CALENDAR_RAMP_PCT_BY_DAY
+    else:
+        raise ValueError("unknown ramp_type %r" % ramp_type)
+    return table.get(day_on_job, 100)
 
 
 # ---------------------------------------------------------------------------
@@ -493,7 +504,7 @@ def simulate(
                     binding_minutes_per_hour=0,
                     shift_work_minutes=0,
                     model_pct=0.0,
-                    calendar_pct=calendar_ramp_pct(max(day_on_job, 1)),
+                    calendar_pct=calendar_ramp_pct(max(day_on_job, 1), worker.ramp_type),
                     absent=True,
                     projected=projected,
                     absence_reason=entry.reason,
@@ -528,7 +539,7 @@ def simulate(
                 binding_minutes_per_hour=min(minutes),
                 shift_work_minutes=sum(minutes),
                 model_pct=100.0 * sum(minutes) / (60.0 * len(hours)),
-                calendar_pct=calendar_ramp_pct(day_on_job),
+                calendar_pct=calendar_ramp_pct(day_on_job, worker.ramp_type),
                 projected=projected,
             )
         )

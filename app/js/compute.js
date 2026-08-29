@@ -60,9 +60,29 @@ export const PROJECTION_DAYS = 6;
 function signature(worker, logs) {
   return [
     worker.id, worker.trade, worker.workClassOverride, worker.clothing,
-    worker.shiftStart, worker.shiftEnd, worker.hireDate, worker.active,
+    worker.shiftStart, worker.shiftEnd, worker.hireDate, worker.rampType, worker.active,
     JSON.stringify(logs),
   ].join('|');
+}
+
+function dateDistance(start, end) {
+  const a = Date.parse(`${start}T00:00:00Z`);
+  const b = Date.parse(`${end}T00:00:00Z`);
+  return Number.isFinite(a) && Number.isFinite(b)
+    ? Math.max(0, Math.round((b - a) / 86400000)) : 0;
+}
+
+/** Ramp day at the first available weather date. Explicit prior absences do
+ * not advance it. Readiness remains conservative at zero when earlier weather
+ * is unavailable; this corrects only the calendar comparator. */
+export function firstDayOnJob(worker, firstDate, logs = {}) {
+  if (!worker || !worker.hireDate || !firstDate || worker.hireDate >= firstDate) return 1;
+  const elapsed = dateDistance(worker.hireDate, firstDate);
+  const priorAbsences = Object.entries(logs).filter(([date, entry]) => (
+    date >= worker.hireDate && date < firstDate && entry && typeof entry === 'object'
+    && (entry.absent === true || String(entry.note || '').trim().toLowerCase() === 'absent')
+  )).length;
+  return Math.max(1, elapsed + 1 - priorAbsences);
 }
 
 /** The site a worker's weather comes from, via their crew. */
@@ -85,7 +105,7 @@ export function forWorker(workerId) {
     return { worker, site, unavailable: true, reason: 'no-weather' };
   }
 
-  const logs = store.loggedMinutes(worker.id);
+  const logs = store.logsFor(worker.id);
   const key = signature(worker, logs);
   if (cache.has(key)) return cache.get(key);
 
@@ -104,6 +124,7 @@ export function forWorker(workerId) {
 
   const run = simulate({
     worker, days: observed.concat(projected), logs, initialAdaptation: 0,
+    firstDayOnJob: firstDayOnJob(worker, dates[0], logs),
   });
 
   const records = run.records;
@@ -124,6 +145,7 @@ export function forWorker(workerId) {
     cumulativeOverexposure: run.cumulativeOverexposure,
     assumedRun: trailingAssumed(records.filter((r) => !r.projected)),
     unprescribedDays: records.filter((r) => r.unprescribedWork && !r.projected).length,
+    historyLimited: Boolean(worker.hireDate && worker.hireDate < dates[0]),
     workClass: workClassOf(worker),
     shiftHours: shiftHours(worker),
   };
