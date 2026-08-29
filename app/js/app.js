@@ -163,7 +163,7 @@ function commandsFor(current) {
   }
   if (current.view === 'worker') {
     return [
-      { icon: 'log', label: 'Log today',
+      { icon: 'log', label: 'Log active date',
         run: () => forms.editDayLog(current.workerId,
           compute.currentDateForWorker(current.workerId), after) },
       { icon: 'edit', label: 'Edit worker',

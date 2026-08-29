@@ -702,6 +702,15 @@ def test_current_site_can_stay_collapsed_and_day_log_has_no_checkboxes():
     assert "label: 'Adapt. after'" not in day_log
 
 
+def test_cached_active_dates_are_not_called_today():
+    app = strip_comments(read("js", "app.js"))
+    views = strip_comments(read("js", "views.js"))
+    assert "Log active date" in app
+    assert "Log today" not in app
+    assert "final observed day" in views
+    assert "Fourteen days to" not in views
+
+
 def test_commands_enable_on_selection_rather_than_appearing():
     """An Office toolbar does not reflow as the selection changes."""
     ui = strip_comments(read("js", "ui.js"))

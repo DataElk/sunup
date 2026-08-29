@@ -73,7 +73,8 @@ function describeSpark(records) {
   const observed = records.filter((r) => !r.projected);
   const last = observed[observed.length - 1];
   return last
-    ? `Fourteen days to ${last.date}; today ${last.prescribedMinutes} minutes.`
+    ? `${observed.length} observed ${observed.length === 1 ? 'day' : 'days'} through `
+      + `${last.date}; ${last.prescribedMinutes} minutes prescribed on the final observed day.`
     : 'No history.';
 }
 

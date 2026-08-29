@@ -403,7 +403,7 @@ body {
   cursor: pointer;
 }
 .dl-sort:hover { color: var(--ink-primary); }
-.dl-caret { font-size: 8px; }
+.dl-caret { font-size: var(--text-label); }
 
 .dl-row {
   height: var(--row-height);
