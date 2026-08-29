@@ -16,7 +16,7 @@ import { CONSTANTS } from './engine.js';
 import * as store from './store.js';
 import * as compute from './compute.js';
 import { isWithinArizona, loadLeaflet, pointFeature, polygonCentre, sitePoint } from './leaflet.js';
-import { hasConfiguredKey } from './liveweather.js';
+import { hasLiveAccess } from './liveweather.js';
 import { startSiteBackfill } from './siteweather.js';
 import {
   el, panel, dismissPanel, field, input, select, toast, confirmDialog,
@@ -71,7 +71,7 @@ export function editSite(siteId, after, initialPoint = null) {
   fields.append(
     field('Name', name),
     field('Location', picker,
-      'Click a point or draw a boundary in Arizona. With a saved key, creating or moving a site starts up to 14 FortyGuard history activities.'));
+      'Click a point or draw a boundary in Arizona. With live access available, creating or moving a site starts up to 14 weather history activities.'));
   body.appendChild(fields);
 
   function save() {
@@ -104,7 +104,7 @@ export function editSite(siteId, after, initialPoint = null) {
     dismissPanel();
     compute.invalidate();
     if (after) after();
-    if ((!existing || changedLocation) && hasConfiguredKey()) {
+    if ((!existing || changedLocation) && hasLiveAccess()) {
       toast('Site saved. Starting the 14-day live weather history.');
       startSiteBackfill(saved.id).then((started) => {
         if (!started) toast('Live weather could not start for this site');

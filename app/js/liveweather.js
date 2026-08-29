@@ -1,36 +1,42 @@
 /* ============================================================================
-   Browser-only FortyGuard access.
+   Protected live-weather access.
 
-   A credential belongs to this browser, not to the roster export or any served
-   asset. Calls are deliberately opt-in: every consumer must check
-   `hasConfiguredKey()` before it submits work.
+   The browser calls Sunup's narrow weather gateway. The upstream credential is
+   held by the gateway and is never stored in, sent by, or returned to the app.
    ========================================================================== */
 
-const KEY_STORAGE = 'sunup.weather.access.v1';
 const REQUEST_TIMEOUT_MS = 60000;
 const ACTIVITY_TIMEOUT_MS = 12 * 60 * 1000;
 const POLL_INTERVAL_MS = 3000;
+const LEGACY_KEY_STORAGE = 'sunup.weather.access.v1';
 
-function readKey() {
+// Earlier builds stored a personal credential in this browser. It is obsolete
+// once all live requests use the protected gateway, so remove it on upgrade.
+try {
+  localStorage.removeItem(LEGACY_KEY_STORAGE);
+} catch {
+  // Storage can be blocked without affecting public gateway access.
+}
+
+export function gatewayUrl() {
+  const configured = String(
+    window.SUNUP_CONFIG && window.SUNUP_CONFIG.weatherGateway || '',
+  ).trim().replace(/\/+$/, '');
+  if (!configured) return '';
   try {
-    return localStorage.getItem(KEY_STORAGE) || '';
+    const url = new URL(configured);
+    const local = ['localhost', '127.0.0.1'].includes(url.hostname);
+    return url.protocol === 'https:' || (local && url.protocol === 'http:')
+      ? url.toString().replace(/\/+$/, '') : '';
   } catch {
     return '';
   }
 }
 
 function endpoint(path) {
-  const host = ['api', 'fortyguard', 'com'].join('.');
-  return new URL(path, `https://${host}`).toString();
-}
-
-function authHeaders() {
-  const key = readKey();
-  if (!key) throw new Error('Live weather is not configured.');
-  return {
-    [['api', 'key'].join('-')]: key,
-    'Content-Type': 'application/json',
-  };
+  const base = gatewayUrl();
+  if (!base) throw new Error('Public live weather is not configured.');
+  return new URL(path, `${base}/`).toString();
 }
 
 async function request(path, options = {}) {
@@ -41,7 +47,10 @@ async function request(path, options = {}) {
     response = await fetch(endpoint(path), {
       ...options,
       signal: controller.signal,
-      headers: { ...authHeaders(), ...(options.headers || {}) },
+      headers: {
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.headers || {}),
+      },
     });
   } catch (error) {
     if (error && error.name === 'AbortError') {
@@ -52,90 +61,33 @@ async function request(path, options = {}) {
     window.clearTimeout(timeout);
   }
 
-  if (!response.ok) {
-    const error = new Error(`Live weather request failed (${response.status}).`);
-    error.status = response.status;
-    throw error;
-  }
-
+  let payload;
   try {
-    return await response.json();
+    payload = await response.json();
   } catch {
     throw new Error('The live weather service returned an unreadable response.');
   }
-}
 
-export function hasConfiguredKey() {
-  return Boolean(readKey());
-}
-
-export function saveKey(value) {
-  const key = String(value || '').trim();
-  if (!key) throw new Error('Enter a key before saving.');
-  try {
-    localStorage.setItem(KEY_STORAGE, key);
-  } catch {
-    throw new Error('This browser could not save the key.');
-  }
-}
-
-export function clearKey() {
-  try {
-    localStorage.removeItem(KEY_STORAGE);
-  } catch {
-    throw new Error('This browser could not remove the key.');
-  }
-}
-
-function previousDate(date) {
-  const value = new Date(`${date}T00:00:00Z`);
-  value.setUTCDate(value.getUTCDate() - 1);
-  return value.toISOString().slice(0, 10);
-}
-
-/** Submit a small completed-hour request. An activity id proves authentication. */
-export async function testKey(asOfDate) {
-  const date = previousDate(asOfDate);
-  const payload = {
-    polygon_aoi: {
-      type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [-112.075, 33.447], [-112.073, 33.447],
-            [-112.073, 33.449], [-112.075, 33.449],
-            [-112.075, 33.447],
-          ]],
-        },
-      }],
-    },
-    date_time: { start_date: date, start_time: '14:00', filter_type: 1 },
-    granularity: 100,
-  };
-  let response;
-  try {
-    response = await request('/v1/heatmap', {
-      method: 'POST', body: JSON.stringify(payload),
-    });
-  } catch (error) {
-    if (error && (error.status === 401 || error.status === 403)) {
-      throw new Error('The saved API key was rejected. Check or replace the key.');
-    }
-    if (error && error.status === 429) {
-      throw new Error('FortyGuard is rate-limiting this key. Try again shortly.');
-    }
-    if (error && error.status >= 500) {
-      throw new Error('FortyGuard could not complete the key test. Try again shortly.');
-    }
+  if (!response.ok) {
+    const message = payload && typeof payload.message === 'string'
+      ? payload.message : `Live weather request failed (${response.status}).`;
+    const error = new Error(message);
+    error.status = response.status;
     throw error;
   }
-  if (!response || !response.data || !response.data.activity_id) {
-    throw new Error('The live weather service did not accept the key.');
+  return payload;
+}
+
+export function hasLiveAccess() {
+  return Boolean(gatewayUrl());
+}
+
+export async function testLiveAccess() {
+  const response = await request('/health');
+  if (!response || response.ok !== true || response.configured !== true) {
+    throw new Error('Public live weather is not ready.');
   }
-  return { activityId: response.data.activity_id, date };
+  return true;
 }
 
 export async function submitHeatmap(payload) {
@@ -180,7 +132,7 @@ export async function waitForActivity(activityId, onPoll, options = {}) {
 }
 
 export async function fetchRegionalWeather(location, startDate, endDate) {
-  if (!hasConfiguredKey()) throw new Error('Live weather is not configured.');
+  if (!hasLiveAccess()) throw new Error('Live weather is not configured.');
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.searchParams.set('latitude', String(location.lat));
   url.searchParams.set('longitude', String(location.lng));

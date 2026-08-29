@@ -3,6 +3,7 @@
 !.env.example
 .dev.vars
 .dev.vars.*
+.wrangler/
 venv/
 __pycache__/
 node_modules/

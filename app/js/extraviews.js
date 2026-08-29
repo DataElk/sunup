@@ -18,7 +18,7 @@ import * as store from './store.js';
 import * as compute from './compute.js';
 import * as liveWeather from './liveweather.js';
 import {
-  el, detailsList, chip, tag, toast, confirmDialog, field, input, pageHeader,
+  el, detailsList, chip, tag, toast, confirmDialog, pageHeader,
 } from './ui.js';
 import { section } from './views.js';
 
@@ -194,90 +194,36 @@ export function settingsView(ctx) {
 
   settingsGrid.appendChild(section('Live weather', (() => {
     const wrap = el('div', 'stack');
-    const configured = liveWeather.hasConfiguredKey();
-    const key = input('', {
-      type: 'password', autocomplete: 'new-password',
-      autocapitalize: 'none', spellcheck: 'false',
-      placeholder: configured ? 'Saved key is hidden' : 'Enter key',
-    });
-    const keyStatus = el('p', 'muted', configured
-      ? 'A key is saved in this browser. Test it before creating a live site.'
-      : 'No key is saved in this browser.');
-    keyStatus.setAttribute('role', 'status');
+    const configured = liveWeather.hasLiveAccess();
+    const accessStatus = el('p', 'muted', configured
+      ? 'Public live weather is ready. No credential is stored in this browser.'
+      : 'Public live weather is not configured for this deployment. Cached demo data remains available.');
+    accessStatus.setAttribute('role', 'status');
     const actions = el('div', 'callout-actions');
-    const save = el('button', 'btn btn-primary', 'Save key');
-    const test = el('button', 'btn', 'Test saved key (uses 1 request)');
-    const clearKey = el('button', 'btn btn-danger', 'Remove key');
-    save.type = 'button';
+    const test = el('button', 'btn btn-primary', 'Check live access');
     test.type = 'button';
-    clearKey.type = 'button';
-    save.disabled = true;
     test.disabled = !configured;
-    clearKey.disabled = !configured;
-    key.addEventListener('input', () => {
-      const entered = Boolean(key.value.trim());
-      save.disabled = !entered;
-      test.textContent = entered
-        ? 'Save and test (uses 1 request)' : 'Test saved key (uses 1 request)';
-      test.disabled = !entered && !liveWeather.hasConfiguredKey();
-    });
-
-    save.addEventListener('click', () => {
-      try {
-        liveWeather.saveKey(key.value);
-        key.value = '';
-        key.placeholder = 'Saved key is hidden';
-        save.disabled = true;
-        keyStatus.textContent = 'A key is saved in this browser. Test it before creating a live site.';
-        test.disabled = false;
-        clearKey.disabled = false;
-        toast('Key saved in this browser');
-      } catch (error) {
-        toast(error.message);
-      }
-    });
     test.addEventListener('click', async () => {
       test.disabled = true;
+      test.textContent = 'Checking...';
       try {
-        if (key.value.trim()) {
-          liveWeather.saveKey(key.value);
-          key.value = '';
-          key.placeholder = 'Saved key is hidden';
-          save.disabled = true;
-          clearKey.disabled = false;
-          keyStatus.textContent = 'The entered key was saved. Testing it now.';
-        }
-        const result = await liveWeather.testKey(compute.today());
-        keyStatus.textContent = `The saved key authenticated successfully. Test activity ${result.activityId}.`;
-        toast('Key authenticated. Live weather is available.');
+        await liveWeather.testLiveAccess();
+        accessStatus.textContent = 'Public live weather is ready.';
+        toast('Live weather is available');
       } catch (error) {
-        keyStatus.textContent = `The key test failed: ${error.message}`;
+        accessStatus.textContent = `Live weather check failed: ${error.message}`;
         toast(error.message);
       } finally {
-        test.textContent = 'Test saved key (uses 1 request)';
+        test.textContent = 'Check live access';
         test.disabled = false;
-      }
-    });
-    clearKey.addEventListener('click', () => {
-      try {
-        liveWeather.clearKey();
-        key.value = '';
-        key.placeholder = 'Enter key';
-        keyStatus.textContent = 'No key is saved in this browser.';
-        test.disabled = true;
-        clearKey.disabled = true;
-        toast('Key removed from this browser');
-      } catch (error) {
-        toast(error.message);
       }
     });
 
     wrap.append(
-      field('API key', key,
-        'Saved only in this browser. It is not included in store exports or reset data. Testing submits one FortyGuard activity. A new or moved site can submit up to 14 history activities. On app open, live sites fetch one activity per missing historical day, up to 14 after a long gap.'),
-      keyStatus,
+      el('p', null, 'Live sites can retrieve up to 14 observed days and refresh missing days automatically.'),
+      accessStatus,
       actions);
-    actions.append(save, test, clearKey);
+    actions.append(test);
     return wrap;
   })()));
 

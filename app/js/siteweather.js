@@ -6,7 +6,7 @@ import {
   bufferedAoi, buildWbgtSeries, parseOpenMeteoDays, selectSiteCell,
 } from './environment.js';
 import {
-  fetchRegionalWeather, hasConfiguredKey, submitHeatmap, waitForActivity,
+  fetchRegionalWeather, hasLiveAccess, submitHeatmap, waitForActivity,
 } from './liveweather.js';
 
 const HISTORY_DAYS = 14;
@@ -311,7 +311,7 @@ async function finishBackfill(siteId, drivers) {
 }
 
 export async function startSiteBackfill(siteId) {
-  if (!hasConfiguredKey()) return false;
+  if (!hasLiveAccess()) return false;
   const site = store.site(siteId);
   if (!site || !site.polygon || !site.location) return false;
   if (inflight.has(siteId)) return true;
@@ -362,7 +362,7 @@ export async function resumeSiteActivity(siteId) {
 }
 
 export function resumeSiteBackfills() {
-  if (!hasConfiguredKey()) return Promise.resolve([]);
+  if (!hasLiveAccess()) return Promise.resolve([]);
   const resumable = store.sites().filter((site) => Object.keys(pendingActivities(site)).length
     || ['loading', 'backfill', 'partial'].includes(site.weatherStatus)
     || siteNeedsRefresh(site));

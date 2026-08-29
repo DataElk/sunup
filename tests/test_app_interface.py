@@ -287,33 +287,33 @@ def test_live_weather_stops_on_the_last_complete_arizona_day():
     assert "weatherForecastDates: forecastDateWindow(asOf)" in start
 
 
-def test_key_test_distinguishes_rejection_from_service_failure():
+def test_live_weather_uses_the_public_gateway_without_a_browser_credential():
     client = strip_comments(read("js", "liveweather.js"))
-    assert "['api', 'fortyguard', 'com'].join('.')" in client
-    assert "['api', 'forty', 'guard']" not in client
-    test_key = client[client.index("export async function testKey"):
-                      client.index("export async function submitHeatmap")]
-    assert "const date = previousDate(asOfDate)" in test_key
-    assert "error.status === 401 || error.status === 403" in test_key
-    assert "error.status >= 500" in test_key
-    assert "Key authentication failed" not in test_key
+    assert "window.SUNUP_CONFIG" in client
+    assert "weatherGateway" in client
+    assert "export async function testLiveAccess" in client
+    assert "request('/health')" in client
+    assert "api.fortyguard.com" not in client
+    assert "api-key" not in client
+    assert "localStorage.removeItem(LEGACY_KEY_STORAGE)" in client
+    assert "localStorage.setItem" not in client
     settings = strip_comments(read("js", "extraviews.js"))
-    assert "A key is saved in this browser" in settings
-    assert "Test saved key" in settings
-    assert "Save and test" in settings
-    assert "if (key.value.trim())" in settings
-    assert "liveWeather.saveKey(key.value)" in settings
-    assert "uses 1 request" in settings
-    assert "Testing submits one FortyGuard activity" in settings
-    assert "new or moved site can submit up to 14 history activities" in settings
-    assert "one activity per missing historical day" in settings
+    assert "No credential is stored in this browser" in settings
+    assert "Check live access" in settings
+    assert "liveWeather.testLiveAccess()" in settings
+    assert "Save key" not in settings
 
 
 def test_browser_security_policy_and_leaflet_integrity_are_pinned():
     index = read("index.html")
     assert "Content-Security-Policy" in index
     assert "script-src 'self' https://unpkg.com" in index
-    assert "connect-src 'self' https://api.fortyguard.com https://api.open-meteo.com" in index
+    assert "connect-src 'self' https://api.open-meteo.com https://sunup-weather-gateway.dataelk-sunup.workers.dev" in index
+    assert "api.fortyguard.com" not in index
+    assert '<script src="data/config.js"></script>' in index
+    config = read("data", "config.js")
+    assert "https://sunup-weather-gateway.dataelk-sunup.workers.dev" in config
+    assert "api-key" not in config
     leaflet = read("js", "leaflet.js")
     assert "LEAFLET_CSS_INTEGRITY" in leaflet
     assert "LEAFLET_JS_INTEGRITY" in leaflet
@@ -646,11 +646,12 @@ def test_today_has_a_persisted_exception_acknowledgement_ledger():
     assert "width: 100%" in css[css.index(".btn.review-action"):]
 
 
-def test_settings_imports_every_control_it_renders():
+def test_settings_does_not_render_browser_credential_controls():
     source = strip_comments(read("js", "extraviews.js"))
     imports = source[:source.index("const HORIZON")]
-    assert re.search(r"\binput\b", imports)
-    assert "const key = input(" in source
+    assert not re.search(r"\binput\b", imports)
+    assert "const key = input(" not in source
+    assert "liveWeather.testLiveAccess()" in source
 
 
 def test_editors_use_human_labels_and_modal_focus_management():
@@ -930,7 +931,7 @@ def test_settings_groups_weather_and_browser_data():
     settings = source[source.index("export function settingsView"):]
     assert "settings-grid" in settings
     assert "Weather access and browser data" in settings
-    assert "save.disabled = !entered" in settings
+    assert "test.disabled = !configured" in settings
 
 
 # ---------------------------------------------------------------------------
@@ -939,7 +940,7 @@ def test_settings_groups_weather_and_browser_data():
 
 
 def test_live_network_access_is_opt_in():
-    """A cold opening uses the cached seed until the user saves a key."""
+    """A cold opening uses cached seed data until a live site needs weather."""
     for name in JS_FILES:
         source = read("js", name)
         for forbidden in ("fetch(", "XMLHttpRequest", "WebSocket", "import("):
@@ -947,7 +948,7 @@ def test_live_network_access_is_opt_in():
     client = read("js", "liveweather.js")
     backfill = read("js", "siteweather.js")
     assert "fetch(" in client
-    assert "if (!hasConfiguredKey()) return false" in backfill
+    assert "if (!hasLiveAccess()) return false" in backfill
     html = read("index.html")
     assert "http://" not in html
     assert not re.search(r'(?:src|href)=["\']https://', html)

@@ -11,7 +11,7 @@ import * as store from './store.js';
 import * as compute from './compute.js';
 import * as forms from './forms.js';
 import { exceptionLedger } from './exceptions.js';
-import { hasConfiguredKey } from './liveweather.js';
+import { hasLiveAccess } from './liveweather.js';
 import { siteNeedsRefresh, startSiteBackfill } from './siteweather.js';
 import { sitePoint } from './leaflet.js';
 import {
@@ -1670,9 +1670,9 @@ function noWeatherBanner(ctx, site) {
 }
 
 function liveFetchButton(ctx, site, label) {
-  const button = el('button', 'btn', hasConfiguredKey() ? label : 'Add API key');
+  const button = el('button', 'btn', hasLiveAccess() ? label : 'Check live access');
   button.type = 'button';
-  if (!hasConfiguredKey()) {
+  if (!hasLiveAccess()) {
     button.addEventListener('click', () => ctx.go('#/settings'));
     return button;
   }
@@ -1681,7 +1681,7 @@ function liveFetchButton(ctx, site, label) {
     const task = startSiteBackfill(site.id);
     ctx.refresh();
     const started = await task;
-    if (!started) toast('Live weather fetch failed. Check the key and try again.');
+    if (!started) toast('Live weather fetch failed. Check access and try again.');
     ctx.refresh();
   });
   return button;
@@ -1693,7 +1693,7 @@ function weatherFailureBanner(ctx, site) {
     partial ? 'Live weather history is incomplete' : 'Live weather fetch failed',
     site.weatherError || (partial
       ? 'Some days are available. Retry to complete this site’s history.'
-      : 'No live days are available. Check the API key, then retry.'));
+      : 'No live days are available. Check live access, then retry.'));
   const actions = el('div', 'callout-actions');
   actions.appendChild(liveFetchButton(ctx, site, 'Retry missing history'));
   node.appendChild(actions);

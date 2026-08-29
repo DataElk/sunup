@@ -17,4 +17,5 @@ never sends or receives the upstream key.
    in the Content Security Policy in `app/index.html`.
 
 The secret must never be added to `wrangler.jsonc`, source code, a commit, or a shell
-history entry. For local browser development, Sunup retains its personal-key fallback.
+history entry. Without a local or deployed gateway, the browser keeps using cached
+demo weather.

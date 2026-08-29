@@ -8,26 +8,22 @@ Use the repository's private
 when it is available. If private reporting is unavailable, open a public issue with
 only a minimal, redacted description and ask the maintainer for a private channel.
 
-## Browser security model
+## Browser and gateway security model
 
-Sunup is a static browser application with no application backend or account system.
-Roster data, weather history, exception acknowledgements, and the optional FortyGuard
-API key are stored in that browser's local storage.
+Sunup stores roster data, weather history, and exception acknowledgements in the
+browser's local storage. It does not store the shared weather credential in the
+browser, public configuration, repository, or data export.
 
-The API key:
+The public app calls a Cloudflare Worker that holds the credential as an encrypted
+secret binding. The Worker is deliberately not a general proxy. It accepts only a
+daily FortyGuard heatmap submission and activity status polling. Before forwarding a
+submission it checks the requesting origin, JSON size and shape, filter type,
+granularity, date, Arizona geometry, area, and request rate.
 
-- is never part of the repository or deployed assets;
-- is not included in the JSON store export;
-- is not changed by resetting demo data;
-- is sent only to `https://api.fortyguard.com` in the `api-key` request header;
-- can be removed from Settings at any time.
-
-A browser application cannot make a client-side API key cryptographically secret from
-code executing on the same origin. Sunup therefore limits script sources with a Content
-Security Policy and pins the dynamically loaded Leaflet files with Subresource
-Integrity. These controls reduce supply-chain risk but do not replace a backend secret
-store. A production deployment should keep the FortyGuard key on a server and issue
-short-lived, scoped requests to authenticated clients.
+The browser limits script and network destinations with a Content Security Policy and
+pins the dynamically loaded Leaflet files with Subresource Integrity. The gateway does
+not make an unauthenticated public demo abuse-proof, so the upstream credential should
+still be rotated if traffic or logs indicate misuse.
 
 Anyone who pasted a key into a public issue, commit, screenshot, or shared browser
 profile should revoke or rotate it with FortyGuard.

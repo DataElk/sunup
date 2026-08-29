@@ -109,6 +109,7 @@ field validation study are the next steps before an operational deployment.
 - Static browser application deployed on GitHub Pages with no login requirement.
 - Point and polygon site creation constrained to the Arizona key coverage area.
 - Direct FortyGuard asynchronous submission and polling with persisted activity IDs.
+- Protected public weather access through a constrained, rate-limited edge gateway.
 - One geometry-validation history task before four concurrent initial days, partial
   success preservation, retry, and recoverable polling timeout.
 - Fourteen observed days with background completion and six forecast days.

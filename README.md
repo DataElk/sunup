@@ -69,26 +69,30 @@ Open `http://localhost:8777/app/index.html`.
 The application uses JavaScript modules, so serve it over HTTP. Opening the file
 directly with `file://` is not supported.
 
-## Configure live weather
+## Use live weather
 
-1. Open Settings.
-2. Enter a FortyGuard API key and select Save key.
-3. Use Test key to confirm authentication.
-4. Create a site from Sites and crews or by clicking the site map.
-5. Choose Set point or Draw boundary, finish the geometry, enter a name, and create it.
+The public deployment provides live weather through a protected gateway, so visitors
+do not need to enter a credential.
 
-The key is stored only in that browser's local storage. It is not included in source
-files, served assets, store exports, screenshots, or reset data. Do not add a key or a
-`.env` file to Git.
+1. Open Settings and select Check live access.
+2. Create a site from Sites and crews or by clicking the site map.
+3. Choose Set point or Draw boundary, finish the geometry, enter a name, and create it.
 
-Without a key, the cached example remains available and no FortyGuard request is made.
-The site map still retrieves OpenStreetMap tiles when opened.
+The shared credential is an encrypted Cloudflare Worker secret. It is never included
+in browser storage, source files, served configuration, store exports, screenshots, or
+reset data. The gateway accepts only Sunup's constrained Arizona heatmap and status
+requests. Without a configured gateway, the cached example remains available.
+
+Local developers can deploy the gateway by following `gateway/README.md`, then set its
+public origin in `app/data/config.js`. Never add a credential or `.env` file to Git.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    FG[FortyGuard heatmap tiles] --> W[Site weather builder]
+    B[Browser] --> G[Protected weather gateway]
+    G --> FG[FortyGuard heatmap tiles]
+    FG --> W[Site weather builder]
     OM[Hourly environmental drivers] --> W
     U[Supervisor roster and actual minutes] --> S[Browser store]
     W --> S
@@ -125,14 +129,14 @@ initial days are submitted concurrently. Successful days are saved independently
 become usable as soon as they finish. The remaining nine continue with bounded
 background concurrency. Paid activity IDs are persisted by date so an
 interrupted or timed-out poll can resume without submitting the same FortyGuard task
-again. When the app opens with a saved key, each complete live site rolls its window to
+again. When the app opens with live access, each complete live site rolls its window to
 the last completed Arizona day. It submits one activity for each missing historical
 day, up to 14 after a long gap, and rebuilds the six-day forecast.
 
 ## FortyGuard request and response
 
-The browser submits this shape to `POST https://api.fortyguard.com/v1/heatmap` with the
-key in the `api-key` header:
+The browser submits this shape to the protected gateway. The gateway validates it and
+adds the upstream authentication server-side before forwarding it to FortyGuard:
 
 ```json
 {
