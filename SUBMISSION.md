@@ -115,7 +115,7 @@ field validation study are the next steps before an operational deployment.
 - Python and JavaScript implementations gated by golden vectors at 1e-9 agreement.
 - Forbidden personal inputs rejected at the store boundary.
 - Full CRUD, cascading deletes, browser persistence, cached demonstration data, and
-  explicit live, cached, derived, partial, and failed weather states.
+  explicit live, cached, partial, and failed weather states.
 - Automated model, API-contract, interface, environmental, and design verification.
 
 ## Reproducible evidence

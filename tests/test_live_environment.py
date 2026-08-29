@@ -59,6 +59,14 @@ def test_polygon_uses_interior_median_and_discards_edge_cells(replay):
     assert cell["max"] == pytest.approx(25.0)
 
 
+def test_edge_filter_never_falls_back_to_unsafe_cells(replay):
+    assert "request-edge safety filter" in replay["noInteriorError"]
+
+
+def test_boundary_never_falls_back_to_a_point_outside_the_polygon(replay):
+    assert "inside this boundary" in replay["noBoundaryCellError"]
+
+
 def test_live_site_weather_is_not_derived_from_a_seed_curve():
     with open(os.path.join(ROOT, "app", "js", "siteweather.js"),
               encoding="utf-8") as handle:

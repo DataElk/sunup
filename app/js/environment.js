@@ -212,12 +212,14 @@ export function selectSiteCell(result, site, queryAoi = bufferedAoi(site)) {
   const queryBounds = boundsOf(queryAoi, site.location);
   const interior = cells.filter((cell) => distanceToBoundsM(cell.centre, queryBounds)
     >= EDGE_DISCARD_M);
-  const safe = interior.length ? interior : cells;
+  if (!interior.length) {
+    throw new Error('No weather cell remains after the request-edge safety filter. Use a larger site area and retry.');
+  }
 
   if (site.geometryMode === 'boundary') {
     const ring = site.polygon && site.polygon.features
       && ringOf(site.polygon.features[0]);
-    const within = ring ? safe.filter((cell) => pointInRing(cell.centre, ring)) : [];
+    const within = ring ? interior.filter((cell) => pointInRing(cell.centre, ring)) : [];
     if (within.length) {
       return {
         min: median(within.map((cell) => cell.min)),
@@ -226,9 +228,10 @@ export function selectSiteCell(result, site, queryAoi = bufferedAoi(site)) {
         cellsUsed: within.length,
       };
     }
+    throw new Error('No safe weather cell falls inside this boundary. Draw a larger boundary or use a point.');
   }
 
-  const nearest = safe.reduce((best, cell) => (
+  const nearest = interior.reduce((best, cell) => (
     !best || distanceM(cell.centre, site.location) < distanceM(best.centre, site.location)
       ? cell : best
   ), null);

@@ -35,7 +35,8 @@ This is a hackathon prototype. It is not validated for operational safety decisi
 - Live FortyGuard `filter_type=3` calls for each site's daily cell minimum, mean, and
   maximum temperature.
 - A 1 km request buffer, a 500 m edge discard, nearest safe-cell selection for points,
-  and median interior-cell aggregation for boundaries.
+  and median interior-cell aggregation for boundaries. The fetch fails clearly when
+  no safe cell remains or a boundary contains no safe cell.
 - Hourly dry-bulb reconstruction fitted to the selected FortyGuard cell's minimum,
   mean, and maximum.
 - Hourly humidity, wet bulb, shortwave radiation, cloud, and wind from Open-Meteo.

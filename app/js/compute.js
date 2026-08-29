@@ -221,24 +221,4 @@ export function forSite(siteId) {
   };
 }
 
-/* --- Weather estimation for a site that has none -----------------------------
-   The honest default is that a new site has no weather and says so. This is the
-   opt-in alternative: scale the nearest measured series by the ratio of the two
-   sites' exceedance hours. It is a DERIVED series, tagged as such everywhere it
-   surfaces, including the compliance record.
-   ---------------------------------------------------------------------------- */
-
-export function estimateSeriesFrom(measuredKey, ratio) {
-  const source = W().series[measuredKey];
-  const out = {};
-  for (const [date, hourly] of Object.entries(source)) {
-    out[date] = hourly.map((v) => Math.round(v * ratio * 1000) / 1000);
-  }
-  return out;
-}
-
-export function measuredSeriesKeys() {
-  return Object.keys(W().series);
-}
-
 export function statusOf(minutes, worker) { return statusFor(minutes, worker); }

@@ -200,7 +200,8 @@ def test_dynamic_weather_series_persist_and_hydrate():
     site_weather = strip_comments(read("js", "siteweather.js"))
     assert "store.saveWeatherSeries(key, series)" in site_weather
     forms = strip_comments(read("js", "forms.js"))
-    assert "store.saveWeatherSeries(key" in forms
+    assert "estimateWeather" not in forms
+    assert "estimateSeriesFrom" not in strip_comments(read("js", "compute.js"))
 
 
 def test_site_rollup_does_not_present_missing_inputs_as_a_full_shift():

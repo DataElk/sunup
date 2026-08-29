@@ -707,9 +707,6 @@ function workerNameCell(result) {
   const line = el('div', 'cellline');
   line.appendChild(el('span', 'nm', result.worker.name));
   if (result.worker.workClassOverride) line.appendChild(tag('override', 'warn'));
-  if (result.site && result.site.weatherSource === 'derived') {
-    line.appendChild(tag('derived', 'warn'));
-  }
   wrap.appendChild(line);
   return wrap;
 }
@@ -966,7 +963,6 @@ export function sitesView(ctx) {
         render: (r) => {
           const wrap = el('div', 'cellline');
           wrap.appendChild(el('span', 'nm', r.site.name));
-          if (r.site.weatherSource === 'derived') wrap.appendChild(tag('derived', 'warn'));
           if (r.site.weatherSource === 'none') wrap.appendChild(tag('no weather', 'danger'));
           return wrap;
         } },
@@ -1023,8 +1019,6 @@ export function siteView(ctx, siteId) {
     root.appendChild(weatherFailureBanner(ctx, site));
   } else if (site.weatherStatus === 'backfill') {
     root.appendChild(backfillBanner(site));
-  } else if (site.weatherSource === 'derived') {
-    root.appendChild(derivedBanner(site));
   }
 
   const rows = store.crews(siteId).map((c) => compute.forCrew(c.id));
@@ -1186,7 +1180,6 @@ export function crewView(ctx, siteId, crewId) {
   else if (site.weatherStatus === 'error' || site.weatherStatus === 'partial') {
     root.appendChild(weatherFailureBanner(ctx, site));
   } else if (site.weatherStatus === 'backfill') root.appendChild(backfillBanner(site));
-  else if (site.weatherSource === 'derived') root.appendChild(derivedBanner(site));
 
   const rows = store.workers(crewId).map((w) => compute.forWorker(w.id)).filter(Boolean);
 
@@ -1622,11 +1615,6 @@ function banner(kind, title, detail) {
   return node;
 }
 
-function derivedBanner(site) {
-  return banner('warn', 'Derived weather',
-    site.derivedNote || 'A measured source site was used.');
-}
-
 function definition(label, value, numeric = false) {
   const item = el('div', 'readiness-item');
   const detail = el('dd', numeric ? 'num' : null);
@@ -1664,12 +1652,7 @@ function noWeatherBanner(ctx, site) {
     + 'crews under it.');
   const actions = el('div', 'callout-actions');
 
-  const fetchBtn = liveFetchButton(ctx, site, 'Fetch live');
-  const est = el('button', 'btn btn-primary', 'Estimate from nearest measured site');
-  est.type = 'button';
-  est.addEventListener('click', () => forms.estimateWeather(site.id, ctx.refresh));
-
-  actions.append(fetchBtn, est);
+  actions.appendChild(liveFetchButton(ctx, site, 'Fetch live'));
   node.appendChild(actions);
   return node;
 }

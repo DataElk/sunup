@@ -348,6 +348,30 @@ def test_day_logs_cannot_exceed_the_assigned_shift():
     assert out["stored"] is None
 
 
+def test_saved_multiplicative_weather_estimates_are_removed_on_migration():
+    out = _node(
+        "await (async()=>{"
+        "(0,eval)(readFileSync('app/data/seed.js','utf8'));"
+        "window.SUNUP_WEATHER={series:{}};"
+        "const memory={};"
+        "const saved={sites:[{id:'s',weatherSource:'derived',seriesKey:'derived_s',"
+        "derivedNote:'scaled'}],crews:[],workers:[],dayLogs:{},"
+        "weatherSeries:{derived_s:{'2026-08-01':[30]}},"
+        "exceptionAcknowledgements:{},seeded:2};"
+        "memory['sunup.store.v1']=JSON.stringify(saved);"
+        "globalThis.localStorage={getItem:key=>memory[key]||null,"
+        "setItem:(key,value)=>{memory[key]=value;}};"
+        "const store=await import('./app/js/store.js');"
+        "await store.initStore(); const site=store.site('s');"
+        "return {source:site.weatherSource,key:site.seriesKey,status:site.weatherStatus,"
+        "error:site.weatherError,series:store.getState().weatherSeries};})()")
+    assert out["source"] == "none"
+    assert out["key"] is None
+    assert out["status"] == "error"
+    assert "not a site measurement" in out["error"]
+    assert out["series"] == {}
+
+
 def test_intervention_uses_the_existing_engine_and_respects_an_hourly_cap():
     out = _node(
         "await (async()=>{"

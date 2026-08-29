@@ -74,15 +74,6 @@ export function editSite(siteId, after, initialPoint = null) {
       'Click a point or draw a boundary in Arizona. Live weather is fetched after creation.'));
   body.appendChild(fields);
 
-  if (existing && existing.weatherSource === 'derived') {
-    const note = el('div', 'callout callout-warn');
-    note.append(
-      el('strong', null, 'Derived weather'),
-      el('p', null, existing.derivedNote
-        || 'This site’s hourly series was estimated, not measured.'));
-    body.appendChild(note);
-  }
-
   function save() {
     if (!chosen) {
       toast('Choose a site location in Arizona first');
@@ -260,63 +251,6 @@ async function mountSitePicker(host, initial, initialPolygon, initialMode, onCha
     point.disabled = true;
     area.disabled = true;
   }
-}
-
-/* --- Estimate weather for a site that has none -------------------------------
-   D2, decided: honest by default, derived as an explicit opt-in. The user has
-   to come here and choose it, and the result is tagged everywhere afterwards.
-   ---------------------------------------------------------------------------- */
-
-export function estimateWeather(siteId, after) {
-  const site = store.site(siteId);
-  const measured = compute.measuredSeriesKeys();
-  const meta = window.SUNUP_WEATHER.siteMeta;
-
-  const source = select(measured[0], measured.map((k) => ({
-    value: k,
-    label: `${k}, ${meta[k] ? `${(meta[k].exceedanceHours / 14).toFixed(1)} h/day above threshold` : 'measured'}`,
-  })));
-  const ratio = input('1.00', { type: 'number', step: '0.01', min: '0.5', max: '1.5' });
-
-  const body = el('div', 'panel-stack');
-  const warn = el('div', 'callout callout-warn');
-  warn.append(
-    el('strong', null, 'This site will use derived weather.'),
-    el('p', null, 'Choose a source site and adjustment.'));
-  body.appendChild(warn);
-
-  const fields = form(save);
-  fields.append(
-    field('Source site', source),
-    field('Adjustment', ratio, 'Allowed range: 0.50 to 1.50.'));
-  body.appendChild(fields);
-
-  function save() {
-    const factor = Math.max(0.5, Math.min(1.5, Number(ratio.value) || 1));
-    const key = `derived_${site.id}`;
-    store.saveWeatherSeries(key, compute.estimateSeriesFrom(source.value, factor));
-    store.updateSite(site.id, {
-      seriesKey: key,
-      weatherSource: 'derived',
-      weatherStatus: null,
-      weatherProgress: null,
-      weatherUpdatedAt: null,
-      liveActivityId: null,
-      liveActivityDate: null,
-      derivedNote: `Source: ${source.value}. Adjustment: ${factor.toFixed(2)}.`,
-    });
-    dismissPanel();
-    compute.invalidate();
-    toast('Weather estimate saved');
-    if (after) after();
-  }
-
-  panel({
-    title: 'Estimate weather',
-    subtitle: site.name,
-    body,
-    footer: footer('Estimate', save),
-  });
 }
 
 /* --- Crew --------------------------------------------------------------------- */

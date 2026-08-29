@@ -54,4 +54,35 @@ const outerAoi = { type: 'FeatureCollection', features: [{
 }] };
 const boundaryCell = environment.selectSiteCell(boundaryResult, boundarySite, outerAoi);
 
-process.stdout.write(JSON.stringify({ cell, series, boundaryCell }));
+const edgeOnlyAoi = { type: 'FeatureCollection', features: [{
+  type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[
+    [0, 0], [0.003, 0], [0.003, 0.003], [0, 0.003], [0, 0],
+  ]] },
+}] };
+let noInteriorError = '';
+try {
+  environment.selectSiteCell({ map_data: { features: [square(0.0015, 0.0015, 20)] } },
+    { location: { lng: 0.0015, lat: 0.0015 }, geometryMode: 'point' }, edgeOnlyAoi);
+} catch (error) {
+  noInteriorError = error.message;
+}
+
+const emptyBoundarySite = {
+  location: { lng: 0.035, lat: 0.035 },
+  geometryMode: 'boundary',
+  polygon: { type: 'FeatureCollection', features: [{
+    type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[
+      [0.032, 0.032], [0.038, 0.032], [0.038, 0.038], [0.032, 0.038], [0.032, 0.032],
+    ]] },
+  }] },
+};
+let noBoundaryCellError = '';
+try {
+  environment.selectSiteCell(boundaryResult, emptyBoundarySite, outerAoi);
+} catch (error) {
+  noBoundaryCellError = error.message;
+}
+
+process.stdout.write(JSON.stringify({
+  cell, series, boundaryCell, noInteriorError, noBoundaryCellError,
+}));

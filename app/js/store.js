@@ -90,6 +90,26 @@ function migrateWorkerDefaults(current) {
   return changed;
 }
 
+function removeUnsafeDerivedWeather(current) {
+  let changed = false;
+  for (const site of current.sites || []) {
+    if (site.weatherSource !== 'derived') continue;
+    if (site.seriesKey && current.weatherSeries) delete current.weatherSeries[site.seriesKey];
+    site.seriesKey = null;
+    site.weatherSource = 'none';
+    site.weatherStatus = 'error';
+    site.weatherProgress = null;
+    site.weatherUpdatedAt = null;
+    site.weatherDates = null;
+    site.weatherForecastDates = null;
+    site.weatherAsOfDate = null;
+    site.weatherError = 'The previous temperature estimate was removed because it was not a site measurement. Fetch live weather to continue.';
+    delete site.derivedNote;
+    changed = true;
+  }
+  return changed;
+}
+
 /* --- Seeding ----------------------------------------------------------------- */
 
 export async function initStore() {
@@ -106,6 +126,7 @@ export async function initStore() {
       migrated = true;
     }
     if (migrateWorkerDefaults(state)) migrated = true;
+    if (removeUnsafeDerivedWeather(state)) migrated = true;
     if (migrateDemoV2(state, window.SUNUP_SEED)) migrated = true;
     if (migrated) writeRaw(STORE_KEY, state);
     hydrateWeatherSeries();
