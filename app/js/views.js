@@ -1468,9 +1468,13 @@ export function workerView(ctx, siteId, crewId, workerId) {
   const simulator = interventionSimulator(result);
   if (simulator) root.appendChild(simulator);
 
+  const siteHistoryDays = compute.observedDatesForSite(site).length;
+  const observedLabel = result.worker.hireDate && result.observed.length < siteHistoryDays
+    ? `${result.observed.length} of ${siteHistoryDays} site weather days shown since hire date ${result.worker.hireDate}`
+    : `${result.observed.length} observed site weather days`;
   const historyLabel = result.projected.length
-    ? `${result.observed.length} observed days and ${result.projected.length} forecast days`
-    : `${result.observed.length} observed days`;
+    ? `${observedLabel}, plus ${result.projected.length} forecast days`
+    : observedLabel;
   const history = section('Work capacity history', historyChart(result.records, recalculation));
   history.classList.add('worker-history');
   history.insertBefore(el('p', 'section-description', historyLabel), history.children[1]);

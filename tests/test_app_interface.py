@@ -369,6 +369,28 @@ def test_the_seed_is_data_and_is_resettable_and_deletable():
     assert "Delete everything" in settings
 
 
+def test_demo_logs_never_predate_the_worker_or_weather_window():
+    seed = generated("seed.js")
+    weather = generated("weather.js")
+    weather_dates = set(weather["dates"])
+    workers = {worker["id"]: worker for worker in seed["workers"]}
+    for worker_id, logs in seed["dayLogs"].items():
+        assert worker_id in workers
+        for date in logs:
+            assert date >= workers[worker_id]["hireDate"], (worker_id, date)
+            assert date in weather_dates, (worker_id, date)
+
+
+def test_demo_log_generation_is_deterministic_and_guards_hire_dates():
+    with open(os.path.join(ROOT, "scripts", "build_app_data.py"),
+              encoding="utf-8") as fh:
+        source = fh.read()
+    assert "hashlib.sha256" in source
+    assert "hash((worker" not in source
+    assert "if date < hire:" in source
+    assert "refusing pre-hire log" in source
+
+
 def test_seeded_records_are_stored_without_demo_badges():
     store = strip_comments(read("js", "store.js"))
     assert "seeded: true" in store
@@ -918,7 +940,10 @@ def test_model_performance_has_no_decorative_selection_controls():
     block = performance[performance.index("export function performanceView"):
                         performance.index("function metric")]
     assert "selectable: false" in block
-    assert "Projected / actual" in block
+    assert "Last ${HORIZON} days: projected / recalculated" in block
+    assert "enough history for a ${HORIZON}-day holdout" in block
+    assert "Logged actuals" in block
+    assert "projected plan level matched" in block
     assert "fc-day-value" in block
     assert "fc-dot" not in block
     css = read("styles", "components.css")

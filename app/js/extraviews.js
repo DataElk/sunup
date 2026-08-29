@@ -97,7 +97,7 @@ export function performanceView(ctx) {
     .map(backtest)
     .filter(Boolean);
   root.appendChild(pageHeader('Model performance',
-    `${rows.length} active workers with enough history`));
+    `${rows.length} active workers with enough history for a ${HORIZON}-day holdout`));
 
   const usable = rows.filter((r) => !r.degenerate);
   if (usable.length) {
@@ -106,9 +106,9 @@ export function performanceView(ctx) {
     const bias = usable.reduce((s, r) => s + r.bias, 0) / usable.length;
     const summary = el('div', 'fc-summary');
     summary.append(
-      metric(`${bands}/${total}`, 'prescription band correct'),
+      metric(`${bands}/${total}`, 'projected plan level matched'),
       metric(`${bias > 0 ? '+' : ''}${bias.toFixed(1)}`,
-        `bias, min, ${bias < 0 ? 'conservative' : (bias > 0 ? 'permissive' : 'none')}`,
+        `projection bias, min, ${bias < 0 ? 'conservative' : (bias > 0 ? 'permissive' : 'none')}`,
         bias > 0 ? 'permissive' : 'safe'),
       metric(String(usable.length), 'workers with a usable comparison'),
       metric(String(rows.length - usable.length), 'workers without variation'));
@@ -129,9 +129,9 @@ export function performanceView(ctx) {
           return wrap;
         } },
       { label: 'Site', width: '1fr', render: (r) => r.site.name },
-      { label: 'Logged', width: '84px', numeric: true,
+      { label: 'Logged actuals', width: '108px', numeric: true,
         render: (r) => `${r.loggedDays}/${r.bandsTotal}` },
-      { label: 'Band', width: '76px', numeric: true,
+      { label: 'Plan level', width: '84px', numeric: true,
         render: (r) => {
           const node = el('span', 'num', `${r.bandsMatched}/${r.bandsTotal}`);
           if (r.degenerate) node.classList.add('void');
@@ -144,16 +144,16 @@ export function performanceView(ctx) {
           node.classList.add(r.bias > 0 ? 'danger' : 'ok');
           return node;
         } },
-      { label: 'Mean error (min)', width: '120px', numeric: true,
+      { label: 'Mean gap (min)', width: '108px', numeric: true,
         render: (r) => r.degenerate ? '' : String(r.meanAbs) },
-      { label: 'Projected / actual', width: '300px',
+      { label: `Last ${HORIZON} days: projected / recalculated`, width: '300px',
         render: (r) => {
           const wrap = el('span', 'fc-days');
           for (const pair of r.pairs) {
             const day = el('span', 'fc-day');
             day.setAttribute('data-ok', String(pair.bandMatched));
             day.title = `${pair.date}: projected ${pair.predicted}, `
-              + `actual ${pair.actual}`;
+              + `recalculated ${pair.actual}`;
             day.append(
               el('span', 'fc-day-date', pair.date.slice(5)),
               el('span', 'fc-day-value num', `${pair.predicted}/${pair.actual}`));

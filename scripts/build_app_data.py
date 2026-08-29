@@ -31,6 +31,7 @@ exercise the assumed-day fallback or the overexposure metric.
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import os
 import sys
@@ -176,9 +177,16 @@ def seed_day_logs(workers, dates, today, cache):
     logs = {}
     by_name = {w["name"]: w for w in workers}
     recent = set(dates[-3:])
+    available = set(dates)
 
     def put(name, date, minutes, note=""):
         worker = by_name[name]
+        hire = dt.date.fromisoformat(worker["hireDate"])
+        if date < hire:
+            raise ValueError("refusing pre-hire log for %s on %s" % (name, date))
+        if date not in available:
+            raise ValueError("refusing log outside the weather window for %s on %s"
+                             % (name, date))
         logs.setdefault(worker["id"], {})[date.isoformat()] = {
             "minutes": int(minutes), "note": note}
 
@@ -201,14 +209,18 @@ def seed_day_logs(workers, dates, today, cache):
                 continue
             prescribed = record.shift_work_minutes
             # A crew that mostly does as it is told, with ordinary slippage.
-            jitter = (hash((worker["id"], date.isoformat())) % 3 - 1) * 15
+            token = "%s|%s" % (worker["id"], date.isoformat())
+            bucket = hashlib.sha256(token.encode("utf-8")).digest()[0] % 3
+            jitter = (bucket - 1) * 15
             put(worker["name"], date, max(0, prescribed + jitter))
 
     # The three deliberate cases.
     put("M. Haddad", dates[-5], 420, "pour ran long")
     put("M. Haddad", dates[-4], 400, "pour ran long")
-    put("B. Osei", dates[-6], 180, "asked to cover an inspection")
-    put("C. Duarte", dates[-4], 0, "sent home, felt unwell")
+    put("B. Osei", dt.date.fromisoformat(by_name["B. Osei"]["hireDate"]),
+        180, "asked to cover an inspection")
+    put("C. Duarte", dt.date.fromisoformat(by_name["C. Duarte"]["hireDate"]),
+        0, "assigned to non-heat work")
     return logs
 
 
