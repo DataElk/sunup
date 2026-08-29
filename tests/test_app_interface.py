@@ -715,6 +715,7 @@ def test_status_weather_source_comes_from_site_data_not_key_presence():
     app = strip_comments(read("js", "app.js"))
     status = app[app.index("function statusFor"):app.index("function render")]
     assert "site.weatherSource" in status
+    assert "sources.has('measured')" in status
     assert "Live and cached weather" in status
     assert "hasConfiguredKey" not in status
 

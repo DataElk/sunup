@@ -291,10 +291,11 @@ function statusFor(current) {
     statusHost.appendChild(wrap);
   };
   const sources = new Set(state.sites.map((site) => site.weatherSource));
-  const sourceLabel = sources.has('live') && sources.has('cached')
+  const hasCached = sources.has('cached') || sources.has('measured');
+  const sourceLabel = sources.has('live') && hasCached
     ? 'Live and cached weather'
     : (sources.has('live') ? 'Live weather'
-      : (sources.has('cached') ? 'Cached weather' : 'Weather unavailable'));
+      : (hasCached ? 'Cached weather' : 'Weather unavailable'));
   add('Date', compute.today());
   add('Source', sourceLabel);
   add('Store', `${state.workers.length} workers, browser storage`);
