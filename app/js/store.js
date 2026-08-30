@@ -182,9 +182,9 @@ export function subscribe(fn) {
   return () => listeners.delete(fn);
 }
 
-function emit() {
+function emit(change = { type: 'data' }) {
   writeRaw(STORE_KEY, state);
-  for (const fn of listeners) fn(state);
+  for (const fn of listeners) fn(state, change);
 }
 
 /* --- Reads ------------------------------------------------------------------- */
@@ -255,7 +255,8 @@ export function saveWeatherSeries(key, series) {
   const saved = JSON.parse(JSON.stringify(series || {}));
   state.weatherSeries[key] = saved;
   window.SUNUP_WEATHER.series[key] = saved;
-  emit();
+  const owner = state.sites.find((item) => (item.seriesKey || `live_${item.id}`) === key);
+  emit({ type: 'weather', siteId: owner ? owner.id : null, dataChanged: true });
   return saved;
 }
 
@@ -323,18 +324,24 @@ export function addWorker(fields) {
   return record;
 }
 
-function patch(collection, id, changes, where) {
+function patch(collection, id, changes, where, notification) {
   const item = collection.find((x) => x.id === id);
   if (!item) throw new Error(`${where}: no such id ${id}`);
   reject(changes, where);
   Object.assign(item, changes);
-  emit();
+  emit(notification);
   return item;
 }
 
 export function updateSite(id, changes) { return patch(state.sites, id, changes, 'updateSite'); }
 export function updateCrew(id, changes) { return patch(state.crews, id, changes, 'updateCrew'); }
 export function updateWorker(id, changes) { return patch(state.workers, id, changes, 'updateWorker'); }
+
+export function updateSiteWeather(id, changes) {
+  return patch(state.sites, id, changes, 'updateSiteWeather', {
+    type: 'weather', siteId: id, dataChanged: false,
+  });
+}
 
 function dropExceptionAcknowledgements(matches) {
   Object.entries(state.exceptionAcknowledgements || {}).forEach(([id, event]) => {

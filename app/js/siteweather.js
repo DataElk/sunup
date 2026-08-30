@@ -102,7 +102,7 @@ async function loadDrivers(site) {
 
 function updateProgress(siteId, changes) {
   const site = store.site(siteId);
-  if (site) store.updateSite(siteId, changes);
+  if (site) store.updateSiteWeather(siteId, changes);
 }
 
 function liveKey(site) {
@@ -207,6 +207,8 @@ function saveDailySeries(siteId, date, daily) {
       completed, total, pending: Object.keys(pendingActivities(current)).length,
     },
     weatherUpdatedAt: new Date().toISOString(),
+    weatherPhase: completed === total ? 'complete' : site.weatherPhase,
+    weatherFinishedAt: completed === total ? new Date().toISOString() : null,
     weatherError: null,
   });
   compute.invalidate();
@@ -288,6 +290,8 @@ function markFailure(siteId, error) {
   const completed = completedDays(site);
   const changes = {
     weatherStatus: completed ? 'partial' : 'error',
+    weatherPhase: 'error',
+    weatherFinishedAt: new Date().toISOString(),
     weatherProgress: {
       completed,
       total: siteDates(site).length,
@@ -300,9 +304,16 @@ function markFailure(siteId, error) {
 
 async function finishBackfill(siteId, drivers) {
   try {
+    updateProgress(siteId, { weatherPhase: 'backfill' });
     const site = store.site(siteId);
     if (site) await fetchDates(
       siteId, orderedDates(site), drivers, BACKFILL_CONCURRENCY);
+    if (store.site(siteId)) {
+      setStage(siteId);
+      updateProgress(siteId, {
+        weatherPhase: 'complete', weatherFinishedAt: new Date().toISOString(),
+      });
+    }
   } catch (error) {
     markFailure(siteId, error);
   } finally {
@@ -326,12 +337,16 @@ export async function startSiteBackfill(siteId) {
     weatherForecastDates: forecastDateWindow(asOf),
     weatherAsOfDate: asOf,
     weatherError: null,
+    weatherStartedAt: new Date().toISOString(),
+    weatherFinishedAt: null,
+    weatherPhase: 'regional',
   });
   setStage(siteId);
   try {
     const current = store.site(siteId);
     const drivers = await loadDrivers(current);
     saveForecastSeries(siteId, drivers);
+    updateProgress(siteId, { weatherPhase: 'site-check' });
     await resumePending(siteId, drivers);
     const latest = store.site(siteId);
     const initialDates = siteDates(latest).slice(-FIRST_DAYS);
@@ -339,6 +354,7 @@ export async function startSiteBackfill(siteId) {
     // submitting the rest of the initial batch. An unusable point or boundary
     // therefore fails after one activity instead of consuming five.
     await fetchDates(siteId, initialDates.slice(0, 1), drivers, 1);
+    updateProgress(siteId, { weatherPhase: 'initial' });
     await fetchDates(siteId, initialDates.slice(1), drivers, INITIAL_CONCURRENCY);
     window.setTimeout(() => finishBackfill(siteId, drivers), 0);
     return true;

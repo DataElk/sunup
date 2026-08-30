@@ -1469,9 +1469,12 @@ export function workerView(ctx, siteId, crewId, workerId) {
   if (simulator) root.appendChild(simulator);
 
   const siteHistoryDays = compute.observedDatesForSite(site).length;
-  const observedLabel = result.worker.hireDate && result.observed.length < siteHistoryDays
-    ? `${result.observed.length} of ${siteHistoryDays} site weather days shown since hire date ${result.worker.hireDate}`
-    : `${result.observed.length} observed site weather days`;
+  const incompleteHistory = ['loading', 'backfill', 'partial'].includes(site.weatherStatus);
+  const observedLabel = incompleteHistory
+    ? `${result.observed.length} observed days in this plan. Site history is still incomplete`
+    : (result.worker.hireDate && result.observed.length < siteHistoryDays
+      ? `${result.observed.length} of ${siteHistoryDays} site weather days shown since hire date ${result.worker.hireDate}`
+      : `${result.observed.length} observed site weather days`);
   const historyLabel = result.projected.length
     ? `${observedLabel}, plus ${result.projected.length} forecast days`
     : observedLabel;
@@ -1654,11 +1657,9 @@ function weatherFreshness(site) {
 
 function noWeatherBanner(ctx, site) {
   if (site.weatherStatus === 'loading' || site.weatherStatus === 'backfill') {
-    const progress = site.weatherProgress || { completed: 0, total: 14 };
-    return banner('info', 'Retrieving live weather',
-      `${progress.completed} of ${progress.total} days ready`
-      + `${progress.pending ? `, ${progress.pending} processing` : ''}. `
-      + 'The first completed day becomes usable immediately.');
+    return banner('info', 'Your schedule is being prepared',
+      'Follow the progress above. Select Show available plan when weather is ready, '
+      + 'or keep working on another page while the history loads.');
   }
   if (site.weatherStatus === 'error' || site.weatherStatus === 'partial') {
     return weatherFailureBanner(ctx, site);
@@ -1686,7 +1687,6 @@ function liveFetchButton(ctx, site, label) {
     ctx.refresh();
     const started = await task;
     if (!started) toast('Live weather fetch failed. Check access and try again.');
-    ctx.refresh();
   });
   return button;
 }
@@ -1717,10 +1717,9 @@ function weatherStaleBanner(ctx, site) {
 
 function backfillBanner(site) {
   const progress = site.weatherProgress || { completed: 5, total: 14 };
-  return banner('info', 'Live weather is still backfilling',
-    `${progress.completed} of ${progress.total} days ready`
-    + `${progress.pending ? `, ${progress.pending} processing` : ''}. `
-    + 'Prescriptions update as history arrives.');
+  return banner('info', 'Plan uses a partial weather history',
+    `This view includes ${progress.completed} of ${progress.total} weather days. `
+    + 'Use the progress bar above to apply additional days when you are ready.');
 }
 
 function missing(ctx, message) {

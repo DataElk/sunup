@@ -21,7 +21,8 @@ import * as store from './store.js';
 import * as compute from './compute.js';
 import * as forms from './forms.js';
 import * as views from './views.js';
-import { resumeSiteBackfills } from './siteweather.js';
+import { resumeSiteBackfills, startSiteBackfill } from './siteweather.js';
+import { createWeatherProgress } from './weatherprogress.js';
 import { mapView } from './mapview.js';
 import { performanceView, settingsView } from './extraviews.js';
 import { el, icon, commandBar, navTree, toast, dismissPanel } from './ui.js';
@@ -45,6 +46,21 @@ let route = { view: 'today' };
 let selection = new Set();
 let sort = { key: 'name', dir: 'asc' };
 let expanded = new Set();
+const pendingWeather = new Set();
+let renderedHash = null;
+const weatherProgress = createWeatherProgress(document.getElementById('weather-progress-host'), {
+  onApply: () => { render(); toast('Plan updated with the available weather history'); },
+  onRetry: (ids) => ids.forEach((id) => startSiteBackfill(id).then((started) => {
+    if (!started) toast('Weather could not resume. Check live access and try again.');
+  })),
+});
+
+function updateWeatherProgress(reset = false) {
+  const sites = route.siteId ? [store.site(route.siteId)].filter(Boolean) : store.sites();
+  weatherProgress.update(sites, {
+    dirty: sites.some((site) => pendingWeather.has(site.id)), reset,
+  });
+}
 
 /* --- Routing ------------------------------------------------------------------- */
 
@@ -305,6 +321,8 @@ function statusFor(current) {
 
 function render() {
   const current = parse();
+  const samePage = renderedHash === location.hash;
+  const previousScroll = samePage ? content.scrollTop : 0;
   if (current.view !== route.view
       || current.siteId !== route.siteId
       || current.crewId !== route.crewId) {
@@ -337,6 +355,10 @@ function render() {
     default: view = views.sitesView(ctx);
   }
   content.replaceChildren(view);
+  content.scrollTop = previousScroll;
+  pendingWeather.clear();
+  updateWeatherProgress(!samePage);
+  renderedHash = location.hash;
   statusFor(current);
 }
 
@@ -346,8 +368,14 @@ window.addEventListener('hashchange', () => { dismissPanel(); render(); });
 
 (async function boot() {
   await store.initStore();
-  store.subscribe(() => {
+  store.subscribe((state, change) => {
     compute.invalidate();
+    if (change && change.type === 'weather') {
+      if (change.dataChanged && change.siteId) pendingWeather.add(change.siteId);
+      updateWeatherProgress();
+      statusFor(route);
+      return;
+    }
     if (!document.querySelector('.panel')) render();
   });
 
